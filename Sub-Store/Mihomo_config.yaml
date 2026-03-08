@@ -10,7 +10,7 @@ BaseFB: &BaseFB {type: fallback, interval: 200, lazy: true, url: 'https://www.go
 # UT:url-test测速分组的锚点引用
 BaseUT: &BaseUT {type: url-test, interval: 200, lazy: true, url: 'https://www.google.com/generate_204', hidden: true}
 # smart智能分组的锚点引用,不适用lgbm模型，收集数据。如果要换，就可以这样，全局搜索“星BaseUT”换成“星BaseSmart”这个，这样把自动测速都换成智能。
-BaseSmart: &BaseSmart {type: smart, interval: 200, lazy: true, url: 'https://www.google.com/generate_204', hidden: true, uselightgbm: false, collectdata: true}
+# BaseSmart: &BaseSmart {type: smart, interval: 200, lazy: true, url: 'https://www.google.com/generate_204', hidden: true, uselightgbm: false, collectdata: true}
 
 # 节点筛选正则表达式 - 基于地理位置和关键词过滤
 # (?!.*(家宽|住宅|5G网络|星链)这个部分为排除内容。
@@ -323,7 +323,7 @@ rules:
   - RULE-SET,mediaip,国际全媒,no-resolve
   - RULE-SET,GoogleIP,谷歌服务,no-resolve
   - RULE-SET,ProxyIP,国外流量,no-resolve
-  - RULE-SET,ChinaIP,国内流量
+  - RULE-SET,ChinaIP,国内流量,no-resolve
 
   # 兜底规则
   - MATCH,兜底流量
