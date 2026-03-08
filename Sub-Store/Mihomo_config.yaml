@@ -147,7 +147,6 @@ tun:
   stack: mixed
   dns-hijack:
     - 0.0.0.0:53
-    - "[::]:53"
     - "any:53"
     - "tcp://any:53"
 
@@ -308,7 +307,7 @@ rules:
   - RULE-SET,github,Github
   - RULE-SET,Microsoft,微软服务
   - RULE-SET,Proxy,国外流量
-  - RULE-SET,China,国内流量
+  - RULE-SET,China
 
   # IP规则
   - RULE-SET,AdvertisingIP,REJECT,no-resolve
