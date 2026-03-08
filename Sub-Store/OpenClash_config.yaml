@@ -177,9 +177,9 @@ dns:
   enable: true
   ipv6: true
 # 7874给OpenClash用
-# listen: 0.0.0.0:7874
+  listen: 0.0.0.0:7874
 # 1053给大部分场景用
-  listen: 0.0.0.0:1053
+# listen: 0.0.0.0:1053
   enhanced-mode: fake-ip
   fake-ip-range: 198.18.0.1/16
   default-nameserver:
