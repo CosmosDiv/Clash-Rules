@@ -307,7 +307,7 @@ rules:
   - RULE-SET,github,Github
   - RULE-SET,Microsoft,微软服务
   - RULE-SET,Proxy,国外流量
-  - RULE-SET,China
+  - RULE-SET,China,国内流量
 
   # IP规则
   - RULE-SET,AdvertisingIP,REJECT,no-resolve
@@ -322,7 +322,7 @@ rules:
   - RULE-SET,mediaip,国际全媒,no-resolve
   - RULE-SET,GoogleIP,谷歌服务,no-resolve
   - RULE-SET,ProxyIP,国外流量,no-resolve
-  - RULE-SET,ChinaIP,国内流量,no-resolve
+  - RULE-SET,ChinaIP,国内流量
 
   # 兜底规则
   - MATCH,兜底流量
