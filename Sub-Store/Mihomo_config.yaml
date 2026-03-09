@@ -383,7 +383,7 @@ rule-providers:
   ChinaIP:        {<<: *BehaviorIP, url: https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/ip/China.mrs}
 
   # 漫游规则
-  ukwifi:         {<<: *ClassicalText, url: https://testingcf.jsdelivr.net/gh/HenryChiao/wificalling@main/qiao/wificalling.list}
+  ukwifi:         {<<: *ClassicalText, url: https://testingcf.jsdelivr.net/gh/HenryChiao/wificalling@main/rules/UK-wifi-call.list}
   # 广告规则
   AWAvenueAds:    {<<: *BehaviorDY, url: https://testingcf.jsdelivr.net/gh/TG-Twilight/AWAvenue-Ads-Rule@main/Filters/AWAvenue-Ads-Rule-Clash.yaml}
   # AA规则
