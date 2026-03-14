@@ -184,11 +184,12 @@ dns:
   fake-ip-range: 198.18.0.1/16
   fake-ip-range6: fdfe:dcba:9876::1/64
   default-nameserver:
-    - 119.29.29.29
-    - tls://223.5.5.5:853
+    - 223.5.5.5                 # 阿里（国内）
+    - 119.29.29.29              # 腾讯（国内）
+    - system                    # 系统 DNS (保留以防万一)
   nameserver:
-    - https://doh.pub/dns-query
     - https://dns.alidns.com/dns-query
+    - https://doh.pub/dns-query
   fake-ip-filter-mode: blacklist
   fake-ip-filter:
     - rule-set:fakeip-filter
