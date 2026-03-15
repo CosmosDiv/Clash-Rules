@@ -189,7 +189,7 @@ proxy-groups:
   - {name: 直接连接,     type: select, proxies: [DIRECT], hidden: true, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Direct.png}
 
   # ==================== 功能策略组 ====================
-  - {name: 网络测试,     <<: *SelectDC, include-all: true, filter: *FilterAL, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Speedtest.png}
+  - {name: 网络测试,     <<: *SelectDC, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Speedtest.png}
   - {name: 抖快书定位,   type: select, proxies: [直接连接, 香港策略, 台湾策略, 狮城策略, 日本策略, 韩国策略, 美国策略, 英国策略, 欧盟策略], icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Domestic.png}
 
   # ==================== 媒体服务 ====================
