@@ -1,5 +1,4 @@
 # ==================== 锚点配置 ====================
-
 # 策略组类型模板 - 定义不同的策略组基础配置
 BaseFB: &BaseFB {type: fallback, interval: 200, lazy: true, url: 'https://cp.cloudflare.com/generate_204'}
 BaseUT: &BaseUT {type: url-test, interval: 200, lazy: true, url: 'https://cp.cloudflare.com/generate_204', hidden: true}
@@ -31,29 +30,6 @@ FilterEUHome: &FilterEUHome '(?i)^(?=.*(欧洲|欧盟|Europe|European|EU|英国|
 # AL是all所有
 FilterAL: &FilterAL '^(?!.*(DIRECT|直接连接|群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))'
 
-
-# 策略组代理列表模板 - 预定义的代理节点优先级排序
-# 这里我理解,应该是直接定义分组里面包含的节点.然后不同的分组有不同的优先级
-# FB默认选择fallback组包含的分组排序
-SelectFB: &SelectFB {type: select, proxies: [故障转移, 香港策略, 狮城策略, 日本策略, 韩国策略, 美国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
-# PY默认代理组的分组排序
-SelectPY: &SelectPY {type: select, proxies: [默认代理, 故障转移, 香港策略, 狮城策略, 日本策略, 韩国策略, 美国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
-# DC默认直连组的分组排序
-SelectDC: &SelectDC {type: select, proxies: [直接连接, 默认代理, 故障转移, 香港策略, 狮城策略, 日本策略, 韩国策略, 美国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动]}
-# HK默认香港的分组排序
-SelectHK: &SelectHK {type: select, proxies: [香港策略, 默认代理, 故障转移, 狮城策略, 日本策略, 韩国策略, 美国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
-# HK默认台湾的分组排序
-SelectTW: &SelectTW {type: select, proxies: [台湾策略, 香港策略, 默认代理, 故障转移, 狮城策略, 日本策略, 韩国策略, 美国策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
-# HK默认日本的分组排序
-SelectJP: &SelectJP {type: select, proxies: [日本策略, 香港策略, 默认代理, 故障转移, 狮城策略, 韩国策略, 美国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
-# SG默认新加坡的分组排序
-SelectSG: &SelectSG {type: select, proxies: [狮城策略, 默认代理, 故障转移, 香港策略, 日本策略, 韩国策略, 美国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
-# US默认美国分组的排序
-SelectUS: &SelectUS {type: select, proxies: [美国策略, 默认代理, 故障转移, 香港策略, 狮城策略, 日本策略, 韩国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
-# HM默认手动家宽分组的排序
-SelectHM: &SelectHM {type: select, proxies: [美国家宽, 美国策略, 默认代理, 家宽手动, 全球手动, 直接连接]}
-
-# —————————
 # 基础设置
 mixed-port: 7890
 redir-port: 7891
@@ -67,6 +43,46 @@ tcp-concurrent: true
 log-level: silent # debug / silent
 find-process-mode: always
 updatetime: &Time 86400
+
+# 健康检查
+p: &p
+  type: http
+  interval: *Time
+  health-check:
+    enable: true
+    url: https://www.gstatic.com/generate_204
+    interval: 300
+  proxy: 订阅更新
+  header: # 如遇订阅加载不出来请切换ua
+      User-Agent:  # 使用注释法由上到下 默认使用第一个
+        - "ClashMetaForAndroid/2.11.2.Meta"
+        - "clash-verge/v2.2.3"
+        - "ClashforWindows/0.19.23"
+        - "clash.meta"
+        - "mihomo"
+# —————————
+# 订阅地址相关
+proxy-providers: # ← 此函数位置请勿变动！此为模块更新时备份恢复订阅变量范围 ↓
+  1.主要地址: # 如遇订阅加载不出来,请尝试切换ua
+    <<: *p
+    override:
+      additional-prefix: "Main："
+    path: ./proxies/1.主要地址.yaml
+    url: "此处引入您的Clash订阅链接地址"
+  2.备用地址:
+    <<: *p
+    override:
+      additional-prefix: "Minor："
+    path: ./proxies/2.备用地址.yaml
+    url: "此处引入您的Clash订阅链接地址"
+  3.额外地址:
+    <<: *p
+    override:
+      additional-prefix: "Additi："
+    path: ./proxies/3.额外地址.yaml
+    url: "此处引入您的Clash订阅链接地址"
+# —————————
+
 
 # ==================== 地理数据库配置 GeoData Configuration ====================
 # 用于 IP 和域名的地理位置及分类判断
@@ -109,44 +125,6 @@ secret: "yyds666" # 面板访问密码,如在公网访问建议设置
 # ==== Tips
 # 1. 修改配置文件保存时,建议重启服务/重载配置.
 # 2. 如使用 SurfingTile 的配置覆写,当前配置文件的某些字段应保持原有的完整性结构
-# —————————
-# 健康检查
-p: &p
-  type: http
-  interval: *Time
-  health-check:
-    enable: true
-    url: https://www.gstatic.com/generate_204
-    interval: 300
-  proxy: 订阅更新
-  header: # 如遇订阅加载不出来请切换ua
-      User-Agent:  # 使用注释法由上到下 默认使用第一个
-        - "ClashMetaForAndroid/2.11.2.Meta"
-        - "clash-verge/v2.2.3"
-        - "ClashforWindows/0.19.23"
-        - "clash.meta"
-        - "mihomo"
-# —————————
-# 订阅地址相关
-proxy-providers: # ← 此函数位置请勿变动！此为模块更新时备份恢复订阅变量范围 ↓
-  1.主要地址: # 如遇订阅加载不出来,请尝试切换ua
-    <<: *p
-    override:
-      additional-prefix: "Main："
-    path: ./proxies/1.主要地址.yaml
-    url: "此处引入您的Clash订阅链接地址"
-  2.备用地址:
-    <<: *p
-    override:
-      additional-prefix: "Minor："
-    path: ./proxies/2.备用地址.yaml
-    url: "此处引入您的Clash订阅链接地址"
-  3.额外地址:
-    <<: *p
-    override:
-      additional-prefix: "Additi："
-    path: ./proxies/3.额外地址.yaml
-    url: "此处引入您的Clash订阅链接地址"
 # —————————
 # 节点记忆
 profile: # ← 此函数位置请勿变动！此为模块更新时备份恢复订阅变量范围 ↑
@@ -224,6 +202,29 @@ dns:
     - +.market.xiaomi.com
     - +.push.apple.com
 # —————————
+
+# 策略组代理列表模板 - 预定义的代理节点优先级排序
+# 这里我理解,应该是直接定义分组里面包含的节点.然后不同的分组有不同的优先级
+# FB默认选择fallback组包含的分组排序
+SelectFB: &SelectFB {type: select, proxies: [故障转移, 香港策略, 狮城策略, 日本策略, 韩国策略, 美国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
+# PY默认代理组的分组排序
+SelectPY: &SelectPY {type: select, proxies: [默认代理, 故障转移, 香港策略, 狮城策略, 日本策略, 韩国策略, 美国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
+# DC默认直连组的分组排序
+SelectDC: &SelectDC {type: select, proxies: [直接连接, 默认代理, 故障转移, 香港策略, 狮城策略, 日本策略, 韩国策略, 美国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动]}
+# HK默认香港的分组排序
+SelectHK: &SelectHK {type: select, proxies: [香港策略, 默认代理, 故障转移, 狮城策略, 日本策略, 韩国策略, 美国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
+# HK默认台湾的分组排序
+SelectTW: &SelectTW {type: select, proxies: [台湾策略, 香港策略, 默认代理, 故障转移, 狮城策略, 日本策略, 韩国策略, 美国策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
+# HK默认日本的分组排序
+SelectJP: &SelectJP {type: select, proxies: [日本策略, 香港策略, 默认代理, 故障转移, 狮城策略, 韩国策略, 美国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
+# SG默认新加坡的分组排序
+SelectSG: &SelectSG {type: select, proxies: [狮城策略, 默认代理, 故障转移, 香港策略, 日本策略, 韩国策略, 美国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
+# US默认美国分组的排序
+SelectUS: &SelectUS {type: select, proxies: [美国策略, 默认代理, 故障转移, 香港策略, 狮城策略, 日本策略, 韩国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
+# HM默认手动家宽分组的排序
+SelectHM: &SelectHM {type: select, proxies: [美国家宽, 美国策略, 默认代理, 家宽手动, 全球手动, 直接连接]}
+
+
 # ==================== 代理策略组 ====================
 proxy-groups:
   # ==================== 主要策略组 ====================
