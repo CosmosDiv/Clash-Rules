@@ -1,8 +1,8 @@
 # ==================== 锚点配置 ====================
 
 # 策略组类型模板 - 定义不同的策略组基础配置
-BaseFB: &BaseFB {type: fallback, interval: 200, lazy: true, url: 'https://cp.cloudflare.com'}
-BaseUT: &BaseUT {type: url-test, interval: 200, lazy: true, url: 'https://cp.cloudflare.com', hidden: true}
+BaseFB: &BaseFB {type: fallback, interval: 200, lazy: true, url: 'https://cp.cloudflare.com/generate_204'}
+BaseUT: &BaseUT {type: url-test, interval: 200, lazy: true, url: 'https://cp.cloudflare.com/generate_204', hidden: true}
 
 # 节点筛选正则表达式 - 基于地理位置和关键词过滤
 # 地区节点的筛选表达式
