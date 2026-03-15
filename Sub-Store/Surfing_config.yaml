@@ -89,7 +89,8 @@ geodata-mode: true
 
 # 实验性功能
 experimental:
-  quic-go-disable-gso: true  
+# hy2节点有问题的时候再开改为true
+  quic-go-disable-gso: false
   http-headers:
     request:
       - name: "User-Agent"
