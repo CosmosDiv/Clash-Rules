@@ -66,6 +66,25 @@ proxy-providers:
   # 备用订阅源 - 次优节点集合，使用时请修改
   备用服务商: {<<: *BaseProvider, url: '__BACKUP_SUB__', override: {additional-prefix: '[备] '}}
 
+# ==================== 地理数据库配置 GeoData Configuration ====================
+# 用于 IP 和域名的地理位置及分类判断
+geox-url:
+  # MaxMind 数据库（含中国 IP）
+  mmdb: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/country.mmdb"
+  # GeoIP 数据库
+  geoip: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat"
+  # GeoSite 数据库（域名分类）
+  geosite: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat"
+  # ASN（自治系统号）数据库，用于更精确的 IP 归属判断
+  asn: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb"
+
+# 是否自动更新 geodata 数据库
+geo-auto-update: true # 是否自动更新 geodata
+# 更新间隔（小时），24 = 每天更新一次
+geo-update-interval: 24 # 更新间隔，单位：小时
+# 使用 geodata 模式（而非传统的 IP-CIDR 文件）
+geodata-mode: true
+
 # ==================== 核心配置 ====================
 # 基础配置
 mode: rule
@@ -162,7 +181,7 @@ dns:
 # ==================== 代理策略组 ====================
 proxy-groups:
   # ==================== 主要策略组 ====================
-  - {name: 默认代理,     <<: *SelectFB, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Static.png}
+  - {name: 默认代理,     <<: *SelectFB, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Proxy.png}
   - {name: 故障转移,     <<: *BaseFB, proxies: [香港策略, 台湾策略, 狮城策略, 日本策略, 韩国策略, 美国策略, 英国策略, 欧盟策略, 直接连接], icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Available.png}
   - {name: 国外流量,     <<: *SelectPY, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png}
   - {name: 国内流量,     <<: *SelectDC, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png}
@@ -171,9 +190,9 @@ proxy-groups:
 
   # ==================== 功能策略组 ====================
   - {name: 网络测试,     <<: *SelectDC, include-all: true, filter: *FilterAL, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Speedtest.png}
-  - {name: 抖快书定位,   type: select, proxies: [直接连接, 香港策略, 台湾策略, 狮城策略, 日本策略, 韩国策略, 美国策略, 英国策略, 欧盟策略], icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Null_Nation.png}
+  - {name: 抖快书定位,   type: select, proxies: [直接连接, 香港策略, 台湾策略, 狮城策略, 日本策略, 韩国策略, 美国策略, 英国策略, 欧盟策略], icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Domestic.png}
 
-    # ==================== 媒体服务 ====================
+  # ==================== 媒体服务 ====================
   - {name: Emby服,       <<: *SelectPY, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Emby.png}
   - {name: TikTok,       <<: *SelectJP, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/TikTok.png}
   - {name: Spotify,      <<: *SelectSG, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Spotify.png}
@@ -188,7 +207,7 @@ proxy-groups:
   - {name: 社交平台,     <<: *SelectUS, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Instagram.png}
 
   # ==================== 商业服务 ====================
-  - {name: 人工智能,     <<: *SelectHM, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/AI.png}
+  - {name: 人工智能,     <<: *SelectHM, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/ChatGPT.png}
   - {name: GitHub,       <<: *SelectPY, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/GitHub.png}
   - {name: Cloudflare,   <<: *SelectPY, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Cloudflare.png}
   - {name: PayPal,       <<: *SelectUS, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/PayPal.png}
@@ -197,7 +216,7 @@ proxy-groups:
   - {name: 微软服务,     <<: *SelectUS, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Microsoft.png}
   - {name: 谷歌服务,     <<: *SelectHM, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Google_Search.png}
   - {name: 苹果服务,     <<: *SelectUS, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Apple.png}
-  
+
   # ==================== 地区策略组 ====================
   - {name: 香港策略,     type: select, proxies: [香港自动, 香港家宽], include-all: true, filter: *FilterHK, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Hong_Kong.png}
   - {name: 台湾策略,     type: select, proxies: [台湾自动, 台湾家宽], include-all: true, filter: *FilterTW, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Taiwan.png}
@@ -211,7 +230,7 @@ proxy-groups:
   # ==================== 其他策略组 ====================
   - {name: 冷门自选,     type: select, include-all: true, filter: *FilterOT, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Area.png}
   - {name: 全球手动,     type: select, include-all: true, filter: *FilterAL, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png}
-  - {name: 家宽手动,     type: select, include-all: true, filter: *FilterHM, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China_Telecom.png}
+  - {name: 家宽手动,     type: select, include-all: true, filter: *FilterHM, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Cellular.png}
 
   # ==================== 地区自动测速组 ====================
   - {name: 香港自动,     <<: *BaseUT, include-all: true, filter: *FilterHK, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
