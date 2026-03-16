@@ -1,7 +1,7 @@
 # ==================== 锚点配置 ====================
 
 # 策略组类型模板 - 定义不同的策略组基础配置
-BaseFB: &BaseFB {type: fallback, interval: 300, lazy: true, url: 'https://cp.cloudflare.com/generate_204', timeout: 3000, expected-status: 204}
+BaseFB: &BaseFB {type: fallback, interval: 300, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204}
 BaseUTNear: &BaseUTNear {type: url-test, interval: 300, lazy: true, tolerance: 20, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true}
 BaseUTMid:  &BaseUTMid  {type: url-test, interval: 300, lazy: true, tolerance: 35, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true}
 BaseUTFar:  &BaseUTFar  {type: url-test, interval: 300, lazy: true, tolerance: 50, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true}
