@@ -1,10 +1,13 @@
 # ==================== 锚点配置 ====================
 # 代理提供者模板 - 订阅源基础配置
-BaseProvider: &BaseProvider {type: http, interval: 86400, proxy: DIRECT, health-check: {enable: true, url: 'https://cp.cloudflare.com/generate_204', interval: 300}, filter: '^(?!.*(群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))'}
+BaseProvider: &BaseProvider {type: http, interval: 86400, proxy: DIRECT, health-check: {enable: true, url: 'https://www.gstatic.com/generate_204', interval: 300}, filter: '^(?!.*(群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))'}
 
 # 策略组类型模板 - 定义不同的策略组基础配置
-BaseFB: &BaseFB {type: fallback, interval: 300, lazy: true, url: 'https://cp.cloudflare.com/generate_204', timeout: 3000, expected-status: 204}
-BaseUT: &BaseUT {type: url-test, interval: 300, lazy: true, tolerance: 50, url: 'https://cp.cloudflare.com/generate_204', timeout: 3000, expected-status: 204, hidden: true}
+BaseFB: &BaseFB {type: fallback, interval: 300, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204}
+BaseUTNear: &BaseUTNear {type: url-test, interval: 300, lazy: true, tolerance: 20, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true}
+BaseUTMid:  &BaseUTMid  {type: url-test, interval: 300, lazy: true, tolerance: 35, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true}
+BaseUTFar:  &BaseUTFar  {type: url-test, interval: 300, lazy: true, tolerance: 50, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true}
+
 
 # 节点筛选正则表达式 - 基于地理位置和关键词过滤
 # 地区节点的筛选表达式
@@ -232,24 +235,24 @@ proxy-groups:
   - {name: 家宽手动,     type: select, include-all: true, filter: *FilterHM, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Cellular.png}
 
   # ==================== 地区自动测速组 ====================
-  - {name: 香港自动,     <<: *BaseUT, include-all: true, filter: *FilterHK, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
-  - {name: 台湾自动,     <<: *BaseUT, include-all: true, filter: *FilterTW, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
-  - {name: 狮城自动,     <<: *BaseUT, include-all: true, filter: *FilterSG, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
-  - {name: 日本自动,     <<: *BaseUT, include-all: true, filter: *FilterJP, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
-  - {name: 韩国自动,     <<: *BaseUT, include-all: true, filter: *FilterKR, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
-  - {name: 美国自动,     <<: *BaseUT, include-all: true, filter: *FilterUS, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
-  - {name: 英国自动,     <<: *BaseUT, include-all: true, filter: *FilterUK, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
-  - {name: 欧盟自动,     <<: *BaseUT, include-all: true, filter: *FilterEU, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
+  - {name: 香港自动,     <<: *BaseUTNear, include-all: true, filter: *FilterHK, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
+  - {name: 台湾自动,     <<: *BaseUTMid, include-all: true, filter: *FilterTW, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
+  - {name: 狮城自动,     <<: *BaseUTMid, include-all: true, filter: *FilterSG, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
+  - {name: 日本自动,     <<: *BaseUTMid, include-all: true, filter: *FilterJP, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
+  - {name: 韩国自动,     <<: *BaseUTNear, include-all: true, filter: *FilterKR, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
+  - {name: 美国自动,     <<: *BaseUTFar, include-all: true, filter: *FilterUS, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
+  - {name: 英国自动,     <<: *BaseUTFar, include-all: true, filter: *FilterUK, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
+  - {name: 欧盟自动,     <<: *BaseUTFar, include-all: true, filter: *FilterEU, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
   
   # ==================== 家宽自动测速组 ====================
-  - {name: 香港家宽,     <<: *BaseUT, include-all: true, filter: *FilterHKHome, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
-  - {name: 台湾家宽,     <<: *BaseUT, include-all: true, filter: *FilterTWHome, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
-  - {name: 狮城家宽,     <<: *BaseUT, include-all: true, filter: *FilterSGHome, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
-  - {name: 日本家宽,     <<: *BaseUT, include-all: true, filter: *FilterJPHome, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
-  - {name: 韩国家宽,     <<: *BaseUT, include-all: true, filter: *FilterKRHome, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
-  - {name: 美国家宽,     <<: *BaseUT, include-all: true, filter: *FilterUSHome, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
-  - {name: 英国家宽,     <<: *BaseUT, include-all: true, filter: *FilterUKHome, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
-  - {name: 欧盟家宽,     <<: *BaseUT, include-all: true, filter: *FilterEUHome, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
+  - {name: 香港家宽,     <<: *BaseUTNear, include-all: true, filter: *FilterHKHome, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
+  - {name: 台湾家宽,     <<: *BaseUTMid, include-all: true, filter: *FilterTWHome, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
+  - {name: 狮城家宽,     <<: *BaseUTMid, include-all: true, filter: *FilterSGHome, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
+  - {name: 日本家宽,     <<: *BaseUTMid, include-all: true, filter: *FilterJPHome, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
+  - {name: 韩国家宽,     <<: *BaseUTNear, include-all: true, filter: *FilterKRHome, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
+  - {name: 美国家宽,     <<: *BaseUTFar, include-all: true, filter: *FilterUSHome, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
+  - {name: 英国家宽,     <<: *BaseUTFar, include-all: true, filter: *FilterUKHome, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
+  - {name: 欧盟家宽,     <<: *BaseUTFar, include-all: true, filter: *FilterEUHome, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
 
 # ==================== 规则路由 ====================
 rules:
