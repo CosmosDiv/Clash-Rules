@@ -1,10 +1,15 @@
+# 此为精简配置，如需更为详细的配置，可参考 https://wiki.metacubex.one/config
+# 如不会配置，也可自行寻找懒人配置，例如(Surfing 模块配置)：https://raw.githubusercontent.com/GitMetaio/Surfing/refs/heads/main/box_bll/clash/config.yaml
 # ==================== 锚点配置 ====================
+# 代理提供者模板 - 订阅源基础配置
+BaseProvider: &BaseProvider {type: http, interval: 86400, proxy: DIRECT, health-check: {enable: true, url: 'https://www.gstatic.com/generate_204', interval: 300}, filter: '^(?!.*(群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))'}
 
 # 策略组类型模板 - 定义不同的策略组基础配置
 BaseFB: &BaseFB {type: fallback, interval: 300, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204}
 BaseUTNear: &BaseUTNear {type: url-test, interval: 300, lazy: true, tolerance: 20, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true}
 BaseUTMid:  &BaseUTMid  {type: url-test, interval: 300, lazy: true, tolerance: 35, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true}
 BaseUTFar:  &BaseUTFar  {type: url-test, interval: 300, lazy: true, tolerance: 50, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true}
+
 
 # 节点筛选正则表达式 - 基于地理位置和关键词过滤
 # 地区节点的筛选表达式
@@ -30,7 +35,7 @@ FilterTWHome: &FilterTWHome '(?i)^(?=.*(台|🇼🇸|🇹🇼|TW|tai|TPE|TSA|KHH
 FilterUKHome: &FilterUKHome '(?i)^(?=.*(英|英国|UK|大不列颠|伦敦|Kingdom))(?=.*(家宽|住宅|5G网络|星链)).*$'
 FilterEUHome: &FilterEUHome '(?i)^(?=.*(欧洲|欧盟|Europe|European|EU|英国|大不列颠|United Kingdom|Britain|England|伦敦|London|Kingdom|LHR|LGW|MAN|法国|France|Paris|巴黎|CDG|ORY|LYS|德国|Germany|Berlin|法兰克福|Frankfurt|慕尼黑|Munich|FRA|MUC|荷兰|Netherlands|Amsterdam|阿姆斯特丹|Rotterdam|鹿特丹|AMS|RTM|意大利|Italy|Rome|Milan|罗马|米兰|FCO|MXP|西班牙|Spain|Madrid|Barcelona|马德里|巴塞罗那|MAD|BCN|葡萄牙|Portugal|Lisbon|里斯本|LIS|爱尔兰|Ireland|Dublin|都柏林|DUB|比利时|Belgium|Brussels|布鲁塞尔|BRU|捷克|Czech|Prague|布拉格|PRG|奥地利|Austria|Vienna|维也纳|VIE|丹麦|Denmark|Copenhagen|哥本哈根|CPH|芬兰|Finland|Helsinki|赫尔辛基|HEL|瑞典|Sweden|Stockholm|斯德哥尔摩|ARN|波兰|Poland|Warsaw|华沙|WAW|匈牙利|Hungary|Budapest|布达佩斯|BUD|希腊|Greece|Athens|雅典|ATH|罗马尼亚|Romania|Bucharest|布加勒斯特|OTP|卢森堡|Luxembourg|LUX|立陶宛|Lithuania|VNO|爱沙尼亚|Estonia|TLL|保加利亚|Bulgaria|SOF|克罗地亚|Croatia|ZAG|斯洛伐克|Slovakia|BTS|斯洛文尼亚|Slovenia|LJU|塞尔维亚|Serbia|BEG|🇬🇧|🇫🇷|🇩🇪|🇳🇱|🇮🇹|🇪🇸|🇵🇹|🇮🇪|🇧🇪|🇨🇿|🇦🇹|🇩🇰|🇫🇮|🇸🇪|🇵🇱|🇭🇺|🇬🇷|🇷🇴|🇱🇺|🇱🇹|🇪🇪|🇧🇬|🇭🇷|🇸🇰|🇸🇮|🇷🇸))(?=.*(家宽|住宅|5G网络|星链)).*$'
 
-# AL是all所有
+# al是all,所有
 FilterAL: &FilterAL '^(?!.*(DIRECT|直接连接|群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))'
 
 
@@ -55,112 +60,54 @@ SelectUS: &SelectUS {type: select, proxies: [美国策略, 默认代理, 故障�
 # HM默认手动家宽分组的排序
 SelectHM: &SelectHM {type: select, proxies: [美国家宽, 美国策略, 默认代理, 家宽手动, 全球手动, 直接连接]}
 
-# —————————
-# 基础设置
+proxy-providers:
+  proxy1:
+    type: http
+    url: "填写订阅链接"
+    path: ./proxy_provider/proxy1.yaml
+    interval: 3600
+    health-check:
+      enable: true
+      url: https://cp.cloudflare.com
+      interval: 300
+      timeout: 1000
+      tolerance: 100
+  # 多订阅按照下面照葫芦画瓢即可
+  # proxy2:
+  #   type: http
+  #   url: "填写订阅链接"
+  #   path: ./proxy_provider/proxy2.yaml
+  #   interval: 3600
+  #   health-check:
+  #     enable: true
+  #     url: https://cp.cloudflare.com
+  #     interval: 300
+  #     timeout: 1000
+  #     tolerance: 100
+
 mixed-port: 7890
-redir-port: 7891
-tproxy-port: 1536
-ipv6: true
+redir-port: 9797
+tproxy-port: 9898
 mode: Rule
+bind-address: '*'
+ipv6: true
 allow-lan: true
-disable-keep-alive: true
-unified-delay: true
+unified-delay: false
 tcp-concurrent: true
-log-level: silent # debug / silent
+log-level: error
 find-process-mode: always
-updatetime: &Time 86400
+# global-client-fingerprint: random
+external-controller: 0.0.0.0:9090
+external-ui: ./dashboard
 
-# ==================== 地理数据库配置 GeoData Configuration ====================
-# 用于 IP 和域名的地理位置及分类判断
-geox-url:
-  # MaxMind 数据库（含中国 IP）
-  mmdb: "https://testingcf.jsdelivr.net/gh/alecthw/mmdb_china_ip_list@release/Country.mmdb"
-  # GeoIP 数据库
-  geoip: "https://testingcf.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geoip.dat"
-  # GeoSite 数据库（域名分类）
-  geosite: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat"
-  # ASN（自治系统号）数据库,用于更精确的 IP 归属判断
-  asn: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/GeoLite2-ASN.mmdb"
-
-# 是否自动更新 geodata 数据库
-geo-auto-update: true # 是否自动更新 geodata
-# 更新间隔（小时）,24 = 每天更新一次
-geo-update-interval: 24 # 更新间隔,单位：小时
-# 使用 geodata 模式（而非传统的 IP-CIDR 文件）
-geodata-mode: true
-
-# 实验性功能
-experimental:
-# hy2节点有问题的时候再开改为true
-  quic-go-disable-gso: false
-  http-headers:
-    request:
-      - name: "User-Agent"
-        value: "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
-      - name: "Accept-Language"
-        value: "en-US,en;q=0.9"
-# global-client-fingerprint: chrome 未来官方可能将移除,意义不大
-
-# 管理面板配置
-external-ui-url: https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip
-external-ui-name: zashboard
-external-ui: "./webroot/Zash/"
-external-controller: 0.0.0.0:54321 #修改端口后,如使用磁贴请重新正确设置API端口
-secret: "yyds666" # 面板访问密码,如在公网访问建议设置
-# —————————
-# ==== Tips
-# 1. 修改配置文件保存时,建议重启服务/重载配置.
-# 2. 如使用 SurfingTile 的配置覆写,当前配置文件的某些字段应保持原有的完整性结构
-# —————————
-# 健康检查
-p: &p
-  type: http
-  interval: *Time
-  health-check:
-    enable: true
-    url: https://www.gstatic.com/generate_204
-    interval: 300
-  proxy: 订阅更新
-  header: # 如遇订阅加载不出来请切换ua
-      User-Agent:  # 使用注释法由上到下 默认使用第一个
-        - "ClashMetaForAndroid/2.11.2.Meta"
-        - "clash-verge/v2.2.3"
-        - "ClashforWindows/0.19.23"
-        - "clash.meta"
-        - "mihomo"
-# —————————
-# 订阅地址相关
-proxy-providers: # ← 此函数位置请勿变动！此为模块更新时备份恢复订阅变量范围 ↓
-  1.主要地址: # 如遇订阅加载不出来,请尝试切换ua
-    <<: *p
-    override:
-      additional-prefix: "Main："
-    path: ./proxies/1.主要地址.yaml
-    url: "此处引入您的Clash订阅链接地址"
-  2.备用地址:
-    <<: *p
-    override:
-      additional-prefix: "Minor："
-    path: ./proxies/2.备用地址.yaml
-    url: "此处引入您的Clash订阅链接地址"
-  3.额外地址:
-    <<: *p
-    override:
-      additional-prefix: "Additi："
-    path: ./proxies/3.额外地址.yaml
-    url: "此处引入您的Clash订阅链接地址"
-# —————————
-# 节点记忆
-profile: # ← 此函数位置请勿变动！此为模块更新时备份恢复订阅变量范围 ↑
+# 配置存储
+profile:
   store-selected: true
   store-fake-ip: true
-# —————————
-# 嗅探模块
+
+# 流量嗅探
 sniffer:
   enable: true
-  force-dns-mapping: true
-  parse-pure-ip: true
-  override-destination: true
   sniff:
     HTTP:
       ports: [80, 8080-8880]
@@ -172,43 +119,22 @@ sniffer:
   skip-domain:
     - "Mijia Cloud"
     - "+.push.apple.com"
-# —————————
-# 网卡模块
-# 如需使用 建议先阅读文档：https://wiki.metacubex.one/config/inbound/tun/
+
 tun:
-  enable: true
-  device: Meta
-  stack: mixed
-  dns-hijack:
-    - any:53
-    - tcp://any:53
+  enable: false
+  device: meta
+  stack: gvisor
+  dns-hijack: [any:53, tcp://any:53]
   udp-timeout: 300
   auto-route: true
-  strict-route: true
   auto-redirect: false
   auto-detect-interface: true
-  # 如使用黑白名单这里需排除
-  # exclude-package 排除 / include-package 包含
-  exclude-package:
-#    - com.samsung.android.messaging # 三星专供 ↓ 范围
-#    - com.samsung.android.app.telephonyui
-#    - com.samsung.android.dialer
-#    - com.samsung.android.incallui
-#    - com.samsung.android.smartcallprovider
-#    - com.samsung.android.intellivoiceservice
-#    - com.android.settings
-#    - com.qti.qcc
-#    - com.sec.epdg
-#    - com.sec.imsservice # 三星专供 ↑ 范围
-    # 非三星用户不必理会,三星用户需自行取消注释 不可使用include-package
-# —————————
-# DNS模块
-# 请勿随意变动！
+  strict-route: false
+
 dns:
   enable: true
   ipv6: true
-  listen: 0.0.0.0:1053
-  enhanced-mode: fake-ip # redir-host
+  enhanced-mode: fake-ip
   fake-ip-range: 198.18.0.1/16
   default-nameserver:
     - 119.29.29.29
@@ -225,9 +151,10 @@ dns:
     - +.docker.io
     - +.market.xiaomi.com
     - +.push.apple.com
-# —————————
+
 proxies:
   - {name: DNS_Hijack, type: dns}
+
 # ==================== 代理策略组 ====================
 proxy-groups:
   # ==================== 主要策略组 ====================
@@ -300,8 +227,7 @@ proxy-groups:
   - {name: 美国家宽,     <<: *BaseUTFar, include-all: true, filter: *FilterUSHome, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
   - {name: 英国家宽,     <<: *BaseUTFar, include-all: true, filter: *FilterUKHome, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
   - {name: 欧盟家宽,     <<: *BaseUTFar, include-all: true, filter: *FilterEUHome, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png}
-
-# ==================== 规则路由 ====================
+  
 rules:
   - DST-PORT,53,DNS_Hijack
   # 拦截规则
@@ -356,7 +282,7 @@ rules:
   - RULE-SET,OneDrive,微软服务
   - RULE-SET,Microsoft,微软服务
 
-  # 国内域名保护层：尽量先兜住国内站点,避免误掉到国外流量
+  # 国内域名保护层:尽量先兜住国内站点,避免误掉到国外流量
   - GEOSITE,geolocation-cn,国内流量
   - GEOSITE,cn,国内流量
   - RULE-SET,China,国内流量
@@ -381,7 +307,7 @@ rules:
   - RULE-SET,StreamingIP,国际媒体,no-resolve
   - RULE-SET,GoogleIP,谷歌服务,no-resolve
 
-  # 国内 IP 保护层：这里故意不加 no-resolve,用来回收冷门国内站点
+  # 国内 IP 保护层:这里故意不加 no-resolve,用来回收冷门国内站点
   - RULE-SET,ChinaIP,国内流量
   - GEOIP,CN,国内流量
 
