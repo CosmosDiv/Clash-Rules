@@ -1,3 +1,8 @@
+proxy-providers:
+  proxy1:
+    type: http
+    url: "填写订阅链接"
+    path: ./proxy_provider/proxy1.yaml
 # ==================== 锚点配置 ====================
 
 # 策略组类型模板 - 定义不同的策略组基础配置
@@ -112,43 +117,7 @@ secret: "yyds666" # 面板访问密码,如在公网访问建议设置
 # 1. 修改配置文件保存时,建议重启服务/重载配置.
 # 2. 如使用 SurfingTile 的配置覆写,当前配置文件的某些字段应保持原有的完整性结构
 # —————————
-# 健康检查
-p: &p
-  type: http
-  interval: *Time
-  health-check:
-    enable: true
-    url: https://www.gstatic.com/generate_204
-    interval: 300
-  proxy: 订阅更新
-  header: # 如遇订阅加载不出来请切换ua
-      User-Agent:  # 使用注释法由上到下 默认使用第一个
-        - "ClashMetaForAndroid/2.11.2.Meta"
-        - "clash-verge/v2.2.3"
-        - "ClashforWindows/0.19.23"
-        - "clash.meta"
-        - "mihomo"
-# —————————
-# 订阅地址相关
-proxy-providers: # ← 此函数位置请勿变动！此为模块更新时备份恢复订阅变量范围 ↓
-  1.主要地址: # 如遇订阅加载不出来,请尝试切换ua
-    <<: *p
-    override:
-      additional-prefix: "Main："
-    path: ./proxies/1.主要地址.yaml
-    url: "此处引入您的Clash订阅链接地址"
-  2.备用地址:
-    <<: *p
-    override:
-      additional-prefix: "Minor："
-    path: ./proxies/2.备用地址.yaml
-    url: "此处引入您的Clash订阅链接地址"
-  3.额外地址:
-    <<: *p
-    override:
-      additional-prefix: "Additi："
-    path: ./proxies/3.额外地址.yaml
-    url: "此处引入您的Clash订阅链接地址"
+
 # —————————
 # 节点记忆
 profile: # ← 此函数位置请勿变动！此为模块更新时备份恢复订阅变量范围 ↑
@@ -187,21 +156,7 @@ tun:
   strict-route: true
   auto-redirect: false
   auto-detect-interface: true
-  # 如使用黑白名单这里需排除
-  # exclude-package 排除 / include-package 包含
-  exclude-package:
-#    - com.samsung.android.messaging # 三星专供 ↓ 范围
-#    - com.samsung.android.app.telephonyui
-#    - com.samsung.android.dialer
-#    - com.samsung.android.incallui
-#    - com.samsung.android.smartcallprovider
-#    - com.samsung.android.intellivoiceservice
-#    - com.android.settings
-#    - com.qti.qcc
-#    - com.sec.epdg
-#    - com.sec.imsservice # 三星专供 ↑ 范围
-    # 非三星用户不必理会,三星用户需自行取消注释 不可使用include-package
-# —————————
+
 # DNS模块
 # 请勿随意变动！
 dns:
