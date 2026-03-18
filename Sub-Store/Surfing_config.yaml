@@ -6,7 +6,7 @@ BaseProvider: &BaseProvider {type: http, interval: 86400, proxy: DIRECT, health-
 # 注意:请提供您的机场订阅链接,每个链接一行,并为每个机场命名,末尾的[优][备]为每个节点添加机场名称前缀,可自定义
 proxy-providers:
   # 优质订阅源 - 优质节点集合,使用时请修改
-  proxy1: {<<: *BaseProvider, type: http, url: "填写订阅链接", path: ./proxy_provider/proxy1.yaml, override: {additional-prefix: "[💨] "}}
+  proxy1: {<<: *BaseProvider, type: http, url: "填写订阅链接", path: ./proxy_provider/proxy1.yaml}
 
 # ==================== 锚点配置 ====================
 
