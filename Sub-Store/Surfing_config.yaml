@@ -1,8 +1,13 @@
+# ==================== 锚点配置 ====================
+# 代理提供者模板 - 订阅源基础配置
+BaseProvider: &BaseProvider {type: http, interval: 86400, proxy: DIRECT, health-check: {enable: true, url: 'https://www.gstatic.com/generate_204', interval: 300}, filter: '^(?!.*(群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))'}
+
+# ==================== 代理提供者 ====================
+# 注意:请提供您的机场订阅链接,每个链接一行,并为每个机场命名,末尾的[优][备]为每个节点添加机场名称前缀,可自定义
 proxy-providers:
-  proxy1:
-    type: http
-    url: "填写订阅链接"
-    path: ./proxy_provider/proxy1.yaml
+  # 优质订阅源 - 优质节点集合,使用时请修改
+  proxy1: {<<: *BaseProvider, type: http, url: "填写订阅链接", path: ./proxy_provider/proxy1.yaml, override: {additional-prefix: "[💨] "}}
+
 # ==================== 锚点配置 ====================
 
 # 策略组类型模板 - 定义不同的策略组基础配置
@@ -108,7 +113,6 @@ experimental:
 
 # 管理面板配置
 external-ui-url: https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip
-external-ui-name: zashboard
 external-ui: "./webroot/Zash/"
 external-controller: 0.0.0.0:54321 #修改端口后,如使用磁贴请重新正确设置API端口
 secret: "yyds666" # 面板访问密码,如在公网访问建议设置
@@ -164,7 +168,7 @@ dns:
   enable: true
   ipv6: true
   listen: 0.0.0.0:1053
-  enhanced-mode: fake-ip # redir-host
+  enhanced-mode: fake-ip
   fake-ip-range: 198.18.0.1/16
   fake-ip-range6: fdfe:dcba:9876::/48
   default-nameserver:
