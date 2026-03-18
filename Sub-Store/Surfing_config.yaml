@@ -147,7 +147,8 @@ sniffer:
 tun:
   enable: true
   device: Meta
-  stack: mixed
+  # 如果要全局接管ipv6,只能用gvisor，其他的都不行。
+  stack: gvisor
   dns-hijack:
     - any:53
     - tcp://any:53
@@ -165,6 +166,7 @@ dns:
   listen: 0.0.0.0:1053
   enhanced-mode: fake-ip # redir-host
   fake-ip-range: 198.18.0.1/16
+  fake-ip-range6: fdfe:dcba:9876::/48
   default-nameserver:
     - 119.29.29.29
     - 180.184.1.1
@@ -181,8 +183,6 @@ dns:
     - +.market.xiaomi.com
     - +.push.apple.com
 # —————————
-proxies:
-  - {name: DNS_Hijack, type: dns}
 # ==================== 代理策略组 ====================
 proxy-groups:
   # ==================== 主要策略组 ====================
@@ -258,7 +258,6 @@ proxy-groups:
 
 # ==================== 规则路由 ====================
 rules:
-  - DST-PORT,53,DNS_Hijack
   # 拦截规则
   - RULE-SET,Tracking,REJECT
   - RULE-SET,Advertising,REJECT
