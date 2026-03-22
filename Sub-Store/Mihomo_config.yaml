@@ -3,7 +3,7 @@
 # 如果要防止泄露，本规则直接最后的所有ip规则后面加no-resolve
 # ==================== 锚点配置 ====================
 # 代理提供者模板 - 订阅源基础配置
-# BaseProvider: &BaseProvider {type: http, interval: 86400, proxy: DIRECT, health-check: {enable: true, url: 'https://www.gstatic.com/generate_204', interval: 300}, filter: '^(?!.*(群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))'}
+BaseProvider: &BaseProvider {type: http, interval: 86400, proxy: DIRECT, health-check: {enable: true, url: 'https://www.gstatic.com/generate_204', interval: 300}, filter: '^(?!.*(群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))'}
 
 # 策略组类型模板 - 定义不同的策略组基础配置
 BaseFB: &BaseFB {type: fallback, interval: 300, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204}
@@ -65,9 +65,9 @@ SelectHM: &SelectHM {type: select, proxies: [美国家宽, 美国策略, 默认�
 
 # ==================== 代理提供者 ====================
 # 注意:请提供您的机场订阅链接,每个链接一行,并为每个机场命名,末尾的[优][备]为每个节点添加机场名称前缀,可自定义
-#  proxy-providers:
-    # 优质订阅源 - 优质节点集合,使用时请修改
-#    优质服务商: {<<: *BaseProvider, url: '填入链接', override: {additional-prefix: '[优] '}}
+proxy-providers:
+  # 优质订阅源 - 优质节点集合,使用时请修改
+  优质服务商: {<<: *BaseProvider, url: '填入链接', override: {additional-prefix: '[优] '}}
     # 备用订阅源 - 次优节点集合,使用时请修改
 #    备用服务商: {<<: *BaseProvider, url: '填入链接', override: {additional-prefix: '[备] '}}
 
@@ -168,6 +168,7 @@ dns:
   ipv6: true
   enhanced-mode: fake-ip
   fake-ip-range: 198.18.0.1/16
+  fake-ip-range6: fdfe:dcba:9876::/48
   default-nameserver:
     - 119.29.29.29
     - 180.184.1.1
