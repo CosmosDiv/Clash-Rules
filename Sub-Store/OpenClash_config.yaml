@@ -171,7 +171,7 @@ proxy-groups:
   # ==================== 主要策略组 ====================
   - {name: 默认代理,     <<: *SelectFB, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Proxy.png}
   - {name: 故障转移,     <<: *BaseFB, proxies: [香港策略, 台湾策略, 狮城策略, 日本策略, 韩国策略, 美国策略, 英国策略, 欧盟策略, 直接连接], icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Available.png}
-  - {name: 国外流量,     <<: *SelectPY, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png}
+  - {name: 直接连接,     type: select, proxies: [DIRECT], hidden: true, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Direct.png}
   - {name: Gemini,       <<: *SelectUS, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/ChatGPT.png}
   - {name: 人工智能,     <<: *SelectHM, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/ChatGPT.png}
   - {name: 谷歌服务,     <<: *SelectUS, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Google_Search.png}
@@ -230,8 +230,8 @@ proxy-groups:
 rules:
   # ==================== 基础控制：域名规则 ====================
 
-  - RULE-SET,private_domain,DIRECT # 局域网、保留域名、本地域名直连
-  - RULE-SET,dmca_domain,DIRECT # PT/Tracker/迅雷等敏感下载域名直连
+  - RULE-SET,private_domain,直接连接 # 局域网、保留域名、本地域名直连
+  - RULE-SET,dmca_domain,直接连接 # PT/Tracker/迅雷等敏感下载域名直连
   - RULE-SET,httpdns_domain,REJECT # 拦截 HTTPDNS 域名，避免绕过正常分流
   - RULE-SET,adrules_domain,REJECT # 广告与跟踪域名拦截
   - AND,((DST-PORT,443),(NETWORK,UDP),(NOT,((GEOIP,CN)))),REJECT # 阻止海外 QUIC
@@ -239,20 +239,20 @@ rules:
 
   # ==================== 国内专项：域名规则 ====================
 
-  - RULE-SET,apple_cn_domain,DIRECT # Apple 在大陆可直连域名
-  - RULE-SET,microsoft_cn_domain,DIRECT # Microsoft 在大陆可直连域名
-  - RULE-SET,bilibili_domain,DIRECT # 哔哩哔哩
-  - RULE-SET,douyin_domain,DIRECT # 抖音
-  - RULE-SET,socialmedia_cn_domain,DIRECT # 小红书/微博/知乎/豆瓣/Coolapk 等
-  - RULE-SET,games_cn_domain,DIRECT # 国内游戏平台与下载
-  - RULE-SET,cdn_domain,DIRECT # 常见 CDN、系统更新、大文件下载
-  - RULE-SET,cdn_classical,DIRECT # CDN 剩余 classical 规则补充直连
-  - RULE-SET,cn_domain,DIRECT # 中国大陆域名大兜底
+  - RULE-SET,apple_cn_domain,直接连接 # Apple 在大陆可直连域名
+  - RULE-SET,microsoft_cn_domain,直接连接 # Microsoft 在大陆可直连域名
+  - RULE-SET,bilibili_domain,直接连接 # 哔哩哔哩
+  - RULE-SET,douyin_domain,直接连接 # 抖音
+  - RULE-SET,socialmedia_cn_domain,直接连接 # 小红书/微博/知乎/豆瓣/Coolapk 等
+  - RULE-SET,games_cn_domain,直接连接 # 国内游戏平台与下载
+  - RULE-SET,cdn_domain,直接连接 # 常见 CDN、系统更新、大文件下载
+  - RULE-SET,cdn_classical,直接连接 # CDN 剩余 classical 规则补充直连
+  - RULE-SET,cn_domain,直接连接 # 中国大陆域名大兜底
 
   # ==================== 特殊规则（默认关闭） ====================
 
-  # - RULE-SET,iplocation_direct_domain,DIRECT # 可选：修改国内软件 IP 归属地的直连规则，需放在代理规则前
-  # - RULE-SET,iplocation_proxy_domain,国外流量 # 可选：修改国内软件 IP 归属地的代理域名规则，不建议默认开启
+  # - RULE-SET,iplocation_direct_domain,直接连接 # 可选：修改国内软件 IP 归属地的直连规则，需放在代理规则前
+  # - RULE-SET,iplocation_proxy_domain,默认代理 # 可选：修改国内软件 IP 归属地的代理域名规则，不建议默认开启
 
   # ==================== 海外专项：域名规则 ====================
 
@@ -299,22 +299,22 @@ rules:
 
   # ==================== 海外兜底：域名规则 ====================
 
-  - RULE-SET,gfw_domain,国外流量 # 常见被墙域名
-  - RULE-SET,tld_proxy_domain,国外流量 # 海外顶级域名大兜底
-  - RULE-SET,proxy_domain,国外流量 # 海外域名大兜底
+  - RULE-SET,gfw_domain,默认代理 # 常见被墙域名
+  - RULE-SET,tld_proxy_domain,默认代理 # 海外顶级域名大兜底
+  - RULE-SET,proxy_domain,默认代理 # 海外域名大兜底
 
   # ==================== 基础控制：IP 规则 ====================
 
-  - RULE-SET,private_ip,DIRECT,no-resolve # 局域网、保留地址直连
-  - RULE-SET,dmca_ip,DIRECT,no-resolve # PT/Tracker/迅雷等敏感下载 IP 直连
+  - RULE-SET,private_ip,直接连接,no-resolve # 局域网、保留地址直连
+  - RULE-SET,dmca_ip,直接连接,no-resolve # PT/Tracker/迅雷等敏感下载 IP 直连
   - RULE-SET,httpdns_ip,REJECT,no-resolve # HTTPDNS IP 拦截
   - RULE-SET,adrules_ip,REJECT,no-resolve # 广告与跟踪 IP 拦截
-  - RULE-SET,dmca_classical,DIRECT # DMCA 剩余 classical 规则补充直连
+  - RULE-SET,dmca_classical,直接连接 # DMCA 剩余 classical 规则补充直连
   - RULE-SET,adrules_classical,REJECT # 广告规则剩余 classical 规则补充拦截
 
   # ==================== 特殊规则（默认关闭） ====================
 
-  # - RULE-SET,iplocation_proxy_ip,国外流量,no-resolve # 可选：修改国内软件 IP 归属地的代理 IP 规则，不建议默认开启
+  # - RULE-SET,iplocation_proxy_ip,默认代理,no-resolve # 可选：修改国内软件 IP 归属地的代理 IP 规则，不建议默认开启
 
   # ==================== 海外专项：IP 规则 ====================
 
@@ -323,7 +323,7 @@ rules:
   - RULE-SET,dmm_ip,国际流媒体,no-resolve # DMM IP
   - RULE-SET,ecommerce_ip,电商平台,no-resolve # 电商平台 IP
   - RULE-SET,games_ip,游戏服务,no-resolve # 海外游戏平台 IP
-  - RULE-SET,gfw_ip,国外流量,no-resolve # 被墙站点常见 IP
+  - RULE-SET,gfw_ip,默认代理,no-resolve # 被墙站点常见 IP
   - RULE-SET,googlefcm_ip,谷歌服务,no-resolve # Google 推送 IP
   - RULE-SET,google_ip,谷歌服务,no-resolve # Google 服务 IP
   - RULE-SET,netflix_ip,国际流媒体,no-resolve # Netflix IP
@@ -335,13 +335,13 @@ rules:
 
   # ==================== 国内专项：IP 规则 ====================
 
-  - RULE-SET,bilibili_ip,DIRECT,no-resolve # 哔哩哔哩 IP
-  - RULE-SET,socialmedia_cn_ip,DIRECT,no-resolve # 国内社交媒体 IP
+  - RULE-SET,bilibili_ip,直接连接,no-resolve # 哔哩哔哩 IP
+  - RULE-SET,socialmedia_cn_ip,直接连接,no-resolve # 国内社交媒体 IP
 
   # ==================== 国内 / 海外 IP 大兜底 ====================
 
-  - RULE-SET,proxy_ip,国外流量,no-resolve # 海外 IP 大兜底；尽量先接住需要代理的海外连接，减少不必要解析
-  - RULE-SET,cn_ip,DIRECT # 中国大陆 IP 大兜底；不加 no-resolve，承接剩余流量并尽量识别国内解析结果
+  - RULE-SET,proxy_ip,默认代理,no-resolve # 海外 IP 大兜底；尽量先接住需要代理的海外连接，减少不必要解析
+  - RULE-SET,cn_ip,直接连接 # 中国大陆 IP 大兜底；不加 no-resolve，承接剩余流量并尽量识别国内解析结果
 
   # ==================== 最终兜底 ====================
   - MATCH,兜底流量 # 其它漏网流量统一交给默认代理策略
