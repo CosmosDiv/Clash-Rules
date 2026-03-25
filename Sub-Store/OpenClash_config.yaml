@@ -184,9 +184,9 @@ proxy-groups:
   - {name: 社交媒体,     <<: *SelectUS, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Twitter.png}
   - {name: 论坛社区,     <<: *SelectUS, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Bookpedia.png}
   - {name: 游戏服务,     <<: *SelectHK, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Game.png}
-  - {name: TikTok,       <<: *SelectJP, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/TikTok.png}
+  - {name: TikTok,       <<: *SelectTW, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/TikTok.png}
   - {name: 通信服务,     <<: *SelectUK, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Telegram.png}
-  - {name: 开发服务,     <<: *SelectTW, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Lab.png}
+  - {name: 开发服务,     <<: *SelectPY, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Lab.png}
   - {name: PayPal,       <<: *SelectUS, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/PayPal.png}
   - {name: 电商平台,     <<: *SelectPY, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Daily.png}
   - {name: 加密货币,     <<: *SelectSG, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/aaex.png}
@@ -252,7 +252,8 @@ rules:
   - RULE-SET,cn_domain,直接连接 # 中国大陆域名大兜底
 
   # ==================== 海外专项：域名规则 ====================
-
+  
+  - RULE-SET,gemini_domain,Gemini # Gemini AI 服务
   - RULE-SET,ai_domain,人工智能 # 其它 AI 服务
   - RULE-SET,googlefcm_domain,谷歌服务 # Google 推送
   - RULE-SET,youtube_domain,国际流媒体 # YouTube
@@ -361,7 +362,8 @@ rule-providers:
   cn_domain:             {<<: *BehaviorDN, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/domain/cn.mrs}
 
   # ==================== 海外专项：域名规则 ====================
-
+  
+  gemini_domain:         {<<: *BehaviorDN, url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google-gemini.mrs}
   ai_domain:             {<<: *BehaviorDN, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/domain/ai.mrs}
   googlefcm_domain:      {<<: *BehaviorDN, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/domain/googlefcm.mrs}
   youtube_domain:        {<<: *BehaviorDN, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/domain/youtube.mrs}
