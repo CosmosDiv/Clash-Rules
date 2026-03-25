@@ -161,6 +161,8 @@ dns:
     - https://doh.pub/dns-query
   fake-ip-filter:
     - rule-set:fake-ip-filter_domain
+    - rule-set:private_domain
+    - rule-set:cn_domain
     - +.miwifi.com
     - +.docker.io
     - +.market.xiaomi.com
@@ -230,6 +232,7 @@ proxy-groups:
 rules:
   # ==================== 基础控制：域名规则 ====================
 
+  - RULE-SET,fake-ip-filter_domain,直接连接 # fake-ip域名直连
   - RULE-SET,private_domain,直接连接 # 局域网、保留域名、本地域名直连
   - RULE-SET,dmca_domain,直接连接 # PT/Tracker/迅雷等敏感下载域名直连
   - RULE-SET,httpdns_domain,REJECT # 拦截 HTTPDNS 域名，避免绕过正常分流
@@ -246,17 +249,10 @@ rules:
   - RULE-SET,socialmedia_cn_domain,直接连接 # 小红书/微博/知乎/豆瓣/Coolapk 等
   - RULE-SET,games_cn_domain,直接连接 # 国内游戏平台与下载
   - RULE-SET,cdn_domain,直接连接 # 常见 CDN、系统更新、大文件下载
-  - RULE-SET,cdn_classical,直接连接 # CDN 剩余 classical 规则补充直连
   - RULE-SET,cn_domain,直接连接 # 中国大陆域名大兜底
-
-  # ==================== 特殊规则（默认关闭） ====================
-
-  # - RULE-SET,iplocation_direct_domain,直接连接 # 可选：修改国内软件 IP 归属地的直连规则，需放在代理规则前
-  # - RULE-SET,iplocation_proxy_domain,默认代理 # 可选：修改国内软件 IP 归属地的代理域名规则，不建议默认开启
 
   # ==================== 海外专项：域名规则 ====================
 
-  - RULE-SET,gemini_classical,Gemini # Gemini 单独分流，放在 AI 和 Google 通用规则前
   - RULE-SET,ai_domain,人工智能 # 其它 AI 服务
   - RULE-SET,googlefcm_domain,谷歌服务 # Google 推送
   - RULE-SET,youtube_domain,国际流媒体 # YouTube
@@ -281,8 +277,7 @@ rules:
   - RULE-SET,crypto_domain,加密货币 # Binance/OKX/Bybit/Bitget 等
 
   - RULE-SET,speedtest_domain,网络测试 # 网络测试域名
-  - RULE-SET,speedtest_classical,网络测试 # 网络测试剩余 classical 规则补充
-
+  
   - RULE-SET,abema_domain,国际流媒体 # Abema
   - RULE-SET,bahamut_domain,国际流媒体 # 巴哈姆特
   - RULE-SET,dazn_domain,国际流媒体 # DAZN
@@ -309,12 +304,6 @@ rules:
   - RULE-SET,dmca_ip,直接连接,no-resolve # PT/Tracker/迅雷等敏感下载 IP 直连
   - RULE-SET,httpdns_ip,REJECT,no-resolve # HTTPDNS IP 拦截
   - RULE-SET,adrules_ip,REJECT,no-resolve # 广告与跟踪 IP 拦截
-  - RULE-SET,dmca_classical,直接连接 # DMCA 剩余 classical 规则补充直连
-  - RULE-SET,adrules_classical,REJECT # 广告规则剩余 classical 规则补充拦截
-
-  # ==================== 特殊规则（默认关闭） ====================
-
-  # - RULE-SET,iplocation_proxy_ip,默认代理,no-resolve # 可选：修改国内软件 IP 归属地的代理 IP 规则，不建议默认开启
 
   # ==================== 海外专项：IP 规则 ====================
 
@@ -349,7 +338,6 @@ rules:
 # 规则集行为模板
 BehaviorDN: &BehaviorDN {type: http, behavior: domain, format: mrs, interval: 86400}
 BehaviorIP: &BehaviorIP {type: http, behavior: ipcidr, format: mrs, interval: 86400}
-BehaviorCL: &BehaviorCL {type: http, behavior: classical, format: text, interval: 86400}
 
 # ==================== 规则提供者 ====================
 rule-providers:
@@ -370,17 +358,10 @@ rule-providers:
   socialmedia_cn_domain: {<<: *BehaviorDN, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/domain/socialmedia-cn.mrs}
   games_cn_domain:       {<<: *BehaviorDN, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/domain/games-cn.mrs}
   cdn_domain:            {<<: *BehaviorDN, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/domain/cdn.mrs}
-  cdn_classical:         {<<: *BehaviorCL, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/classical/cdn.list}
   cn_domain:             {<<: *BehaviorDN, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/domain/cn.mrs}
-
-  # ==================== 特殊规则（默认关闭） ====================
-
-  # iplocation_direct_domain: {<<: *BehaviorDN, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/domain/iplocation-direct.mrs}
-  # iplocation_proxy_domain:  {<<: *BehaviorDN, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/domain/iplocation-proxy.mrs}
 
   # ==================== 海外专项：域名规则 ====================
 
-  gemini_classical:      {<<: *BehaviorCL, url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Gemini/Gemini.list}
   ai_domain:             {<<: *BehaviorDN, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/domain/ai.mrs}
   googlefcm_domain:      {<<: *BehaviorDN, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/domain/googlefcm.mrs}
   youtube_domain:        {<<: *BehaviorDN, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/domain/youtube.mrs}
@@ -405,8 +386,7 @@ rule-providers:
   crypto_domain:         {<<: *BehaviorDN, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/domain/crypto.mrs}
 
   speedtest_domain:      {<<: *BehaviorDN, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/domain/speedtest.mrs}
-  speedtest_classical:   {<<: *BehaviorCL, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/classical/speedtest.list}
-
+  
   abema_domain:          {<<: *BehaviorDN, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/domain/abema.mrs}
   bahamut_domain:        {<<: *BehaviorDN, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/domain/bahamut.mrs}
   dazn_domain:           {<<: *BehaviorDN, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/domain/dazn.mrs}
@@ -433,13 +413,7 @@ rule-providers:
   dmca_ip:               {<<: *BehaviorIP, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/ipcidr/dmca.mrs}
   httpdns_ip:            {<<: *BehaviorIP, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/ipcidr/httpdns.mrs}
   adrules_ip:            {<<: *BehaviorIP, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/ipcidr/adrules.mrs}
-  dmca_classical:        {<<: *BehaviorCL, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/classical/dmca.list}
-  adrules_classical:     {<<: *BehaviorCL, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/classical/adrules.list}
-
-  # ==================== 特殊规则（默认关闭） ====================
-
-  # iplocation_proxy_ip: {<<: *BehaviorIP, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/ipcidr/iplocation-proxy.mrs}
-
+  
   # ==================== 海外专项：IP 规则 ====================
 
   apns_ip:               {<<: *BehaviorIP, url: https://raw.githubusercontent.com/QuixoticHeart/rule-set/ruleset/meta/ipcidr/apns.mrs}
