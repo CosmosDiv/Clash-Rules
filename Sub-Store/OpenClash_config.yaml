@@ -158,7 +158,7 @@ sniffer:
 
 # TUN模式配置
 tun:
-  enable: true
+  enable: false
   stack: mixed
   dns-hijack:
     - "any:53"
@@ -183,8 +183,6 @@ dns:
     - https://doh.pub/dns-query
   fake-ip-filter:
     - rule-set:fake-ip-filter_domain
-    - rule-set:private_domain
-    - rule-set:cn_domain
     - +.miwifi.com
     - +.docker.io
     - +.market.xiaomi.com
@@ -208,7 +206,7 @@ proxy-groups:
   - {name: 游戏服务,     <<: *SelectHK, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Game.png}
   - {name: TikTok,       <<: *SelectTW, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/TikTok.png}
   - {name: 通信服务,     <<: *SelectUK, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Telegram.png}
-  - {name: 开发服务,     <<: *SelectPY, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Lab.png}
+  - {name: 开发服务,     <<: *SelectJP, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Lab.png}
   - {name: PayPal,       <<: *SelectUS, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/PayPal.png}
   - {name: 电商平台,     <<: *SelectPY, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Daily.png}
   - {name: 加密货币,     <<: *SelectSG, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/aaex.png}
