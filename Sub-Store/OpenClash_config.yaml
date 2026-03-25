@@ -14,7 +14,7 @@ BaseUTFar:  &BaseUTFar  {type: url-test, interval: 300, tolerance: 50, url: 'htt
 
 # 节点筛选正则表达式 - 基于地理位置和关键词过滤
 # 地区节点的筛选表达式
-FilterHK: &FilterHK '(?i)^(?=.*(港|🇭🇰|HK|Hong|HKG))(?!.*(家宽|住宅|5G网络|星链)).*$'
+FilterHK: &FilterHK '(?i)^(?=.*(港|香港|🇭🇰|HK|Hong|HKG|澳门|澳門|🇲🇴|Macao|Macau|MFM|(?:^|[^A-Za-z])MO(?:[^A-Za-z]|$)))(?!.*(家宽|住宅|5G网络|星链)).*$'
 FilterSG: &FilterSG '(?i)^(?=.*(坡|🇸🇬|SG|Sing|SIN|XSP))(?!.*(家宽|住宅|5G网络|星链)).*$'
 FilterJP: &FilterJP '(?i)^(?=.*(日|🇯🇵|JP|Japan|NRT|HND|KIX|CTS|FUK))(?!.*(家宽|住宅|5G网络|星链)).*$'
 FilterKR: &FilterKR '(?i)^(?=.*(韩|🇰🇷|韓|首尔|Seoul|南朝鲜|KR|KOR|Korea|SouthKorea|ICN|GMP|PUS))(?!.*(家宽|住宅|5G网络|星链)).*$'
@@ -27,7 +27,7 @@ FilterEU: &FilterEU '(?i)^(?=.*(欧洲|欧盟|Europe|European|EU|英国|大不�
 # 所有家宽
 FilterHM: &FilterHM '^(?=.*(?i:家宽|住宅|5G网络|星链)).*$'
 # 地区家宽
-FilterHKHome: &FilterHKHome '(?i)^(?=.*(港|🇭🇰|HK|Hong|HKG))(?=.*(家宽|住宅|5G网络|星链)).*$'
+FilterHKHome: &FilterHKHome '(?i)^(?=.*(港|香港|🇭🇰|HK|Hong|HKG|澳门|澳門|🇲🇴|Macao|Macau|MFM|(?:^|[^A-Za-z])MO(?:[^A-Za-z]|$)))(?=.*(家宽|住宅|5G网络|星链)).*$'
 FilterSGHome: &FilterSGHome '(?i)^(?=.*(坡|🇸🇬|SG|Sing|SIN|XSP))(?=.*(家宽|住宅|5G网络|星链)).*$'
 FilterJPHome: &FilterJPHome '(?i)^(?=.*(日|🇯🇵|JP|Japan|NRT|HND|KIX|CTS|FUK))(?=.*(家宽|住宅|5G网络|星链)).*$'
 FilterKRHome: &FilterKRHome '(?i)^(?=.*(韩|🇰🇷|韓|首尔|Seoul|南朝鲜|KR|KOR|Korea|SouthKorea|ICN|GMP|PUS))(?=.*(家宽|住宅|5G网络|星链)).*$'
@@ -213,14 +213,24 @@ proxy-groups:
   - {name: 兜底流量,     <<: *SelectPY, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Final.png}
 
   # ==================== 地区策略组 ====================
-  - {name: 香港策略,     type: select, proxies: [香港自动, 香港家宽], include-all: true, filter: *FilterHK, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Hong_Kong.png}
-  - {name: 台湾策略,     type: select, proxies: [台湾自动, 台湾家宽], include-all: true, filter: *FilterTW, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/TW.png}
-  - {name: 狮城策略,     type: select, proxies: [狮城自动, 狮城家宽], include-all: true, filter: *FilterSG, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Singapore.png}
-  - {name: 日本策略,     type: select, proxies: [日本自动, 日本家宽], include-all: true, filter: *FilterJP, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Japan.png}
-  - {name: 韩国策略,     type: select, proxies: [韩国自动, 韩国家宽], include-all: true, filter: *FilterKR, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Korea.png}
-  - {name: 美国策略,     type: select, proxies: [美国自动, 美国家宽], include-all: true, filter: *FilterUS, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png}
-  - {name: 英国策略,     type: select, proxies: [英国家宽, 英国自动], include-all: true, filter: *FilterUK, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_Kingdom.png}
-  - {name: 欧盟策略,     type: select, proxies: [欧盟自动, 欧盟家宽], include-all: true, filter: *FilterEU, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/EU.png}
+  - {name: 香港策略,     type: select, proxies: [香港自动, 香港家宽, 香港手动], icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Hong_Kong.png}
+  - {name: 台湾策略,     type: select, proxies: [台湾自动, 台湾家宽, 台湾手动], icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/TW.png}
+  - {name: 狮城策略,     type: select, proxies: [狮城自动, 狮城家宽, 狮城手动], icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Singapore.png}
+  - {name: 日本策略,     type: select, proxies: [日本自动, 日本家宽, 日本手动], icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Japan.png}
+  - {name: 韩国策略,     type: select, proxies: [韩国自动, 韩国家宽, 韩国手动], icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Korea.png}
+  - {name: 美国策略,     type: select, proxies: [美国自动, 美国家宽, 美国手动], icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png}
+  - {name: 英国策略,     type: select, proxies: [英国自动, 英国家宽, 英国手动], icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_Kingdom.png}
+  - {name: 欧盟策略,     type: select, proxies: [欧盟自动, 欧盟家宽, 欧盟手动], icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/EU.png}
+
+  # ==================== 地区手动组 ====================
+  - {name: 香港手动,     type: select, include-all: true, filter: *FilterHK, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Hong_Kong.png}
+  - {name: 台湾手动,     type: select, include-all: true, filter: *FilterTW, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/TW.png}
+  - {name: 狮城手动,     type: select, include-all: true, filter: *FilterSG, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Singapore.png}
+  - {name: 日本手动,     type: select, include-all: true, filter: *FilterJP, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Japan.png}
+  - {name: 韩国手动,     type: select, include-all: true, filter: *FilterKR, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Korea.png}
+  - {name: 美国手动,     type: select, include-all: true, filter: *FilterUS, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png}
+  - {name: 英国手动,     type: select, include-all: true, filter: *FilterUK, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_Kingdom.png}
+  - {name: 欧盟手动,     type: select, include-all: true, filter: *FilterEU, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/EU.png}
 
   # ==================== 其他策略组 ====================
   - {name: 全球手动,     type: select, include-all: true, filter: *FilterAL, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Global.png}
@@ -228,23 +238,23 @@ proxy-groups:
 
   # ==================== 地区自动测速组 ====================
   - {name: 香港自动,     <<: *BaseUTNear, include-all: true, filter: *FilterHK, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
-  - {name: 台湾自动,     <<: *BaseUTMid, include-all: true, filter: *FilterTW, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
-  - {name: 狮城自动,     <<: *BaseUTMid, include-all: true, filter: *FilterSG, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
-  - {name: 日本自动,     <<: *BaseUTMid, include-all: true, filter: *FilterJP, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 台湾自动,     <<: *BaseUTMid,  include-all: true, filter: *FilterTW, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 狮城自动,     <<: *BaseUTMid,  include-all: true, filter: *FilterSG, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 日本自动,     <<: *BaseUTMid,  include-all: true, filter: *FilterJP, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
   - {name: 韩国自动,     <<: *BaseUTNear, include-all: true, filter: *FilterKR, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
-  - {name: 美国自动,     <<: *BaseUTFar, include-all: true, filter: *FilterUS, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
-  - {name: 英国自动,     <<: *BaseUTFar, include-all: true, filter: *FilterUK, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
-  - {name: 欧盟自动,     <<: *BaseUTFar, include-all: true, filter: *FilterEU, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 美国自动,     <<: *BaseUTFar,  include-all: true, filter: *FilterUS, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 英国自动,     <<: *BaseUTFar,  include-all: true, filter: *FilterUK, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 欧盟自动,     <<: *BaseUTFar,  include-all: true, filter: *FilterEU, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
   
   # ==================== 家宽自动测速组 ====================
   - {name: 香港家宽,     <<: *BaseUTNear, include-all: true, filter: *FilterHKHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
-  - {name: 台湾家宽,     <<: *BaseUTMid, include-all: true, filter: *FilterTWHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
-  - {name: 狮城家宽,     <<: *BaseUTMid, include-all: true, filter: *FilterSGHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
-  - {name: 日本家宽,     <<: *BaseUTMid, include-all: true, filter: *FilterJPHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 台湾家宽,     <<: *BaseUTMid,  include-all: true, filter: *FilterTWHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 狮城家宽,     <<: *BaseUTMid,  include-all: true, filter: *FilterSGHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 日本家宽,     <<: *BaseUTMid,  include-all: true, filter: *FilterJPHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
   - {name: 韩国家宽,     <<: *BaseUTNear, include-all: true, filter: *FilterKRHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
-  - {name: 美国家宽,     <<: *BaseUTFar, include-all: true, filter: *FilterUSHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
-  - {name: 英国家宽,     <<: *BaseUTFar, include-all: true, filter: *FilterUKHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
-  - {name: 欧盟家宽,     <<: *BaseUTFar, include-all: true, filter: *FilterEUHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 美国家宽,     <<: *BaseUTFar,  include-all: true, filter: *FilterUSHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 英国家宽,     <<: *BaseUTFar,  include-all: true, filter: *FilterUKHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 欧盟家宽,     <<: *BaseUTFar,  include-all: true, filter: *FilterEUHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
 
 # ==================== 规则集 ====================
 # ==================== rules ====================
