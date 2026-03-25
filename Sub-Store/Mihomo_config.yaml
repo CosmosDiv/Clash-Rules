@@ -120,7 +120,7 @@ skip-auth-prefixes:
 
 # 实验性功能
 experimental:
-  quic-go-disable-gso: true  
+  quic-go-disable-gso: false # hy2节点有问题的时候再改为true  
      
 # 管理面板配置
 external-ui-url: https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip
