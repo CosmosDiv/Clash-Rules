@@ -3,22 +3,6 @@
 # 如果要防止泄露，本规则直接最后的所有ip规则后面加no-resolve
 # ==================== 锚点配置 ====================
 # 代理提供者模板 - 订阅源基础配置
-# 健康检查
-p: &p
-  type: http
-  interval: *Time
-  health-check:
-    enable: true
-    url: https://www.gstatic.com/generate_204
-    interval: 300
-  proxy: 订阅更新
-  header: # 如遇订阅加载不出来请切换ua
-      User-Agent:  # 使用注释法由上到下 默认使用第一个
-        - "ClashMetaForAndroid/2.11.2.Meta"
-        - "clash-verge/v2.2.3"
-        - "ClashforWindows/0.19.23"
-        - "clash.meta"
-        - "mihomo"
 
 # 策略组类型模板 - 定义不同的策略组基础配置
 BaseFB: &BaseFB {type: fallback, interval: 300, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204}
@@ -79,25 +63,24 @@ SelectHM: &SelectHM {type: select, proxies: [美国家宽, 美国策略, 默认�
 
 
 # ==================== 代理提供者 ====================
-proxy-providers: # ← 此函数位置请勿变动！此为模块更新时备份恢复订阅变量范围 ↓
-  1.主要地址: # 如遇订阅加载不出来，请尝试切换ua
-    <<: *p
-    override:
-      additional-prefix: "Main："
-    path: ./proxies/1.主要地址.yaml
-    url: "此处引入您的Clash订阅链接地址"
-  2.备用地址:
-    <<: *p
-    override:
-      additional-prefix: "Minor："
-    path: ./proxies/2.备用地址.yaml
-    url: "此处引入您的Clash订阅链接地址"
-  3.额外地址:
-    <<: *p
-    override:
-      additional-prefix: "Additi："
-    path: ./proxies/3.额外地址.yaml
-    url: "此处引入您的Clash订阅链接地址"
+proxy-providers:
+  proxy1:
+    type: http
+    interval: 86400
+    proxy: DIRECT
+    header: # 如遇订阅加载不出来请切换ua
+      User-Agent:  # 使用注释法由上到下 默认使用第一个
+        - "ClashMetaForAndroid/2.11.2.Meta"
+        - "clash-verge/v2.2.3"
+        - "ClashforWindows/0.19.23"
+        - "clash.meta"
+        - "mihomo"
+    health-check:
+      enable: true
+      url: "https://www.gstatic.com/generate_204"
+      interval: 300
+    url: "填写订阅链接"
+    path: ./proxies/proxy1.yaml
 
 # ==================== 地理数据库配置 GeoData Configuration ====================
 # 用于 IP 和域名的地理位置及分类判断
