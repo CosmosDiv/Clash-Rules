@@ -269,9 +269,11 @@ rules:
   - RULE-SET,dmca_domain,直接连接 # PT/Tracker/迅雷等敏感下载域名直连
   - RULE-SET,httpdns_domain,REJECT # 拦截 HTTPDNS 域名，避免绕过正常分流
   - RULE-SET,adrules_domain,REJECT # 广告与跟踪域名拦截
-  # 1. 绝大多数海外 QUIC：通过域名直接拦截
+  # 私网/局域网先放行（可选，但我建议加）
+  - AND,((DST-PORT,443),(NETWORK,UDP),(GEOIP,LAN,no-resolve)),DIRECT 
+  # 绝大多数海外 QUIC：通过域名直接拦截
   - AND,((DST-PORT,443),(NETWORK,UDP),(GEOSITE,geolocation-!cn)),REJECT
-  # 2. 漏网的海外 QUIC：通过 IP 兜底拦截（允许触发 DNS 解析，接受泄露）
+  # 漏网的海外 QUIC：通过 IP 兜底拦截（允许触发 DNS 解析，接受泄露）
   - AND,((DST-PORT,443),(NETWORK,UDP),(NOT,((GEOIP,CN)))),REJECT
 
   # ==================== 国内专项：域名规则 ====================
