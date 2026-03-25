@@ -73,6 +73,25 @@ proxy-providers:
     # 备用订阅源 - 次优节点集合,使用时请修改
 #    备用服务商: {<<: *BaseProvider, url: '填入链接', override: {additional-prefix: '[备] '}}
 
+# ==================== 地理数据库配置 GeoData Configuration ====================
+# 用于 IP 和域名的地理位置及分类判断
+geox-url:
+  # MaxMind 数据库（含中国 IP）
+  mmdb: "https://testingcf.jsdelivr.net/gh/alecthw/mmdb_china_ip_list@release/Country.mmdb"
+  # GeoIP 数据库
+  geoip: "https://testingcf.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geoip.dat"
+  # GeoSite 数据库（域名分类）
+  geosite: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat"
+  # ASN（自治系统号）数据库,用于更精确的 IP 归属判断
+  asn: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/GeoLite2-ASN.mmdb"
+
+# 是否自动更新 geodata 数据库
+geo-auto-update: true # 是否自动更新 geodata
+# 更新间隔（小时）,24 = 每天更新一次
+geo-update-interval: 24 # 更新间隔,单位:小时
+# 使用 geodata 模式（而非传统的 IP-CIDR 文件）
+geodata-mode: true
+
 # ==================== 核心配置 ====================
 # 基础配置
 mode: rule
