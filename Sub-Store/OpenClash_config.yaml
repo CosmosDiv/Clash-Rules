@@ -12,7 +12,7 @@ BaseUTFar:  &BaseUTFar  {type: url-test, interval: 300, tolerance: 50, lazy: tru
 
 # 节点筛选正则表达式 - 基于地理位置和关键词过滤
 # 地区节点的筛选表达式
-FilterHK: &FilterHK '(?i)^(?=.*(港|🇭🇰|HK|Hong|HKG))(?!.*(家宽|住宅|5G网络|星链)).*$'
+FilterHK: &FilterHK '(?i)^(?=.*(港|香港|🇭🇰|HK|Hong|HKG|澳门|澳門|🇲🇴|Macao|Macau|MFM|(?:^|[^A-Za-z])MO(?:[^A-Za-z]|$)))(?!.*(家宽|住宅|5G网络|星链)).*$'
 FilterSG: &FilterSG '(?i)^(?=.*(坡|🇸🇬|SG|Sing|SIN|XSP))(?!.*(家宽|住宅|5G网络|星链)).*$'
 FilterJP: &FilterJP '(?i)^(?=.*(日|🇯🇵|JP|Japan|NRT|HND|KIX|CTS|FUK))(?!.*(家宽|住宅|5G网络|星链)).*$'
 FilterKR: &FilterKR '(?i)^(?=.*(韩|🇰🇷|韓|首尔|Seoul|南朝鲜|KR|KOR|Korea|SouthKorea|ICN|GMP|PUS))(?!.*(家宽|住宅|5G网络|星链)).*$'
@@ -25,7 +25,7 @@ FilterEU: &FilterEU '(?i)^(?=.*(欧洲|欧盟|Europe|European|EU|英国|大不�
 # 所有家宽
 FilterHM: &FilterHM '^(?=.*(?i:家宽|住宅|5G网络|星链)).*$'
 # 地区家宽
-FilterHKHome: &FilterHKHome '(?i)^(?=.*(港|🇭🇰|HK|Hong|HKG))(?=.*(家宽|住宅|5G网络|星链)).*$'
+FilterHKHome: &FilterHKHome '(?i)^(?=.*(港|香港|🇭🇰|HK|Hong|HKG|澳门|澳門|🇲🇴|Macao|Macau|MFM|(?:^|[^A-Za-z])MO(?:[^A-Za-z]|$)))(?=.*(家宽|住宅|5G网络|星链)).*$'
 FilterSGHome: &FilterSGHome '(?i)^(?=.*(坡|🇸🇬|SG|Sing|SIN|XSP))(?=.*(家宽|住宅|5G网络|星链)).*$'
 FilterJPHome: &FilterJPHome '(?i)^(?=.*(日|🇯🇵|JP|Japan|NRT|HND|KIX|CTS|FUK))(?=.*(家宽|住宅|5G网络|星链)).*$'
 FilterKRHome: &FilterKRHome '(?i)^(?=.*(韩|🇰🇷|韓|首尔|Seoul|南朝鲜|KR|KOR|Korea|SouthKorea|ICN|GMP|PUS))(?=.*(家宽|住宅|5G网络|星链)).*$'
