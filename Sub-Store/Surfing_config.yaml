@@ -79,7 +79,7 @@ proxy-providers:
       enable: true
       url: "https://www.gstatic.com/generate_204"
       interval: 300
-    url: "填写订阅链接"
+    url: "***REMOVED***"
     path: ./proxies/proxy1.yaml
 
 # ==================== 地理数据库配置 GeoData Configuration ====================
@@ -99,27 +99,29 @@ geo-auto-update: true # 是否自动更新 geodata
 # 更新间隔（小时）,24 = 每天更新一次
 geo-update-interval: 24 # 更新间隔,单位:小时
 # 使用 geodata 模式（而非传统的 IP-CIDR 文件）
-geodata-mode: false
+geodata-mode: true
 
 
 # ==================== 核心配置 ====================
 # 基础配置
-mode: rule
 mixed-port: 7890
 redir-port: 7891
 tproxy-port: 1536
+mode: rule
 ipv6: true
 allow-lan: true
-log-level: warning
-bind-address: '*'
-find-process-mode: always
 disable-keep-alive: true
 unified-delay: true
 tcp-concurrent: true
+log-level: warning
+find-process-mode: always
+
+
 
 # 实验性功能
 experimental: 
-  quic-go-disable-gso: false # hy2节点有问题的时候再改为true
+  # hy2节点有问题的时候再改为true
+  quic-go-disable-gso: false
   http-headers:
     request:
       - name: "User-Agent"
@@ -169,7 +171,8 @@ tun:
   udp-timeout: 300
   auto-route: true
   strict-route: true
-  auto-redirect: false
+  # 如果不行的话，下面的true可以改为false试一下。
+  auto-redirect: true
   auto-detect-interface: true
     
 # DNS配置
