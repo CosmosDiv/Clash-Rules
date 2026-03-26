@@ -79,7 +79,7 @@ proxy-providers:
       enable: true
       url: "https://www.gstatic.com/generate_204"
       interval: 300
-    url: "***REMOVED***"
+    url: ""
     path: ./proxies/proxy1.yaml
 
 # ==================== 地理数据库配置 GeoData Configuration ====================
