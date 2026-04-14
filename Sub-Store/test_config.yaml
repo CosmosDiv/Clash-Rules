@@ -1,0 +1,621 @@
+# 根据666os yyds配置修改，不管dns泄露，但是尽可能的先把海外域名涵盖，尽可能直接域名识别分流。
+# 然后为了访问国内可能存在的小众站点正常，国内ip选择了一个尽可能大的，然后没用加no-resolve
+# 如果要防止泄露，本规则直接最后的所有ip规则后面加no-resolve
+# ==================== 锚点配置 ====================
+# 代理提供者模板 - 订阅源基础配置
+BaseProvider: &BaseProvider {type: http, interval: 86400, proxy: DIRECT, health-check:             {enable: true, url: 'https://www.gstatic.com/generate_204', interval: 300}, filter: '^(?!.*(群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))'}
+
+# 策略组类型模板 - 定义不同的策略组基础配置
+BaseFB: &BaseFB {type: fallback, interval: 300, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204}
+BaseUTNear: &BaseUTNear {type: url-test, interval: 300, tolerance: 20, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true}
+BaseUTMid:  &BaseUTMid  {type: url-test, interval: 300, tolerance: 35, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true}
+BaseUTFar:  &BaseUTFar  {type: url-test, interval: 300, tolerance: 50, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true}
+
+
+# 节点筛选正则表达式 - 基于地理位置和关键词过滤
+# 地区节点的筛选表达式
+FilterHK: &FilterHK '(?i)^(?=.*(港|香港|🇭🇰|HK|Hong|HKG|澳门|澳門|🇲🇴|Macao|Macau|MFM|(?:^|[^A-Za-z])MO(?:[^A-Za-z]|$)))(?!.*(家宽|住宅|5G网络|星链)).*$'
+FilterSG: &FilterSG '(?i)^(?=.*(坡|🇸🇬|SG|Sing|SIN|XSP))(?!.*(家宽|住宅|5G网络|星链)).*$'
+FilterJP: &FilterJP '(?i)^(?=.*(日|🇯🇵|JP|Japan|NRT|HND|KIX|CTS|FUK))(?!.*(家宽|住宅|5G网络|星链)).*$'
+FilterKR: &FilterKR '(?i)^(?=.*(韩|🇰🇷|韓|首尔|Seoul|南朝鲜|KR|KOR|Korea|SouthKorea|ICN|GMP|PUS))(?!.*(家宽|住宅|5G网络|星链)).*$'
+FilterUS: &FilterUS '(?i)^(?=.*(美|🇺🇸|USA|(?:^|[^A-Za-z])US(?:[^A-Za-z]|$)|SJC|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD))(?!.*(家宽|住宅|5G网络|星链)).*$'
+FilterTW: &FilterTW '(?i)^(?=.*(台|🇼🇸|🇹🇼|TW|tai|TPE|TSA|KHH))(?!.*(家宽|住宅|5G网络|星链)).*$'
+FilterUK: &FilterUK '(?i)^(?=.*(英|英国|UK|大不列颠|伦敦|Kingdom))(?!.*(家宽|住宅|5G网络|星链)).*$'
+FilterEU: &FilterEU '(?i)^(?=.*(欧洲|欧盟|Europe|European|EU|英国|大不列颠|UnitedKingdom|Britain|England|伦敦|London|Kingdom|LHR|LGW|MAN|法国|France|Paris|巴黎|CDG|ORY|LYS|德国|Germany|Berlin|法兰克福|Frankfurt|慕尼黑|Munich|FRA|MUC|荷兰|Netherlands|Amsterdam|阿姆斯特丹|Rotterdam|鹿特丹|AMS|RTM|意大利|Italy|Rome|Milan|罗马|米兰|FCO|MXP|西班牙|Spain|Madrid|Barcelona|马德里|巴塞罗那|MAD|BCN|葡萄牙|Portugal|Lisbon|里斯本|LIS|爱尔兰|Ireland|Dublin|都柏林|DUB|比利时|Belgium|Brussels|布鲁塞尔|BRU|捷克|Czech|Prague|布拉格|PRG|奥地利|Austria|Vienna|维也纳|VIE|丹麦|Denmark|Copenhagen|哥本哈根|CPH|芬兰|Finland|Helsinki|赫尔辛基|HEL|瑞典|Sweden|Stockholm|斯德哥尔摩|ARN|波兰|Poland|Warsaw|华沙|WAW|匈牙利|Hungary|Budapest|布达佩斯|BUD|希腊|Greece|Athens|雅典|ATH|罗马尼亚|Romania|Bucharest|布加勒斯特|OTP|卢森堡|Luxembourg|LUX|立陶宛|Lithuania|VNO|爱沙尼亚|Estonia|TLL|保加利亚|Bulgaria|SOF|克罗地亚|Croatia|ZAG|斯洛伐克|Slovakia|BTS|斯洛文尼亚|Slovenia|LJU|塞尔维亚|Serbia|BEG|🇬🇧|🇫🇷|🇩🇪|🇳🇱|🇮🇹|🇪🇸|🇵🇹|🇮🇪|🇧🇪|🇨🇿|🇦🇹|🇩🇰|🇫🇮|🇸🇪|🇵🇱|🇭🇺|🇬🇷|🇷🇴|🇱🇺|🇱🇹|🇪🇪|🇧🇬|🇭🇷|🇸🇰|🇸🇮|🇷🇸))(?!.*(家宽|住宅|5G网络|星链)).*$'
+
+# 家宽节点的筛选表达式
+# 所有家宽
+FilterHM: &FilterHM '^(?=.*(?i:家宽|住宅|5G网络|星链)).*$'
+# 地区家宽
+FilterHKHome: &FilterHKHome '(?i)^(?=.*(港|香港|🇭🇰|HK|Hong|HKG|澳门|澳門|🇲🇴|Macao|Macau|MFM|(?:^|[^A-Za-z])MO(?:[^A-Za-z]|$)))(?=.*(家宽|住宅|5G网络|星链)).*$'
+FilterSGHome: &FilterSGHome '(?i)^(?=.*(坡|🇸🇬|SG|Sing|SIN|XSP))(?=.*(家宽|住宅|5G网络|星链)).*$'
+FilterJPHome: &FilterJPHome '(?i)^(?=.*(日|🇯🇵|JP|Japan|NRT|HND|KIX|CTS|FUK))(?=.*(家宽|住宅|5G网络|星链)).*$'
+FilterKRHome: &FilterKRHome '(?i)^(?=.*(韩|🇰🇷|韓|首尔|Seoul|南朝鲜|KR|KOR|Korea|SouthKorea|ICN|GMP|PUS))(?=.*(家宽|住宅|5G网络|星链)).*$'
+FilterUSHome: &FilterUSHome '(?i)^(?=.*(美|🇺🇸|USA|(?:^|[^A-Za-z])US(?:[^A-Za-z]|$)|SJC|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD))(?=.*(家宽|住宅|5G网络|星链)).*$'
+FilterTWHome: &FilterTWHome '(?i)^(?=.*(台|🇼🇸|🇹🇼|TW|tai|TPE|TSA|KHH))(?=.*(家宽|住宅|5G网络|星链)).*$'
+FilterUKHome: &FilterUKHome '(?i)^(?=.*(英|英国|UK|大不列颠|伦敦|Kingdom))(?=.*(家宽|住宅|5G网络|星链)).*$'
+FilterEUHome: &FilterEUHome '(?i)^(?=.*(欧洲|欧盟|Europe|European|EU|英国|大不列颠|UnitedKingdom|Britain|England|伦敦|London|Kingdom|LHR|LGW|MAN|法国|France|Paris|巴黎|CDG|ORY|LYS|德国|Germany|Berlin|法兰克福|Frankfurt|慕尼黑|Munich|FRA|MUC|荷兰|Netherlands|Amsterdam|阿姆斯特丹|Rotterdam|鹿特丹|AMS|RTM|意大利|Italy|Rome|Milan|罗马|米兰|FCO|MXP|西班牙|Spain|Madrid|Barcelona|马德里|巴塞罗那|MAD|BCN|葡萄牙|Portugal|Lisbon|里斯本|LIS|爱尔兰|Ireland|Dublin|都柏林|DUB|比利时|Belgium|Brussels|布鲁塞尔|BRU|捷克|Czech|Prague|布拉格|PRG|奥地利|Austria|Vienna|维也纳|VIE|丹麦|Denmark|Copenhagen|哥本哈根|CPH|芬兰|Finland|Helsinki|赫尔辛基|HEL|瑞典|Sweden|Stockholm|斯德哥尔摩|ARN|波兰|Poland|Warsaw|华沙|WAW|匈牙利|Hungary|Budapest|布达佩斯|BUD|希腊|Greece|Athens|雅典|ATH|罗马尼亚|Romania|Bucharest|布加勒斯特|OTP|卢森堡|Luxembourg|LUX|立陶宛|Lithuania|VNO|爱沙尼亚|Estonia|TLL|保加利亚|Bulgaria|SOF|克罗地亚|Croatia|ZAG|斯洛伐克|Slovakia|BTS|斯洛文尼亚|Slovenia|LJU|塞尔维亚|Serbia|BEG|🇬🇧|🇫🇷|🇩🇪|🇳🇱|🇮🇹|🇪🇸|🇵🇹|🇮🇪|🇧🇪|🇨🇿|🇦🇹|🇩🇰|🇫🇮|🇸🇪|🇵🇱|🇭🇺|🇬🇷|🇷🇴|🇱🇺|🇱🇹|🇪🇪|🇧🇬|🇭🇷|🇸🇰|🇸🇮|🇷🇸))(?=.*(家宽|住宅|5G网络|星链)).*$'
+
+# al是all,所有
+FilterAL: &FilterAL '^(?!.*(DIRECT|直接连接|群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))'
+
+
+# 策略组代理列表模板 - 预定义的代理节点优先级排序
+# 这里我理解,应该是直接定义分组里面包含的节点.然后不同的分组有不同的优先级
+# FB默认选择fallback组包含的分组排序
+SelectFB: &SelectFB {type: select, proxies: [故障转移, 香港策略, 狮城策略, 日本策略, 韩国策略, 美国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
+# PY默认代理组的分组排序
+SelectPY: &SelectPY {type: select, proxies: [默认代理, 故障转移, 香港策略, 狮城策略, 日本策略, 韩国策略, 美国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
+# DC默认直连组的分组排序
+SelectDC: &SelectDC {type: select, proxies: [直接连接, 默认代理, 故障转移, 香港策略, 狮城策略, 日本策略, 韩国策略, 美国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动]}
+# HK默认香港的分组排序
+SelectHK: &SelectHK {type: select, proxies: [香港策略, 默认代理, 故障转移, 狮城策略, 日本策略, 韩国策略, 美国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
+# HK默认台湾的分组排序
+SelectTW: &SelectTW {type: select, proxies: [台湾策略, 香港策略, 默认代理, 故障转移, 狮城策略, 日本策略, 韩国策略, 美国策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
+# HK默认日本的分组排序
+SelectJP: &SelectJP {type: select, proxies: [日本策略, 香港策略, 默认代理, 故障转移, 狮城策略, 韩国策略, 美国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
+# SG默认新加坡的分组排序
+SelectSG: &SelectSG {type: select, proxies: [狮城策略, 默认代理, 故障转移, 香港策略, 日本策略, 韩国策略, 美国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
+# US默认美国分组的排序
+SelectUS: &SelectUS {type: select, proxies: [美国策略, 默认代理, 故障转移, 香港策略, 狮城策略, 日本策略, 韩国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
+# HM默认手动家宽分组的排序
+SelectHM: &SelectHM {type: select, proxies: [美国家宽, 美国策略, 默认代理, 家宽手动, 全球手动, 直接连接]}
+
+
+
+# ==================== 代理提供者 ====================
+# 注意:请提供您的机场订阅链接,每个链接一行,并为每个机场命名,末尾的[优][备]为每个节点添加机场名称前缀,可自定义
+proxy-providers:
+  # 优质订阅源 - 优质节点集合,使用时请修改
+  优质服务商:             {<<: *BaseProvider, url: '填入链接'}
+    # 备用订阅源 - 次优节点集合,使用时请修改
+#    备用服务商:             {<<: *BaseProvider, url: '填入链接', override:             {additional-prefix: '[备] '}}
+
+# ==================== 地理数据库配置 GeoData Configuration ====================
+# 用于 IP 和域名的地理位置及分类判断
+geox-url:
+  # MaxMind 数据库（含中国 IP）
+  mmdb: "https://testingcf.jsdelivr.net/gh/alecthw/mmdb_china_ip_list@release/Country.mmdb"
+  # GeoIP 数据库
+  geoip: "https://testingcf.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geoip.dat"
+  # GeoSite 数据库（域名分类）
+  geosite: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat"
+  # ASN（自治系统号）数据库,用于更精确的 IP 归属判断
+  asn: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/GeoLite2-ASN.mmdb"
+
+# 是否自动更新 geodata 数据库
+geo-auto-update: true # 是否自动更新 geodata
+# 更新间隔（小时）,24 = 每天更新一次
+geo-update-interval: 24 # 更新间隔,单位:小时
+# 使用 geodata 模式（而非传统的 IP-CIDR 文件）
+geodata-mode: true
+
+
+# ==================== 核心配置 ====================
+# 基础配置
+mode: rule
+port: 7890
+socks-port: 7891
+redir-port: 7892
+mixed-port: 7893
+tproxy-port: 7895
+ipv6: true
+allow-lan: true
+unified-delay: true
+tcp-concurrent: true
+log-level: warning
+bind-address: '*'
+find-process-mode: 'always'
+keep-alive-interval: 15
+keep-alive-idle: 600
+
+# 认证配置
+authentication:
+  - mihomo:yyds666
+skip-auth-prefixes:
+  - 192.168.1.0/24
+  - 192.168.31.0/24
+  - 192.168.100.0/24
+  - 127.0.0.1/8
+
+# 实验性功能
+experimental:
+  quic-go-disable-gso: false # hy2节点有问题的时候再改为true  
+     
+# 管理面板配置
+external-ui-url: https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip
+external-ui-name: zashboard
+external-ui: ui
+external-controller: 0.0.0.0:9090
+secret: yyds666
+
+# 配置存储
+profile:
+  store-selected: true
+  store-fake-ip: true
+
+# 流量嗅探
+sniffer:
+  enable: true
+  sniff:
+    HTTP:
+      ports: [80, 8080-8880]
+      override-destination: true
+    TLS:
+      ports: [443, 8443]
+    QUIC:
+      ports: [443, 8443]
+  skip-domain:
+    - "Mijia Cloud"
+    - "+.push.apple.com"
+
+# TUN模式配置
+tun:
+  enable: false
+  stack: mixed
+  dns-hijack:
+    - "any:53"
+    - "tcp://any:53"
+  auto-route: true
+  auto-redirect: true
+  auto-detect-interface: true
+    
+# DNS配置
+dns:
+  enable: true
+  ipv6: true
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-range6: fdfe:dcba:9876::/48
+  default-nameserver:
+    - 119.29.29.29
+    - 180.184.1.1
+    - 223.5.5.5
+  nameserver:
+    - https://dns.alidns.com/dns-query
+    - https://doh.pub/dns-query
+  fake-ip-filter:
+    - rule-set:Direct
+    - rule-set:Private
+    - rule-set:China
+    - +.miwifi.com
+    - +.docker.io
+    - +.market.xiaomi.com
+    - +.push.apple.com
+
+# ==================== 代理策略组 ====================
+proxy-groups:
+  # ==================== 主要策略组 ====================
+  - {name: 默认代理,     <<: *SelectFB, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Proxy.png}
+  - {name: 故障转移,     <<: *BaseFB, proxies: [香港策略, 台湾策略, 狮城策略, 日本策略, 韩国策略, 美国策略, 英国策略, 欧盟策略, 直接连接], icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Available.png}
+  - {name: 国外流量,     <<: *SelectPY, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png}
+  - {name: 国内流量,     <<: *SelectDC, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png}
+  - {name: 兜底流量,     <<: *SelectPY, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Final.png}
+  - {name: 直接连接,     type: select, proxies: [DIRECT], hidden: true, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Direct.png}
+
+  # ==================== 功能策略组 ====================
+  - {name: 网络测试,     <<: *SelectDC, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Speedtest.png}
+  - {name: 抖快书定位,   type: select, proxies: [直接连接, 香港策略, 台湾策略, 狮城策略, 日本策略, 韩国策略, 美国策略, 英国策略, 欧盟策略], icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Domestic.png}
+
+  # ==================== 媒体服务 ====================
+  - {name: Emby服,       <<: *SelectPY, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Emby.png}
+  - {name: TikTok,       <<: *SelectJP, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/TikTok.png}
+  - {name: Spotify,      <<: *SelectSG, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Spotify.png}
+  - {name: 油管视频,     <<: *SelectSG, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/YouTube.png}
+  - {name: 奈飞视频,     <<: *SelectTW, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Netflix.png}
+  - {name: 国际媒体,     <<: *SelectPY, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Streaming.png}
+  - {name: 新闻媒体,     <<: *SelectUS, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Apple_News.png}
+
+  # ==================== 社交平台 ====================
+  - {name: 电报消息,     <<: *SelectHK, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Telegram_X.png}
+  - {name: 推特社交,     <<: *SelectUS, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/X.png}
+  - {name: 社交平台,     <<: *SelectUS, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Instagram.png}
+
+  # ==================== 商业服务 ====================
+  - {name: Gemini,       <<: *SelectUS, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Magic.png}
+  - {name: 人工智能,     <<: *SelectHM, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/ChatGPT.png}
+  - {name: GitHub,       <<: *SelectPY, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/GitHub.png}
+  - {name: Cloudflare,   <<: *SelectPY, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Cloudflare.png}
+  - {name: PayPal,       <<: *SelectUS, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/PayPal.png}
+  - {name: 货币平台,     <<: *SelectSG, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Cryptocurrency.png}
+  - {name: 游戏平台,     <<: *SelectHK, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Game.png}
+  - {name: 微软服务,     <<: *SelectUS, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Microsoft.png}
+  - {name: 谷歌服务,     <<: *SelectUS, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Google_Search.png}
+  - {name: 苹果服务,     <<: *SelectUS, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Apple.png}
+  
+  # ==================== 地区策略组 ====================
+  - {name: 香港策略,     type: select, proxies: [香港自动, 香港家宽, 香港手动], icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Hong_Kong.png}
+  - {name: 台湾策略,     type: select, proxies: [台湾自动, 台湾家宽, 台湾手动], icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/TW.png}
+  - {name: 狮城策略,     type: select, proxies: [狮城自动, 狮城家宽, 狮城手动], icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Singapore.png}
+  - {name: 日本策略,     type: select, proxies: [日本自动, 日本家宽, 日本手动], icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Japan.png}
+  - {name: 韩国策略,     type: select, proxies: [韩国自动, 韩国家宽, 韩国手动], icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Korea.png}
+  - {name: 美国策略,     type: select, proxies: [美国自动, 美国家宽, 美国手动], icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png}
+  - {name: 英国策略,     type: select, proxies: [英国家宽, 英国自动, 英国手动], icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_Kingdom.png}
+  - {name: 欧盟策略,     type: select, proxies: [欧盟自动, 欧盟家宽, 欧盟手动], icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/EU.png}
+
+  # ==================== 地区手动组 ====================
+  - {name: 香港手动,     type: select, include-all: true, filter: *FilterHK, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Hong_Kong.png}
+  - {name: 台湾手动,     type: select, include-all: true, filter: *FilterTW, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/TW.png}
+  - {name: 狮城手动,     type: select, include-all: true, filter: *FilterSG, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Singapore.png}
+  - {name: 日本手动,     type: select, include-all: true, filter: *FilterJP, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Japan.png}
+  - {name: 韩国手动,     type: select, include-all: true, filter: *FilterKR, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Korea.png}
+  - {name: 美国手动,     type: select, include-all: true, filter: *FilterUS, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png}
+  - {name: 英国手动,     type: select, include-all: true, filter: *FilterUK, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_Kingdom.png}
+  - {name: 欧盟手动,     type: select, include-all: true, filter: *FilterEU, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/EU.png}
+
+  # ==================== 其他策略组 ====================
+  - {name: 全球手动,     type: select, include-all: true, filter: *FilterAL, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Global.png}
+  - {name: 家宽手动,     type: select, include-all: true, filter: *FilterHM, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Server.png}
+
+  # ==================== 地区自动测速组 ====================
+  - {name: 香港自动,     <<: *BaseUTNear, include-all: true, filter: *FilterHK, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 台湾自动,     <<: *BaseUTMid,  include-all: true, filter: *FilterTW, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 狮城自动,     <<: *BaseUTMid,  include-all: true, filter: *FilterSG, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 日本自动,     <<: *BaseUTMid,  include-all: true, filter: *FilterJP, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 韩国自动,     <<: *BaseUTNear, include-all: true, filter: *FilterKR, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 美国自动,     <<: *BaseUTFar,  include-all: true, filter: *FilterUS, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 英国自动,     <<: *BaseUTFar,  include-all: true, filter: *FilterUK, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 欧盟自动,     <<: *BaseUTFar,  include-all: true, filter: *FilterEU, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  
+  # ==================== 家宽自动测速组 ====================
+  - {name: 香港家宽,     <<: *BaseUTNear, include-all: true, filter: *FilterHKHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 台湾家宽,     <<: *BaseUTMid,  include-all: true, filter: *FilterTWHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 狮城家宽,     <<: *BaseUTMid,  include-all: true, filter: *FilterSGHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 日本家宽,     <<: *BaseUTMid,  include-all: true, filter: *FilterJPHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 韩国家宽,     <<: *BaseUTNear, include-all: true, filter: *FilterKRHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 美国家宽,     <<: *BaseUTFar,  include-all: true, filter: *FilterUSHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 英国家宽,     <<: *BaseUTFar,  include-all: true, filter: *FilterUKHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+  - {name: 欧盟家宽,     <<: *BaseUTFar,  include-all: true, filter: *FilterEUHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
+
+# ==================== 规则路由 ====================
+rules:
+  # 拦截规则
+  - RULE-SET,Tracking,REJECT
+  - RULE-SET,Advertising,REJECT
+  # 私网/局域网先放行
+  - AND,((DST-PORT,443),(NETWORK,UDP),(GEOIP,LAN,no-resolve)),DIRECT 
+  # 绝大多数海外 QUIC：通过域名直接拦截
+  - AND,((DST-PORT,443),(NETWORK,UDP),(GEOSITE,geolocation-!cn)),REJECT
+  # 漏网的海外 QUIC：通过 IP 兜底拦截（允许触发 DNS 解析，接受泄露）
+  - AND,((DST-PORT,443),(NETWORK,UDP),(NOT,((GEOIP,CN)))),REJECT
+
+  # 域名规则
+  - RULE-SET,LocationDKS,抖快书定位
+  - RULE-SET,Private,直接连接
+  - RULE-SET,Direct,直接连接
+  - RULE-SET,XPTV,直接连接
+  - RULE-SET,Download,直接连接
+  - RULE-SET,SystemOTA,直接连接
+  - RULE-SET,AppleCN,直接连接
+  - RULE-SET,Gemini,Gemini
+  - RULE-SET,Claude,人工智能
+  - RULE-SET,OpenAI,人工智能
+  - RULE-SET,AI,人工智能
+  - RULE-SET,Cloudflare,Cloudflare
+  - RULE-SET,GitHub,GitHub
+  - DOMAIN-KEYWORD,speedtest,网络测试
+  - RULE-SET,Speedtest,网络测试
+  - RULE-SET,Twitter,推特社交
+  - RULE-SET,Telegram,电报消息
+  - RULE-SET,Facebook,社交平台
+  - RULE-SET,Instagram,社交平台
+  - RULE-SET,SocialMedia,社交平台
+  - RULE-SET,NewsMedia,新闻媒体
+  - RULE-SET,Games,游戏平台
+  - RULE-SET,PayPal,PayPal
+  - RULE-SET,Bybit,货币平台
+  - RULE-SET,Crypto,货币平台
+  - RULE-SET,Emby,Emby服
+  - RULE-SET,TikTok,TikTok
+  - RULE-SET,Spotify,Spotify
+  - RULE-SET,Netflix,奈飞视频
+  - RULE-SET,Disney,奈飞视频
+  - RULE-SET,HBO,奈飞视频
+  - RULE-SET,YouTube,油管视频
+  - RULE-SET,Streaming,国际媒体
+  - RULE-SET,Apple,苹果服务
+  - RULE-SET,Google,谷歌服务
+  - RULE-SET,OneDrive,微软服务
+  - RULE-SET,Microsoft,微软服务
+
+  # 国内域名保护层:尽量先兜住国内站点,避免误掉到国外流量
+  - GEOSITE,geolocation-cn,国内流量
+  - GEOSITE,cn,国内流量
+  - RULE-SET,China,国内流量
+
+  # 国外域名兜底
+  - GEOSITE,geolocation-!cn,国外流量
+  - RULE-SET,Proxy,国外流量
+
+  # IP规则
+  - RULE-SET,AdvertisingIP,REJECT,no-resolve
+  - RULE-SET,PrivateIP,直接连接,no-resolve
+  - RULE-SET,AppleCNIP,直接连接,no-resolve
+  - RULE-SET,XPTVIP,直接连接,no-resolve
+  - RULE-SET,AIIP,人工智能,no-resolve
+  - RULE-SET,CloudflareIP,Cloudflare,no-resolve
+  - RULE-SET,TelegramIP,电报消息,no-resolve
+  - RULE-SET,FacebookIP,社交平台,no-resolve
+  - RULE-SET,SocialMediaIP,社交平台,no-resolve
+  - RULE-SET,EmbyIP,Emby服,no-resolve
+  - RULE-SET,NetflixIP,奈飞视频,no-resolve
+  - RULE-SET,StreamingIP,国际媒体,no-resolve
+  - RULE-SET,GoogleIP,谷歌服务,no-resolve
+
+  # 国内 IP 保护层:这里故意不加 no-resolve,用来回收冷门国内站点
+  - RULE-SET,ChinaIP,国内流量
+  - GEOIP,CN,国内流量
+
+  # 国外 IP 兜底
+  - RULE-SET,ProxyIP,国外流量,no-resolve
+
+  # 兜底规则
+  - MATCH,兜底流量
+
+# ==================== 规则集 ====================
+# 规则集行为模板
+BehaviorDN: &BehaviorDN {<<: *BehaviorDN, format: mrs, interval: 86400}
+BehaviorIP: &BehaviorIP {<<: *BehaviorIP, format: mrs, interval: 86400}
+
+# 规则提供者
+rule-providers:  
+  # 域名规则
+  Tracking:       {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Tracking.mrs}
+  Advertising:    {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Advertising.mrs} 
+  Direct:         {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Direct.mrs}
+  LocationDKS:    {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/LocationDKS.mrs}
+  Private:        {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Private.mrs}
+  Download:       {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Download.mrs}
+  Speedtest:      {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Speedtest.mrs}
+  OpenAI:         {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/OpenAI.mrs}  
+  Claude:         {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Claude.mrs}  
+  Gemini:         {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Gemini.mrs}  
+  AI:             {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/AI.mrs}  
+  Cloudflare:     {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Cloudflare.mrs}  
+  GitHub:         {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/GitHub.mrs}  
+  Telegram:       {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Telegram.mrs}
+  Twitter:        {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Twitter.mrs}  
+  Facebook:       {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Facebook.mrs}
+  Instagram:      {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Instagram.mrs}
+  SocialMedia:    {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/SocialMedia.mrs}
+  NewsMedia:      {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/NewsMedia.mrs}
+  Games:          {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Games.mrs}
+  PayPal:         {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/PayPal.mrs}
+  Bybit:          {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Bybit.mrs}
+  Crypto:         {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Crypto.mrs}
+  TikTok:         {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/TikTok.mrs}
+  Spotify:        {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Spotify.mrs}
+  Netflix:        {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Netflix.mrs}
+  Disney:         {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Disney.mrs}
+  HBO:            {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/HBO.mrs}
+  YouTube:        {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/YouTube.mrs}
+  XPTV:           {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/XPTV.mrs}  
+  Emby:           {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Emby.mrs}
+  Streaming:      {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Streaming.mrs}  
+  SystemOTA:      {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/SystemOTA.mrs}
+  AppleCN:        {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/AppleCN.mrs}
+  Apple:          {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Apple.mrs}
+  Google:         {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Google.mrs}
+  OneDrive:       {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/OneDrive.mrs}  
+  Microsoft:      {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Microsoft.mrs}  
+  Proxy:          {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Proxy.mrs}
+  China:          {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/China.mrs}
+
+  # IP规则
+  AdvertisingIP:  {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Advertising.mrs}
+  PrivateIP:      {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Private.mrs}
+  AIIP:           {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/AI.mrs}
+  CloudflareIP:   {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Cloudflare.mrs}  
+  TelegramIP:     {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Telegram.mrs}  
+  FacebookIP:     {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Facebook.mrs}  
+  SocialMediaIP:  {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/SocialMedia.mrs}  
+  XPTVIP:         {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/XPTV.mrs}
+  EmbyIP:         {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Emby.mrs}
+  NetflixIP:      {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Netflix.mrs}
+  StreamingIP:    {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Streaming.mrs}  
+  AppleCNIP:      {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/AppleCN.mrs}
+  GoogleIP:       {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Google.mrs}
+  ProxyIP:        {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Proxy.mrs} 
+  ChinaIP:        {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/China.mrs}
+# ==================== EOF ====================
+
+
+
+
+
+
+
+rule-providers: 
+  # 域名规则：
+  category-ads-all:       {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/category-ads-all.mrs"}
+  private:                {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/private.mrs"}
+  geolocation-cn:         {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/geolocation-cn.mrs"}
+  geolocation-!cn:        {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/geolocation-!cn.mrs"}
+  category-ai-chat-!cn:   {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/category-ai-chat-!cn.mrs"}
+  openai:                 {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/openai.mrs"}
+  anthropic:              {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/anthropic.mrs"}
+  google-gemini:          {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/google-gemini.mrs"}
+  youtube:                {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/youtube.mrs"}
+  google:                 {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/google.mrs"}
+  microsoft:              {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/microsoft.mrs"}
+  onedrive:               {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/onedrive.mrs"}
+  apple:                  {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/apple.mrs"}
+  icloud:                 {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/icloud.mrs"}
+  telegram:               {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/telegram.mrs"}
+  twitter:                {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/twitter.mrs"}
+  facebook:               {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/facebook.mrs"}
+  instagram:              {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/instagram.mrs"}
+  whatsapp:               {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/whatsapp.mrs"}
+  discord:                {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/discord.mrs"}
+  tiktok:                 {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/tiktok.mrs"}
+  line:                   {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/line.mrs"}
+  reddit:                 {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/reddit.mrs"}
+  linkedin:               {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/linkedin.mrs"}
+  snap:                   {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/snap.mrs"}
+  pinterest:              {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/pinterest.mrs"}
+  tumblr:                 {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/tumblr.mrs"}
+  netflix:                {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/netflix.mrs"}
+  disney:                 {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/disney.mrs"}
+  hbo:                    {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/hbo.mrs"}
+  hulu:                   {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/hulu.mrs"}
+  primevideo:             {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/primevideo.mrs"}
+  apple-tvplus:           {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/apple-tvplus.mrs"}
+  spotify:                {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/spotify.mrs"}
+  twitch:                 {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/twitch.mrs"}
+  dazn:                   {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/dazn.mrs"}
+  bahamut:                {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/bahamut.mrs"}
+  biliintl:               {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/biliintl.mrs"}
+  niconico:               {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/niconico.mrs"}
+  abema:                  {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/abema.mrs"}
+  viu:                    {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/viu.mrs"}
+  kktv:                   {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/kktv.mrs"}
+  steam:                  {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/steam.mrs"}
+  epicgames:              {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/epicgames.mrs"}
+  ea:                     {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/ea.mrs"}
+  ubisoft:                {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/ubisoft.mrs"}
+  blizzard:               {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/blizzard.mrs"}
+  gog:                    {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/gog.mrs"}
+  riot:                   {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/riot.mrs"}
+  playstation:            {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/playstation.mrs"}
+  xbox:                   {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/xbox.mrs"}
+  nintendo:               {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/nintendo.mrs"}
+  github:                 {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/github.mrs"}
+  gitlab:                 {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/gitlab.mrs"}
+  atlassian:              {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/atlassian.mrs"}
+  aws:                    {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/aws.mrs"}
+  azure:                  {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/azure.mrs"}
+  cloudflare:             {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/cloudflare.mrs"}
+  digitalocean:           {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/digitalocean.mrs"}
+  vercel:                 {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/vercel.mrs"}
+  netlify:                {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/netlify.mrs"}
+  docker:                 {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/docker.mrs"}
+  npmjs:                  {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/npmjs.mrs"}
+  jetbrains:              {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/jetbrains.mrs"}
+  stackexchange:          {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/stackexchange.mrs"}
+  dropbox:                {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/dropbox.mrs"}
+  notion:                 {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/notion.mrs"}
+  paypal:                 {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/paypal.mrs"}
+  stripe:                 {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/stripe.mrs"}
+  wise:                   {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/wise.mrs"}
+  binance:                {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/binance.mrs"}
+  category-scholar-!cn:   {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/category-scholar-!cn.mrs"}
+  coursera:               {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/coursera.mrs"}
+  udemy:                  {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/udemy.mrs"}
+  edx:                    {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/edx.mrs"}
+  khanacademy:            {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/khanacademy.mrs"}
+  wikimedia:              {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/wikimedia.mrs"}
+  bbc:                    {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/bbc.mrs"}
+  cnn:                    {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/cnn.mrs"}
+  nytimes:                {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/nytimes.mrs"}
+  wsj:                    {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/wsj.mrs"}
+  bloomberg:              {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/bloomberg.mrs"}
+  amazon:                 {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/amazon.mrs"}
+  ebay:                   {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/ebay.mrs"}
+  category-porn:          {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/category-porn.mrs"}
+  cn:                     {<<: *BehaviorDN, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/cn.mrs"}
+  # ip规则
+  private-ip:             {<<: *BehaviorIP, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geoip/private.mrs"}
+  cn-ip:                  {<<: *BehaviorIP, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geoip/cn.mrs"}
+  google-ip:              {<<: *BehaviorIP, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geoip/google.mrs"}
+  telegram-ip:            {<<: *BehaviorIP, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geoip/telegram.mrs"}
+  twitter-ip:             {<<: *BehaviorIP, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geoip/twitter.mrs"}
+  facebook-ip:            {<<: *BehaviorIP, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geoip/facebook.mrs"}
+  netflix-ip:             {<<: *BehaviorIP, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geoip/netflix.mrs"}
+  cloudflare-ip:          {<<: *BehaviorIP, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geoip/cloudflare.mrs"}
+
+rules: 
+  - RULE-SET,category-ads-all,🛑 广告拦截
+  - RULE-SET,google-gemini,✨ Gemini
+  - RULE-SET,category-ai-chat-!cn,🤖 AI 服务
+  - RULE-SET,openai,🤖 AI 服务
+  - RULE-SET,anthropic,🤖 AI 服务
+  - RULE-SET,youtube,📹 油管视频
+  - RULE-SET,category-scholar-!cn,📚 教育学术
+  - RULE-SET,coursera,📚 教育学术
+  - RULE-SET,udemy,📚 教育学术
+  - RULE-SET,edx,📚 教育学术
+  - RULE-SET,khanacademy,📚 教育学术
+  - RULE-SET,wikimedia,📚 教育学术
+  - RULE-SET,aws,☁️ 云服务
+  - RULE-SET,azure,☁️ 云服务
+  - RULE-SET,cloudflare,☁️ 云服务
+  - RULE-SET,digitalocean,☁️ 云服务
+  - RULE-SET,vercel,☁️ 云服务
+  - RULE-SET,netlify,☁️ 云服务
+  - RULE-SET,cloudflare-ip,☁️ 云服务,no-resolve
+  - RULE-SET,google,🔍 谷歌服务
+  - RULE-SET,google-ip,🔍 谷歌服务,no-resolve
+  - RULE-SET,private,🏠 私有网络
+  - RULE-SET,private-ip,🏠 私有网络,no-resolve
+  - RULE-SET,geolocation-cn,🔒 国内服务
+  - RULE-SET,cn-ip,🔒 国内服务
+  - RULE-SET,telegram,📲 电报消息
+  - RULE-SET,telegram-ip,📲 电报消息,no-resolve
+  - RULE-SET,github,🐱 代码托管
+  - RULE-SET,gitlab,🐱 代码托管
+  - RULE-SET,atlassian,🐱 代码托管
+  - RULE-SET,microsoft,Ⓜ️ 微软服务
+  - RULE-SET,onedrive,Ⓜ️ 微软服务
+  - RULE-SET,apple-tvplus,📺 欧美流媒体
+  - RULE-SET,apple,🍏 苹果服务
+  - RULE-SET,icloud,🍏 苹果服务
+  - RULE-SET,twitter,🐦 推特/X
+  - RULE-SET,twitter-ip,🐦 推特/X,no-resolve
+  - RULE-SET,facebook,📘 Meta 系
+  - RULE-SET,instagram,📘 Meta 系
+  - RULE-SET,whatsapp,📘 Meta 系
+  - RULE-SET,facebook-ip,📘 Meta 系,no-resolve
+  - RULE-SET,discord,🎙️ Discord
+  - RULE-SET,tiktok,💬 其他社交
+  - RULE-SET,line,💬 其他社交
+  - RULE-SET,reddit,💬 其他社交
+  - RULE-SET,linkedin,💬 其他社交
+  - RULE-SET,snap,💬 其他社交
+  - RULE-SET,pinterest,💬 其他社交
+  - RULE-SET,tumblr,💬 其他社交
+  - RULE-SET,netflix,🎬 奈飞
+  - RULE-SET,netflix-ip,🎬 奈飞,no-resolve
+  - RULE-SET,disney,🏰 迪士尼+
+  - RULE-SET,hbo,📺 欧美流媒体
+  - RULE-SET,hulu,📺 欧美流媒体
+  - RULE-SET,primevideo,📺 欧美流媒体
+  - RULE-SET,spotify,📺 欧美流媒体
+  - RULE-SET,twitch,📺 欧美流媒体
+  - RULE-SET,dazn,📺 欧美流媒体
+  - RULE-SET,bahamut,🎌 亚洲流媒体
+  - RULE-SET,biliintl,🎌 亚洲流媒体
+  - RULE-SET,niconico,🎌 亚洲流媒体
+  - RULE-SET,abema,🎌 亚洲流媒体
+  - RULE-SET,viu,🎌 亚洲流媒体
+  - RULE-SET,kktv,🎌 亚洲流媒体
+  - RULE-SET,steam,🎮 Steam
+  - RULE-SET,epicgames,🖥️ PC 游戏
+  - RULE-SET,ea,🖥️ PC 游戏
+  - RULE-SET,ubisoft,🖥️ PC 游戏
+  - RULE-SET,blizzard,🖥️ PC 游戏
+  - RULE-SET,gog,🖥️ PC 游戏
+  - RULE-SET,riot,🖥️ PC 游戏
+  - RULE-SET,playstation,🎯 主机游戏
+  - RULE-SET,xbox,🎯 主机游戏
+  - RULE-SET,nintendo,🎯 主机游戏
+  - RULE-SET,docker,🛠️ 开发工具
+  - RULE-SET,npmjs,🛠️ 开发工具
+  - RULE-SET,jetbrains,🛠️ 开发工具
+  - RULE-SET,stackexchange,🛠️ 开发工具
+  - RULE-SET,dropbox,💾 网盘存储
+  - RULE-SET,notion,💾 网盘存储
+  - RULE-SET,paypal,💳 支付平台
+  - RULE-SET,stripe,💳 支付平台
+  - RULE-SET,wise,💳 支付平台
+  - RULE-SET,binance,₿ 加密货币
+  - RULE-SET,bbc,📰 新闻资讯
+  - RULE-SET,cnn,📰 新闻资讯
+  - RULE-SET,nytimes,📰 新闻资讯
+  - RULE-SET,wsj,📰 新闻资讯
+  - RULE-SET,bloomberg,📰 新闻资讯
+  - RULE-SET,amazon,🛒 海淘购物
+  - RULE-SET,ebay,🛒 海淘购物
+  - RULE-SET,category-porn,🔞 成人内容
+  - RULE-SET,geolocation-!cn,🌍 非中国
+  - RULE-SET,cn,🔒 国内服务
+  - MATCH,🐟 漏网之鱼
