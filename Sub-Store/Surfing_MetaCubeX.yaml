@@ -155,17 +155,7 @@ tun:
   strict-route: true
   auto-redirect: false
   auto-detect-interface: true
-  exclude-package:
-#    - com.samsung.android.messaging
-#    - com.samsung.android.app.telephonyui
-#    - com.samsung.android.dialer
-#    - com.samsung.android.incallui
-#    - com.samsung.android.smartcallprovider
-#    - com.samsung.android.intellivoiceservice
-#    - com.android.settings
-#    - com.qti.qcc
-#    - com.sec.epdg
-#    - com.sec.imsservice
+
 
 # ==================== DNS配置 ====================
 dns:
@@ -233,9 +223,7 @@ proxy-groups:
   - {name: 加密货币,     <<: *SelectSG, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Cryptocurrency.png}
 
   # ==================== 游戏平台 ====================
-  - {name: Steam,        <<: *SelectHK, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Steam.png}
-  - {name: PC 游戏,      <<: *SelectHK, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Epic_Games.png}
-  - {name: 主机游戏,     <<: *SelectHK, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/PlayStation.png}
+  - {name: 游戏平台,     <<: *SelectHK, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/PlayStation.png}
 
   # ==================== 其他服务 ====================
   - {name: 网盘存储,     <<: *SelectPY, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/iCloud.png}
@@ -410,18 +398,17 @@ rule-providers:
 
 # ==================== 规则 ====================
 rules:
+  # ========= 域名 规则集 =========
   # 拦截
   - RULE-SET,Tracking,REJECT
   - RULE-SET,category-ads-all,REJECT
 
   # QUIC 拦截
-  - AND,((DST-PORT,443),(NETWORK,UDP),(GEOIP,LAN,no-resolve)),DIRECT
+  # 绝大多数海外 QUIC：通过域名直接拦截
   - AND,((DST-PORT,443),(NETWORK,UDP),(GEOSITE,geolocation-!cn)),REJECT
-  - AND,((DST-PORT,443),(NETWORK,UDP),(NOT,((GEOIP,CN)))),REJECT
 
   # 私有网络
   - RULE-SET,private,私有网络
-  - RULE-SET,private-ip,私有网络,no-resolve
 
   # AI 服务
   - RULE-SET,google-gemini,Gemini
@@ -432,7 +419,6 @@ rules:
   # 谷歌生态
   - RULE-SET,youtube,油管视频
   - RULE-SET,google,谷歌服务
-  - RULE-SET,google-ip,谷歌服务,no-resolve
 
   # 教育/学术
   - RULE-SET,coursera,教育学术
@@ -449,17 +435,13 @@ rules:
   - RULE-SET,digitalocean,云服务
   - RULE-SET,vercel,云服务
   - RULE-SET,netlify,云服务
-  - RULE-SET,cloudflare-ip,云服务,no-resolve
 
   # 社交通讯
   - RULE-SET,telegram,电报消息
-  - RULE-SET,telegram-ip,电报消息,no-resolve
   - RULE-SET,twitter,推特 X
-  - RULE-SET,twitter-ip,推特 X,no-resolve
   - RULE-SET,facebook,Meta 系
   - RULE-SET,instagram,Meta 系
   - RULE-SET,whatsapp,Meta 系
-  - RULE-SET,facebook-ip,Meta 系,no-resolve
   - RULE-SET,discord,Discord
   - RULE-SET,tiktok,其他社交
   - RULE-SET,line,其他社交
@@ -488,7 +470,6 @@ rules:
 
   # 流媒体
   - RULE-SET,netflix,奈飞
-  - RULE-SET,netflix-ip,奈飞,no-resolve
   - RULE-SET,disney,欧美流媒体
   - RULE-SET,hbo,欧美流媒体
   - RULE-SET,hulu,欧美流媒体
@@ -505,16 +486,16 @@ rules:
   - RULE-SET,kktv,亚洲流媒体
 
   # 游戏
-  - RULE-SET,steam,Steam
-  - RULE-SET,epicgames,PC 游戏
-  - RULE-SET,ea,PC 游戏
-  - RULE-SET,ubisoft,PC 游戏
-  - RULE-SET,blizzard,PC 游戏
-  - RULE-SET,gog,PC 游戏
-  - RULE-SET,riot,PC 游戏
-  - RULE-SET,playstation,主机游戏
-  - RULE-SET,xbox,主机游戏
-  - RULE-SET,nintendo,主机游戏
+  - RULE-SET,steam,游戏平台
+  - RULE-SET,epicgames,游戏平台
+  - RULE-SET,ea,游戏平台
+  - RULE-SET,ubisoft,游戏平台
+  - RULE-SET,blizzard,游戏平台
+  - RULE-SET,gog,游戏平台
+  - RULE-SET,riot,游戏平台
+  - RULE-SET,playstation,游戏平台
+  - RULE-SET,xbox,游戏平台
+  - RULE-SET,nintendo,游戏平台
 
   # 存储/协作
   - RULE-SET,dropbox,网盘存储
@@ -541,9 +522,25 @@ rules:
   - RULE-SET,category-porn,成人内容
 
   # 国内/国外
+  - RULE-SET,geolocation-!cn,国外网站
+  - GEOSITE,geolocation-!cn,国外网站
   - RULE-SET,cn,国内服务
   - RULE-SET,geolocation-cn,国内服务
-  - RULE-SET,geolocation-!cn,国外网站
+  - GEOSITE,cn,国内服务
+
+  # ========= IP 规则集 =========
+  # 私网/局域网先放行
+  - AND,((DST-PORT,443),(NETWORK,UDP),(GEOIP,LAN,no-resolve)),私有网络
+  - GEOIP,private,私有网络,no-resolve
+  - RULE-SET,private-ip,私有网络,no-resolve
+  # 漏网的海外 QUIC：通过 IP 兜底拦截（允许触发 DNS 解析，接受泄露）
+  - AND,((DST-PORT,443),(NETWORK,UDP),(NOT,((GEOIP,CN)))),REJECT
+  - RULE-SET,google-ip,谷歌服务,no-resolve
+  - RULE-SET,cloudflare-ip,云服务,no-resolve
+  - RULE-SET,telegram-ip,电报消息,no-resolve
+  - RULE-SET,twitter-ip,推特 X,no-resolve
+  - RULE-SET,facebook-ip,Meta 系,no-resolve
+  - RULE-SET,netflix-ip,奈飞,no-resolve
 
   # IP 兜底
   - RULE-SET,cn-ip,国内服务
