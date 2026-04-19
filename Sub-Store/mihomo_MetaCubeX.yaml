@@ -171,9 +171,9 @@ dns:
     - https://dns.alidns.com/dns-query
     - https://doh.pub/dns-query
   fake-ip-filter:
-    - rule-set:Direct
-    - rule-set:Private
-    - rule-set:China
+    - rule-set:private
+    - rule-set:cn
+    - rule-set:geolocation-cn
     - +.miwifi.com
     - +.docker.io
     - +.market.xiaomi.com

@@ -199,19 +199,13 @@ proxy-groups:
   - {name: 奈飞,         <<: *SelectTW, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Netflix.png}
   - {name: 欧美流媒体,   <<: *SelectPY, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/ForeignMedia.png}
   - {name: 亚洲流媒体,   <<: *SelectTW, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/HKMTMedia.png}
-  - {name: 新闻资讯,     <<: *SelectUS, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Apple_News.png}
 
   # ==================== 社交平台 ====================
-  - {name: 电报消息,     <<: *SelectHK, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Telegram_X.png}
-  - {name: 推特 X,       <<: *SelectUS, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/X.png}
-  - {name: Meta 系,      <<: *SelectUS, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Facebook.png}
-  - {name: Discord,      <<: *SelectPY, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Discord.png}
-  - {name: 其他社交,     <<: *SelectUS, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/TikTok.png}
+  - {name: 社交平台,     <<: *SelectPY, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Telegram_X.png}
+  - {name: TikTok,       <<: *SelectUS, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/TikTok.png}
 
   # ==================== 开发服务 ====================
-  - {name: 代码托管,     <<: *SelectPY, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/GitHub.png}
-  - {name: 开发工具,     <<: *SelectPY, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Lab.png}
-  - {name: 云服务,       <<: *SelectPY, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Cloudflare.png}
+  - {name: 代码开发,     <<: *SelectPY, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/GitHub.png}
 
   # ==================== 商业服务 ====================
   - {name: 微软服务,     <<: *SelectUS, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Microsoft.png}
@@ -224,10 +218,7 @@ proxy-groups:
   - {name: 游戏平台,     <<: *SelectHK, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/PlayStation.png}
 
   # ==================== 其他服务 ====================
-  - {name: 网盘存储,     <<: *SelectPY, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/iCloud.png}
-  - {name: 教育学术,     <<: *SelectPY, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Scholar.png}
   - {name: 海淘购物,     <<: *SelectUS, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Amazon.png}
-  - {name: 成人内容,     <<: *SelectJP, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Lock.png}
 
   # ==================== 地区策略组 ====================
   - {name: 香港策略,     type: select, proxies: [香港自动, 香港家宽, 香港手动], icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Hong_Kong.png}
@@ -280,9 +271,232 @@ BehaviorIP: &BehaviorIP {type: http, behavior: ipcidr, format: mrs, interval: 86
 
 rule-providers:
   # ========= 域名规则集 =========
-  private:                {<<: *BehaviorDN, path: ./rules/private.mrs, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/private.mrs"}
-  category-ads-all:       {<<: *BehaviorDN, path: ./rules/category-ads-all.mrs, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/category-ads-all.mrs"}
-  Tracking:               {<<: *BehaviorDN, path: ./rules/Tracking.mrs, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Tracking.mrs"}
+  # 广告/隐私
+  adrules:                {<<: *BehaviorDN, path: ./rules/adrules.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/adrules.mrs"}
+  httpdns:                {<<: *BehaviorDN, path: ./rules/httpdns.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/httpdns.mrs"}
+  # 私有网络
+  private:                {<<: *BehaviorDN, path: ./rules/private.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/private.mrs"}
+  # AI
+  google-gemini:          {<<: *BehaviorDN, path: ./rules/google-gemini.mrs, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/google-gemini.mrs"}
+  ai:                     {<<: *BehaviorDN, path: ./rules/ai.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/ai.mrs"}
+  # 谷歌
+  youtube:                {<<: *BehaviorDN, path: ./rules/youtube.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/youtube.mrs"}
+  googlefcm:              {<<: *BehaviorDN, path: ./rules/googlefcm.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/googlefcm.mrs"}
+  google:                 {<<: *BehaviorDN, path: ./rules/google.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/google.mrs"}
+  # 社交
+  socialmedia:            {<<: *BehaviorDN, path: ./rules/socialmedia.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/socialmedia.mrs"}
+  tiktok:                 {<<: *BehaviorDN, path: ./rules/tiktok.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/tiktok.mrs"}
+  # 开发
+  gits:                   {<<: *BehaviorDN, path: ./rules/gits.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/gits.mrs"}
+  # 微软
+  onedrive:               {<<: *BehaviorDN, path: ./rules/onedrive.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/onedrive.mrs"}
+  microsoft-cn:           {<<: *BehaviorDN, path: ./rules/microsoft-cn.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/microsoft-cn.mrs"}
+  microsoft:              {<<: *BehaviorDN, path: ./rules/microsoft.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/microsoft.mrs"}
+  # 苹果
+  apns:                   {<<: *BehaviorDN, path: ./rules/apns.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/apns.mrs"}
+  apple-cn:               {<<: *BehaviorDN, path: ./rules/apple-cn.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/apple-cn.mrs"}
+  apple-proxy:            {<<: *BehaviorDN, path: ./rules/apple-proxy.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/apple-proxy.mrs"}
+  apple-tv:               {<<: *BehaviorDN, path: ./rules/apple-tv.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/apple-tv.mrs"}
+  apple:                  {<<: *BehaviorDN, path: ./rules/apple.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/apple.mrs"}
+  # 流媒体 - 欧美
+  netflix:                {<<: *BehaviorDN, path: ./rules/netflix.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/netflix.mrs"}
+  disney:                 {<<: *BehaviorDN, path: ./rules/disney.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/disney.mrs"}
+  hbo:                    {<<: *BehaviorDN, path: ./rules/hbo.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/hbo.mrs"}
+  hulu:                   {<<: *BehaviorDN, path: ./rules/hulu.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/hulu.mrs"}
+  primevideo:             {<<: *BehaviorDN, path: ./rules/primevideo.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/primevideo.mrs"}
+  spotify:                {<<: *BehaviorDN, path: ./rules/spotify.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/spotify.mrs"}
+  twitch:                 {<<: *BehaviorDN, path: ./rules/twitch.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/twitch.mrs"}
+  dazn:                   {<<: *BehaviorDN, path: ./rules/dazn.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/dazn.mrs"}
+  # 流媒体 - 亚洲
+  bahamut:                {<<: *BehaviorDN, path: ./rules/bahamut.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/bahamut.mrs"}
+  niconico:               {<<: *BehaviorDN, path: ./rules/niconico.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/niconico.mrs"}
+  abema:                  {<<: *BehaviorDN, path: ./rules/abema.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/abema.mrs"}
+  mytvsuper:              {<<: *BehaviorDN, path: ./rules/mytvsuper.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/mytvsuper.mrs"}
+  dmm:                    {<<: *BehaviorDN, path: ./rules/dmm.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/dmm.mrs"}
+  # 游戏
+  games:                  {<<: *BehaviorDN, path: ./rules/games.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/games.mrs"}
+  games-cn:               {<<: *BehaviorDN, path: ./rules/games-cn.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/games-cn.mrs"}
+  # 支付/金融
+  paypal:                 {<<: *BehaviorDN, path: ./rules/paypal.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/paypal.mrs"}
+  crypto:                 {<<: *BehaviorDN, path: ./rules/crypto.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/crypto.mrs"}
+  # 购物
+  ecommerce:              {<<: *BehaviorDN, path: ./rules/ecommerce.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/ecommerce.mrs"}
+  # 国内
+  bilibili:               {<<: *BehaviorDN, path: ./rules/bilibili.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/bilibili.mrs"}
+  douyin:                 {<<: *BehaviorDN, path: ./rules/douyin.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/douyin.mrs"}
+  socialmedia-cn:         {<<: *BehaviorDN, path: ./rules/socialmedia-cn.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/socialmedia-cn.mrs"}
+  cn:                     {<<: *BehaviorDN, path: ./rules/cn.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/cn.mrs"}
+  # 国外兜底
+  gfw:                    {<<: *BehaviorDN, path: ./rules/gfw.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/gfw.mrs"}
+  proxy:                  {<<: *BehaviorDN, path: ./rules/proxy.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/proxy.mrs"}
+  tld-proxy:              {<<: *BehaviorDN, path: ./rules/tld-proxy.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/tld-proxy.mrs"}
+  # 其他
+  speedtest:              {<<: *BehaviorDN, path: ./rules/speedtest.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/speedtest.mrs"}
+  dmca:                   {<<: *BehaviorDN, path: ./rules/dmca.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/dmca.mrs"}
+  fake-ip-filter:         {<<: *BehaviorDN, path: ./rules/fake-ip-filter.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/domain/fake-ip-filter.mrs"}
+
+  # ========= IP 规则集 =========
+  private-ip:             {<<: *BehaviorIP, path: ./rules/private-ip.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/ipcidr/private.mrs"}
+  adrules-ip:             {<<: *BehaviorIP, path: ./rules/adrules-ip.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/ipcidr/adrules.mrs"}
+  httpdns-ip:             {<<: *BehaviorIP, path: ./rules/httpdns-ip.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/ipcidr/httpdns.mrs"}
+  apns-ip:                {<<: *BehaviorIP, path: ./rules/apns-ip.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/ipcidr/apns.mrs"}
+  apple-ip:               {<<: *BehaviorIP, path: ./rules/apple-ip.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/ipcidr/apple.mrs"}
+  youtube-ip:             {<<: *BehaviorIP, path: ./rules/youtube-ip.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/ipcidr/youtube.mrs"}
+  google-ip:              {<<: *BehaviorIP, path: ./rules/google-ip.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/ipcidr/google.mrs"}
+  googlefcm-ip:           {<<: *BehaviorIP, path: ./rules/googlefcm-ip.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/ipcidr/googlefcm.mrs"}
+  socialmedia-ip:         {<<: *BehaviorIP, path: ./rules/socialmedia-ip.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/ipcidr/socialmedia.mrs"}
+  socialmedia-cn-ip:      {<<: *BehaviorIP, path: ./rules/socialmedia-cn-ip.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/ipcidr/socialmedia-cn.mrs"}
+  netflix-ip:             {<<: *BehaviorIP, path: ./rules/netflix-ip.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/ipcidr/netflix.mrs"}
+  spotify-ip:             {<<: *BehaviorIP, path: ./rules/spotify-ip.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/ipcidr/spotify.mrs"}
+  twitch-ip:              {<<: *BehaviorIP, path: ./rules/twitch-ip.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/ipcidr/twitch.mrs"}
+  bilibili-ip:            {<<: *BehaviorIP, path: ./rules/bilibili-ip.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/ipcidr/bilibili.mrs"}
+  dmm-ip:                 {<<: *BehaviorIP, path: ./rules/dmm-ip.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/ipcidr/dmm.mrs"}
+  games-ip:               {<<: *BehaviorIP, path: ./rules/games-ip.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/ipcidr/games.mrs"}
+  ecommerce-ip:           {<<: *BehaviorIP, path: ./rules/ecommerce-ip.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/ipcidr/ecommerce.mrs"}
+  cn-ip:                  {<<: *BehaviorIP, path: ./rules/cn-ip.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/ipcidr/cn.mrs"}
+  gfw-ip:                 {<<: *BehaviorIP, path: ./rules/gfw-ip.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/ipcidr/gfw.mrs"}
+  proxy-ip:               {<<: *BehaviorIP, path: ./rules/proxy-ip.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/ipcidr/proxy.mrs"}
+  dmca-ip:                {<<: *BehaviorIP, path: ./rules/dmca-ip.mrs, url: "https://github.com/QuixoticHeart/rule-set/raw/refs/heads/ruleset/meta/ipcidr/dmca.mrs"}
+
+# ==================== 规则 ====================
+rules:
+  # ========= 域名 规则集 =========
+  # 拦截
+  - RULE-SET,adrules,REJECT
+  - RULE-SET,httpdns,REJECT
+
+  # QUIC 拦截
+  - AND,((DST-PORT,443),(NETWORK,UDP),(GEOSITE,geolocation-!cn)),REJECT
+
+  # 私有网络
+  - RULE-SET,private,私有网络
+
+  # AI 服务
+  - RULE-SET,google-gemini,Gemini
+  - RULE-SET,ai,AI 服务
+
+  # 谷歌生态
+  - RULE-SET,youtube,油管视频
+  - RULE-SET,googlefcm,谷歌服务
+  - RULE-SET,google,谷歌服务
+
+  # 社交
+  - RULE-SET,tiktok,TikTok
+  - RULE-SET,socialmedia,社交平台
+
+  # 开发
+  - RULE-SET,gits,代码开发
+
+  # 微软
+  - RULE-SET,onedrive,微软服务
+  - RULE-SET,microsoft-cn,国内服务
+  - RULE-SET,microsoft,微软服务
+
+  # 苹果
+  - RULE-SET,apns,直接连接
+  - RULE-SET,apple-cn,国内服务
+  - RULE-SET,apple-proxy,苹果服务
+  - RULE-SET,apple-tv,欧美流媒体
+  - RULE-SET,apple,苹果服务
+
+  # 流媒体 - 欧美
+  - RULE-SET,netflix,奈飞
+  - RULE-SET,disney,欧美流媒体
+  - RULE-SET,hbo,欧美流媒体
+  - RULE-SET,hulu,欧美流媒体
+  - RULE-SET,primevideo,欧美流媒体
+  - RULE-SET,spotify,欧美流媒体
+  - RULE-SET,twitch,欧美流媒体
+  - RULE-SET,dazn,欧美流媒体
+
+  # 流媒体 - 亚洲
+  - RULE-SET,bahamut,亚洲流媒体
+  - RULE-SET,niconico,亚洲流媒体
+  - RULE-SET,abema,亚洲流媒体
+  - RULE-SET,mytvsuper,亚洲流媒体
+  - RULE-SET,dmm,亚洲流媒体
+
+  # 游戏
+  - RULE-SET,games-cn,国内服务
+  - RULE-SET,games,游戏平台
+
+  # 支付/金融
+  - RULE-SET,paypal,支付平台
+  - RULE-SET,crypto,加密货币
+
+  # 购物
+  - RULE-SET,ecommerce,海淘购物
+
+  # 速度测试
+  - RULE-SET,speedtest,国外网站
+
+  # 国内
+  - RULE-SET,bilibili,国内服务
+  - RULE-SET,douyin,国内服务
+  - RULE-SET,socialmedia-cn,国内服务
+  - RULE-SET,cn,国内服务
+
+  # 国外兜底
+  - RULE-SET,gfw,国外网站
+  - RULE-SET,proxy,国外网站
+  - RULE-SET,tld-proxy,国外网站
+  - GEOSITE,geolocation-!cn,国外网站
+  - GEOSITE,cn,国内服务
+
+  # ========= IP 规则集 =========
+  # 拦截
+  - RULE-SET,adrules-ip,REJECT,no-resolve
+  - RULE-SET,httpdns-ip,REJECT,no-resolve
+
+  # 私网/局域网先放行
+  - AND,((DST-PORT,443),(NETWORK,UDP),(GEOIP,LAN,no-resolve)),私有网络
+  - GEOIP,private,私有网络,no-resolve
+  - RULE-SET,private-ip,私有网络,no-resolve
+
+  # 漏网的海外 QUIC：通过 IP 兜底拦截（允许触发 DNS 解析，接受泄露）
+  - AND,((DST-PORT,443),(NETWORK,UDP),(NOT,((GEOIP,CN)))),REJECT
+
+  # 苹果推送直连
+  - RULE-SET,apns-ip,直接连接,no-resolve
+  - RULE-SET,apple-ip,苹果服务,no-resolve
+
+  # 谷歌
+  - RULE-SET,youtube-ip,油管视频,no-resolve
+  - RULE-SET,googlefcm-ip,谷歌服务,no-resolve
+  - RULE-SET,google-ip,谷歌服务,no-resolve
+
+  # 社交
+  - RULE-SET,socialmedia-ip,社交平台,no-resolve
+  - RULE-SET,socialmedia-cn-ip,国内服务,no-resolve
+
+  # 流媒体
+  - RULE-SET,netflix-ip,奈飞,no-resolve
+  - RULE-SET,spotify-ip,欧美流媒体,no-resolve
+  - RULE-SET,twitch-ip,欧美流媒体,no-resolve
+  - RULE-SET,bilibili-ip,国内服务,no-resolve
+  - RULE-SET,dmm-ip,亚洲流媒体,no-resolve
+
+  # 游戏
+  - RULE-SET,games-ip,游戏平台,no-resolve
+
+  # 购物
+  - RULE-SET,ecommerce-ip,海淘购物,no-resolve
+
+  # P2P/DMCA
+  - RULE-SET,dmca-ip,直接连接,no-resolve
+
+  # 国外 IP 兜底
+  - RULE-SET,gfw-ip,国外网站,no-resolve
+  - RULE-SET,proxy-ip,国外网站,no-resolve
+
+  # IP 兜底
+  - RULE-SET,cn-ip,国内服务
+  - GEOIP,CN,国内服务
+
+  # 最终兜底
+  - MATCH,漏网之鱼
+
+# ==================== EOF ====================
   # AI
   google-gemini:          {<<: *BehaviorDN, path: ./rules/google-gemini.mrs, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/google-gemini.mrs"}
   openai:                 {<<: *BehaviorDN, path: ./rules/openai.mrs, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/openai.mrs"}

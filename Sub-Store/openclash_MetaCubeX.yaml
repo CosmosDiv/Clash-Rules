@@ -222,9 +222,9 @@ dns:
   fake-ip-range6: fdfe:dcba:9876::/48
   # Fake-IP 过滤列表（这些域名将返回真实 IP 而非 Fake-IP）
   fake-ip-filter:
-    - rule-set:Direct
-    - rule-set:Private
-    - rule-set:China
+    - rule-set:private
+    - rule-set:cn
+    - rule-set:geolocation-cn
     - '*.lan'  # 局域网域名
     - localhost.ptlogin2.qq.com  # QQ 登录域名
     - geosite:cn  # 中国大陆域名（使用 GeoSite 数据）
