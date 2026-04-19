@@ -162,7 +162,7 @@ dns:
   ipv6: true
   enhanced-mode: fake-ip
   fake-ip-range: 198.18.0.1/16
-  fake-ip-range6: fdfe:dcba:9876::/48
+  fake-ip-range6: fdab:47c2:9e1f:9876::1/64
   default-nameserver:
     - 119.29.29.29
     - 180.184.1.1
