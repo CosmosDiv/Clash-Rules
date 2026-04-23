@@ -520,6 +520,10 @@ rules:
   # 私有网络
   - RULE-SET,private,私有网络
 
+  # Cloaq自动识别ip修改特征
+  - DOMAIN,ip-api.com,AI 服务
+  - DOMAIN-SUFFIX,ip-api.com,AI 服务
+
   # AI 服务
   - RULE-SET,google-gemini,Gemini
   - RULE-SET,openai,AI 服务
