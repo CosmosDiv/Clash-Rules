@@ -338,6 +338,59 @@ BehaviorDN: &BehaviorDN {type: http, behavior: domain, format: mrs, interval: 86
 BehaviorIP: &BehaviorIP {type: http, behavior: ipcidr, format: mrs, interval: 86400}
 
 rule-providers:
+  # Claude / Anthropic 全量网页补充规则（不排重，全盘采用）
+  anthropic-web-full:
+    type: inline
+    behavior: classical
+    payload:
+      # ===== 核心域名（全量保留，允许与原 anthropic 重复）=====
+      - DOMAIN-SUFFIX,anthropic.com
+      - DOMAIN-SUFFIX,claude.ai
+      - DOMAIN-SUFFIX,claude.com
+      - DOMAIN-SUFFIX,clau.de
+      - DOMAIN-SUFFIX,claudemcpclient.com
+      - DOMAIN-SUFFIX,claudeusercontent.com
+
+      # ===== 精确子域名冗余补充（即使已被 anthropic.com 后缀覆盖，也保留）=====
+      - DOMAIN,cdn.anthropic.com
+      - DOMAIN,mcp.anthropic.com
+      - DOMAIN,console.anthropic.com
+      - DOMAIN,workbench.anthropic.com
+
+      # ===== CDN / 静态资源 =====
+      - DOMAIN,servd-anthropic-website.b-cdn.net
+      - DOMAIN,anthropic.com.cdn.cloudflare.net
+
+      # ===== 认证 / 内容 =====
+      - DOMAIN,anthropic.auth0.com
+      - DOMAIN,anthropic-com.ghost.io
+
+      # ===== 监控 / 遥测 =====
+      - DOMAIN-SUFFIX,sentry.io
+      - DOMAIN-SUFFIX,statsigapi.net
+      - DOMAIN,browser-intake-us5-datadoghq.com
+      - DOMAIN-KEYWORD,datadog
+      - DOMAIN-KEYWORD,sentry
+      - DOMAIN-KEYWORD,sift
+
+      # ===== 第三方 widget / 客服 / 统计 =====
+      - DOMAIN-SUFFIX,intercom.io
+      - DOMAIN-SUFFIX,intercomcdn.com
+      - DOMAIN,cdn.usefathom.com
+
+      # ===== 兜底规则（网页建议全收）=====
+      - GEOSITE,anthropic
+      - GEOSITE,category-ntp
+
+  anthropic-web-full-ip:
+    type: inline
+    behavior: classical
+    payload:
+      # ===== IP / ASN 兜底 =====
+      - IP-CIDR,160.79.104.0/21,no-resolve
+      - IP-CIDR6,2607:6bc0::/32,no-resolve
+      - IP-ASN,399358,no-resolve
+  
   # ========= 域名规则集 =========
   private:                {<<: *BehaviorDN, path: ./rules/private.mrs, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/private.mrs"}
   category-ads-all:       {<<: *BehaviorDN, path: ./rules/category-ads-all.mrs, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/category-ads-all.mrs"}
@@ -470,6 +523,7 @@ rules:
   # AI 服务
   - RULE-SET,google-gemini,Gemini
   - RULE-SET,openai,AI 服务
+  - RULE-SET,anthropic-web-full,AI 服务
   - RULE-SET,anthropic,AI 服务
   - RULE-SET,category-ai-chat-!cn,AI 服务
 
@@ -592,6 +646,8 @@ rules:
   - RULE-SET,private-ip,私有网络,no-resolve
   # 漏网的海外 QUIC：通过 IP 兜底拦截（允许触发 DNS 解析，接受泄露）
   - AND,((DST-PORT,443),(NETWORK,UDP),(NOT,((GEOIP,CN)))),REJECT
+  # Claude / Anthropic IP 兜底
+  - RULE-SET,anthropic-web-full-ip,AI 服务,no-resolve
   - RULE-SET,google-ip,谷歌服务,no-resolve
   - RULE-SET,cloudflare-ip,云服务,no-resolve
   - RULE-SET,telegram-ip,电报消息,no-resolve
