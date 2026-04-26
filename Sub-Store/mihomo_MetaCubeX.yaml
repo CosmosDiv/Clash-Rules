@@ -421,6 +421,8 @@ rule-providers:
   stripe:                 {<<: *BehaviorDN, path: ./rules/stripe.mrs, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/stripe.mrs"}
   wise:                   {<<: *BehaviorDN, path: ./rules/wise.mrs, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/wise.mrs"}
   binance:                {<<: *BehaviorDN, path: ./rules/binance.mrs, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/binance.mrs"}
+  Bybit:                  {<<: *BehaviorDN, path: ./rules/bybit.mrs,url: https://github.com/666OS/rules/raw/release/mihomo/domain/Bybit.mrs}
+  Crypto:                 {<<: *BehaviorDN, path: ./rules/crypto.mrs,url: https://github.com/666OS/rules/raw/release/mihomo/domain/Crypto.mrs}
   # 新闻
   bbc:                    {<<: *BehaviorDN, path: ./rules/bbc.mrs, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/bbc.mrs"}
   cnn:                    {<<: *BehaviorDN, path: ./rules/cnn.mrs, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/cnn.mrs"}
@@ -562,6 +564,8 @@ rules:
   - RULE-SET,stripe,支付平台
   - RULE-SET,wise,支付平台
   - RULE-SET,binance,加密货币
+  - RULE-SET,Bybit,加密货币
+  - RULE-SET,Crypto,加密货币
 
   # 新闻
   - RULE-SET,bbc,新闻资讯
