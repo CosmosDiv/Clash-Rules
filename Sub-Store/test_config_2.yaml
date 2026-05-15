@@ -11,7 +11,6 @@ BaseUTNear: &BaseUTNear {type: url-test, interval: 300, tolerance: 20, lazy: tru
 BaseUTMid:  &BaseUTMid  {type: url-test, interval: 300, tolerance: 35, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true}
 BaseUTFar:  &BaseUTFar  {type: url-test, interval: 300, tolerance: 50, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true}
 
-
 # 节点筛选正则表达式 - 基于地理位置和关键词过滤
 # 地区节点的筛选表达式
 FilterHK: &FilterHK '(?i)^(?=.*(港|香港|🇭🇰|HK|Hong|HKG|澳门|澳門|🇲🇴|Macao|Macau|MFM|(?:^|[^A-Za-z])MO(?:[^A-Za-z]|$)))(?!.*(家宽|住宅|5G网络|星链)).*$'
@@ -39,7 +38,6 @@ FilterEUHome: &FilterEUHome '(?i)^(?=.*(欧洲|欧盟|Europe|European|EU|英国|
 # al是all,所有
 FilterAL: &FilterAL '^(?!.*(DIRECT|直接连接|群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))'
 
-
 # 策略组代理列表模板 - 预定义的代理节点优先级排序
 # 这里我理解,应该是直接定义分组里面包含的节点.然后不同的分组有不同的优先级
 # FB默认选择fallback组包含的分组排序
@@ -60,8 +58,6 @@ SelectSG: &SelectSG {type: select, proxies: [狮城策略, 默认代理, 故障�
 SelectUS: &SelectUS {type: select, proxies: [美国策略, 默认代理, 故障转移, 香港策略, 狮城策略, 日本策略, 韩国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
 # HM默认手动家宽分组的排序
 SelectHM: &SelectHM {type: select, proxies: [美国家宽, 美国策略, 默认代理, 家宽手动, 全球手动, 直接连接]}
-
-
 
 # ==================== 代理提供者 ====================
 # 注意:请提供您的机场订阅链接,每个链接一行,并为每个机场命名,末尾的[优][备]为每个节点添加机场名称前缀,可自定义
@@ -86,7 +82,6 @@ geo-update-interval: 24 # 更新间隔,单位:小时
 # 使用 geodata 模式（而非传统的 IP-CIDR 文件）
 geodata-mode: true
 geodata-loader: standard
-
 
 # ==================== 核心配置 ====================
 # 基础配置
@@ -117,8 +112,8 @@ skip-auth-prefixes:
 
 # 实验性功能
 experimental:
-  quic-go-disable-gso: false # hy2节点有问题的时候再改为true  
-     
+  quic-go-disable-gso: false # hy2节点有问题的时候再改为true
+
 # 管理面板配置
 external-ui-url: https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip
 external-ui-name: zashboard
@@ -241,7 +236,7 @@ proxy-groups:
   - {name: 微软服务,     <<: *SelectUS, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Microsoft.png}
   - {name: 谷歌服务,     <<: *SelectUS, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Google_Search.png}
   - {name: 苹果服务,     <<: *SelectUS, icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Apple.png}
-  
+
   # ==================== 地区策略组 ====================
   - {name: 香港策略,     type: select, proxies: [香港自动, 香港家宽, 香港手动], icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Hong_Kong.png}
   - {name: 台湾策略,     type: select, proxies: [台湾自动, 台湾家宽, 台湾手动], icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/TW.png}
@@ -275,7 +270,7 @@ proxy-groups:
   - {name: 美国自动,     <<: *BaseUTFar,  include-all: true, filter: *FilterUS, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
   - {name: 英国自动,     <<: *BaseUTFar,  include-all: true, filter: *FilterUK, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
   - {name: 欧盟自动,     <<: *BaseUTFar,  include-all: true, filter: *FilterEU, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
-  
+
   # ==================== 家宽自动测速组 ====================
   - {name: 香港家宽,     <<: *BaseUTNear, include-all: true, filter: *FilterHKHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
   - {name: 台湾家宽,     <<: *BaseUTMid,  include-all: true, filter: *FilterTWHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
@@ -286,30 +281,37 @@ proxy-groups:
   - {name: 英国家宽,     <<: *BaseUTFar,  include-all: true, filter: *FilterUKHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
   - {name: 欧盟家宽,     <<: *BaseUTFar,  include-all: true, filter: *FilterEUHome, icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png}
 
-# ==================== 规则路由 ====================
+# ==================== 规则路由 Rules ====================
 rules:
   # 拦截规则
   - RULE-SET,Tracking,REJECT
   - RULE-SET,Advertising,REJECT
   # 私网/局域网先放行
-  - AND,((DST-PORT,443),(NETWORK,UDP),(GEOIP,LAN,no-resolve)),DIRECT 
+  - AND,((DST-PORT,443),(NETWORK,UDP),(GEOIP,LAN,no-resolve)),DIRECT
   # 绝大多数海外 QUIC：通过域名直接拦截
   - AND,((DST-PORT,443),(NETWORK,UDP),(GEOSITE,geolocation-!cn)),REJECT
   # 漏网的海外 QUIC：通过 IP 兜底拦截（允许触发 DNS 解析，接受泄露）
   - AND,((DST-PORT,443),(NETWORK,UDP),(NOT,((GEOSITE,cn)))),REJECT
   - AND,((DST-PORT,443),(NETWORK,UDP),(NOT,((GEOIP,CN)))),REJECT
 
-  # 域名规则
+  # 域名规则（优先按业务分类命中）
   - RULE-SET,Private,直接连接
   - RULE-SET,Direct,直接连接
   - RULE-SET,XPTV,直接连接
   - RULE-SET,Download,直接连接
   - RULE-SET,SystemOTA,直接连接
   - RULE-SET,AppleCN,直接连接
-  - RULE-SET,Gemini,Gemini
+  # ===== Claude / AI 主命中层（精确优先）=====
   - RULE-SET,anthropic-web-full,人工智能
+  - RULE-SET,anthropic,人工智能
   - RULE-SET,Claude,人工智能
+  - RULE-SET,openai,人工智能
   - RULE-SET,OpenAI,人工智能
+  - RULE-SET,google-gemini,Gemini
+  - RULE-SET,Gemini,Gemini
+
+  # ===== AI 泛化兼容层（可能覆盖更广，置于专项后）=====
+  - RULE-SET,category-ai-chat-!cn,人工智能
   - RULE-SET,AI,人工智能
   - RULE-SET,Cloudflare,Cloudflare
   - RULE-SET,GitHub,GitHub
@@ -351,12 +353,13 @@ rules:
   - GEOSITE,geolocation-!cn,国外流量
   - RULE-SET,Proxy,国外流量
 
-  # IP规则
+  # IP规则（域名漏网后的兜底层）
   - RULE-SET,AdvertisingIP,REJECT,no-resolve
   - RULE-SET,PrivateIP,直接连接,no-resolve
   - RULE-SET,AppleCNIP,直接连接,no-resolve
   - RULE-SET,XPTVIP,直接连接,no-resolve
   - RULE-SET,AIIP,人工智能,no-resolve
+  # Claude IP/ASN 强兜底（置于通用 AIIP 后，国内/国外IP兜底前）
   - RULE-SET,anthropic-web-full-ip,人工智能
   - RULE-SET,CloudflareIP,Cloudflare,no-resolve
   - RULE-SET,TelegramIP,电报消息,no-resolve
@@ -374,18 +377,23 @@ rules:
   # 国外 IP 兜底
   - RULE-SET,ProxyIP,国外流量,no-resolve
 
-  # 兜底规则
+  # 兜底规则（最终回收）
   - MATCH,兜底流量
 
-# ==================== 规则集 ====================
+# ==================== 规则集 Rule Providers ====================
 # 规则集行为模板
 BehaviorDN: &BehaviorDN {type: http, behavior: domain, format: mrs, interval: 86400}
 BehaviorIP: &BehaviorIP {type: http, behavior: ipcidr, format: mrs, interval: 86400}
 
 # 规则提供者
-rule-providers:  
+rule-providers:
 
-  # Claude / Anthropic 全量网页补充规则（融合自 mihomo_MetaCubeX）
+  # ---------------- Claude 专项规则块 ----------------
+  # Claude / Anthropic 专项增强（来源：mihomo_MetaCubeX + net.coffee）
+  # 维护约定：
+  # 1) 先维护 anthropic-web-full（主命中）
+  # 2) 保留 Claude/anthropic 为兼容冗余
+  # 3) anthropic-web-full-ip 作为强兜底
   anthropic-web-full:
     type: inline
     behavior: classical
@@ -395,7 +403,9 @@ rule-providers:
       - DOMAIN-SUFFIX,claude.com
       - DOMAIN-SUFFIX,clau.de
       - DOMAIN-SUFFIX,claudemcpclient.com
+      - DOMAIN-SUFFIX,claudemcpcontent.com
       - DOMAIN-SUFFIX,claudeusercontent.com
+      - DOMAIN,api.anthropic.com
       - DOMAIN,cdn.anthropic.com
       - DOMAIN,mcp.anthropic.com
       - DOMAIN,console.anthropic.com
@@ -407,6 +417,8 @@ rule-providers:
       - DOMAIN-SUFFIX,sentry.io
       - DOMAIN-SUFFIX,statsigapi.net
       - DOMAIN,browser-intake-us5-datadoghq.com
+      # 注意：以下关键词规则覆盖面较广，保留用于 Claude 完整性；
+      # 若观察到误分流，可收敛为更精确的 DOMAIN/DOMAIN-SUFFIX。
       - DOMAIN-KEYWORD,datadog
       - DOMAIN-KEYWORD,sentry
       - DOMAIN-KEYWORD,sift
@@ -423,21 +435,27 @@ rule-providers:
       - IP-CIDR,160.79.104.0/21,no-resolve
       - IP-CIDR6,2607:6bc0::/32,no-resolve
       - IP-ASN,399358,no-resolve
-  # 域名规则
+
+  # 选取自 mihomo_MetaCubeX 的补充规则集（提高命中率）
+  openai:                 {<<: *BehaviorDN, path: ./rules/openai.mrs, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/openai.mrs"}
+  anthropic:              {<<: *BehaviorDN, path: ./rules/anthropic.mrs, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/anthropic.mrs"}
+  category-ai-chat-!cn:   {<<: *BehaviorDN, path: ./rules/category-ai-chat-!cn.mrs, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/category-ai-chat-!cn.mrs"}
+  google-gemini:          {<<: *BehaviorDN, path: ./rules/google-gemini.mrs, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/google-gemini.mrs"}
+  # 域名规则（优先按业务分类命中）
   Tracking:       {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Tracking.mrs}
-  Advertising:    {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Advertising.mrs} 
+  Advertising:    {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Advertising.mrs}
   Direct:         {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Direct.mrs}
   Private:        {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Private.mrs}
   Download:       {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Download.mrs}
   Speedtest:      {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Speedtest.mrs}
-  OpenAI:         {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/OpenAI.mrs}  
-  Claude:         {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Claude.mrs}  
-  Gemini:         {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Gemini.mrs}  
-  AI:             {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/AI.mrs}  
-  Cloudflare:     {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Cloudflare.mrs}  
-  GitHub:         {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/GitHub.mrs}  
+  OpenAI:         {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/OpenAI.mrs}
+  Claude:         {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Claude.mrs}
+  Gemini:         {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Gemini.mrs}
+  AI:             {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/AI.mrs}
+  Cloudflare:     {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Cloudflare.mrs}
+  GitHub:         {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/GitHub.mrs}
   Telegram:       {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Telegram.mrs}
-  Twitter:        {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Twitter.mrs}  
+  Twitter:        {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Twitter.mrs}
   Facebook:       {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Facebook.mrs}
   Instagram:      {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Instagram.mrs}
   SocialMedia:    {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/SocialMedia.mrs}
@@ -452,32 +470,32 @@ rule-providers:
   Disney:         {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Disney.mrs}
   HBO:            {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/HBO.mrs}
   YouTube:        {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/YouTube.mrs}
-  XPTV:           {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/XPTV.mrs}  
+  XPTV:           {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/XPTV.mrs}
   Emby:           {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Emby.mrs}
-  Streaming:      {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Streaming.mrs}  
+  Streaming:      {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Streaming.mrs}
   SystemOTA:      {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/SystemOTA.mrs}
   AppleCN:        {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/AppleCN.mrs}
   Apple:          {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Apple.mrs}
   Google:         {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Google.mrs}
-  OneDrive:       {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/OneDrive.mrs}  
-  Microsoft:      {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Microsoft.mrs}  
+  OneDrive:       {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/OneDrive.mrs}
+  Microsoft:      {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Microsoft.mrs}
   Proxy:          {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/Proxy.mrs}
   China:          {<<: *BehaviorDN, url: https://github.com/666OS/rules/raw/release/mihomo/domain/China.mrs}
 
-  # IP规则
+  # IP规则（域名漏网后的兜底层）
   AdvertisingIP:  {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Advertising.mrs}
   PrivateIP:      {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Private.mrs}
   AIIP:           {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/AI.mrs}
-  CloudflareIP:   {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Cloudflare.mrs}  
-  TelegramIP:     {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Telegram.mrs}  
-  FacebookIP:     {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Facebook.mrs}  
-  SocialMediaIP:  {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/SocialMedia.mrs}  
+  CloudflareIP:   {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Cloudflare.mrs}
+  TelegramIP:     {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Telegram.mrs}
+  FacebookIP:     {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Facebook.mrs}
+  SocialMediaIP:  {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/SocialMedia.mrs}
   XPTVIP:         {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/XPTV.mrs}
   EmbyIP:         {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Emby.mrs}
   NetflixIP:      {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Netflix.mrs}
-  StreamingIP:    {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Streaming.mrs}  
+  StreamingIP:    {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Streaming.mrs}
   AppleCNIP:      {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/AppleCN.mrs}
   GoogleIP:       {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Google.mrs}
-  ProxyIP:        {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Proxy.mrs} 
+  ProxyIP:        {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/Proxy.mrs}
   ChinaIP:        {<<: *BehaviorIP, url: https://github.com/666OS/rules/raw/release/mihomo/ip/China.mrs}
 # ==================== EOF ====================
