@@ -1,0 +1,10 @@
+```yaml
+# Mihomo configuration files
+mihomo_*.yaml
+
+# OpenClash configuration files  
+openclash_*.yaml
+
+# Surfing configuration files
+surfing_*.yaml
+```
