@@ -60,7 +60,7 @@ SelectUS: &SelectUS {type: select, proxies: [美国策略, 默认代理, 故障�
 # HM 家宽优先入口
 SelectHM: &SelectHM {type: select, proxies: [美国家宽, 美国策略, 默认代理, 家宽手动, 全球手动, 直接连接]}
 # AI 专用入口，优先使用美国家宽，失败时仍限制在更接近 AI 使用场景的节点池内
-SelectAI: &SelectAI {type: select, proxies: [美国家宽, 家宽手动, 美国策略]}
+SelectAI: &SelectAI {type: select, proxies: [美国家宽, 美宽手动, 美国策略]}
 
 # ==================== 代理提供者 ====================
 proxy-providers:
@@ -279,6 +279,7 @@ proxy-groups:
   # ==================== 其他策略组 ====================
   - {name: 全球手动,     type: select, include-all: true, filter: *FilterAL, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Global.png"}
   - {name: 家宽手动,     type: select, include-all: true, filter: *FilterHM, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Server.png"}
+  - {name: 美宽手动,     type: select, include-all: true, filter: *FilterUSHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"}
 
   # ==================== 地区自动测速组 ====================
   - {name: 香港自动,     <<: *BaseUT, include-all: true, filter: *FilterHK, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
