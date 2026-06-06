@@ -1,10 +1,6 @@
 # Minimal chain proxy test profile.
 # Purpose: verify US residential exits chained through AI前置.
 
-# ==================== Anchors ====================
-BehaviorDN: &BehaviorDN {type: http, behavior: domain, format: mrs, interval: 86400}
-BehaviorIP: &BehaviorIP {type: http, behavior: ipcidr, format: mrs, interval: 86400}
-
 # Plain US/HK nodes used as front proxies. Explicitly exclude residential nodes.
 FilterUS: &FilterUS '(?i)^(?=.*(美|美国|🇺🇸|USA|(?:^|[^A-Za-z])US(?:[^A-Za-z]|$)|SJC|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD))(?!.*(家宽|住宅|5G网络|星链)).*$'
 FilterHK: &FilterHK '(?i)^(?=.*(港|香港|🇭🇰|HK|Hong|HKG|澳门|澳門|🇲🇴|Macao|Macau|MFM|(?:^|[^A-Za-z])MO(?:[^A-Za-z]|$)))(?!.*(家宽|住宅|5G网络|星链)).*$'
@@ -135,57 +131,9 @@ proxy-groups:
 
 # ==================== Rules ====================
 rules:
-  # Keep local traffic direct.
   - GEOIP,LAN,DIRECT,no-resolve
-
-  # Explicit overseas services take priority over generic China classification.
-  - RULE-SET,Proxy,海外流量
-  - RULE-SET,OpenAI,海外流量
-  - RULE-SET,Claude,海外流量
-  - RULE-SET,Gemini,海外流量
-  - RULE-SET,AI,海外流量
-  - RULE-SET,Google,海外流量
-  - RULE-SET,Telegram,海外流量
-  - RULE-SET,Twitter,海外流量
-  - RULE-SET,Facebook,海外流量
-  - RULE-SET,Instagram,海外流量
-  - RULE-SET,YouTube,海外流量
-  - RULE-SET,Streaming,海外流量
-
-  # Generic overseas domain coverage, followed by the China domain fallback.
-  - GEOSITE,geolocation-!cn,海外流量
   - GEOSITE,cn,DIRECT
-
-  # Explicit overseas IP coverage takes priority over the China IP fallback.
-  - RULE-SET,ProxyIP,海外流量,no-resolve
-  - RULE-SET,AIIP,海外流量,no-resolve
-  - RULE-SET,GoogleIP,海外流量,no-resolve
-  - RULE-SET,TelegramIP,海外流量,no-resolve
-  - RULE-SET,FacebookIP,海外流量,no-resolve
-  - RULE-SET,StreamingIP,海外流量,no-resolve
+  - GEOSITE,geolocation-!cn,海外流量
   - GEOIP,CN,DIRECT,no-resolve
-
-  # For this diagnostic profile, unknown traffic should still test the chain path.
+  - NOT,((GEOIP,CN)),海外流量
   - MATCH,海外流量
-
-# ==================== Rule Providers ====================
-rule-providers:
-  Proxy:          {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Proxy.mrs"}
-  OpenAI:         {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/OpenAI.mrs"}
-  Claude:         {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Claude.mrs"}
-  Gemini:         {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Gemini.mrs"}
-  AI:             {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/AI.mrs"}
-  Google:         {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Google.mrs"}
-  Telegram:       {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Telegram.mrs"}
-  Twitter:        {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Twitter.mrs"}
-  Facebook:       {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Facebook.mrs"}
-  Instagram:      {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Instagram.mrs"}
-  YouTube:        {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/YouTube.mrs"}
-  Streaming:      {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Streaming.mrs"}
-
-  ProxyIP:        {<<: *BehaviorIP, url: "https://github.com/666OS/rules/raw/release/mihomo/ip/Proxy.mrs"}
-  AIIP:           {<<: *BehaviorIP, url: "https://github.com/666OS/rules/raw/release/mihomo/ip/AI.mrs"}
-  GoogleIP:       {<<: *BehaviorIP, url: "https://github.com/666OS/rules/raw/release/mihomo/ip/Google.mrs"}
-  TelegramIP:     {<<: *BehaviorIP, url: "https://github.com/666OS/rules/raw/release/mihomo/ip/Telegram.mrs"}
-  FacebookIP:     {<<: *BehaviorIP, url: "https://github.com/666OS/rules/raw/release/mihomo/ip/Facebook.mrs"}
-  StreamingIP:    {<<: *BehaviorIP, url: "https://github.com/666OS/rules/raw/release/mihomo/ip/Streaming.mrs"}
