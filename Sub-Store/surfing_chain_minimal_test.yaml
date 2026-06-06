@@ -2,7 +2,6 @@
 # Purpose: verify US residential exits chained through AI前置.
 
 # ==================== Anchors ====================
-BaseUT: &BaseUT {type: url-test, interval: 600, tolerance: 60, lazy: true, url: "https://www.gstatic.com/generate_204", timeout: 5000, expected-status: 204, hidden: true}
 BehaviorDN: &BehaviorDN {type: http, behavior: domain, format: mrs, interval: 86400}
 BehaviorIP: &BehaviorIP {type: http, behavior: ipcidr, format: mrs, interval: 86400}
 
@@ -27,9 +26,7 @@ proxy-providers:
         - "clash.meta"
         - "mihomo"
     health-check:
-      enable: true
-      url: "https://www.gstatic.com/generate_204"
-      interval: 600
+      enable: false
     url: ""
     path: ./proxies/proxy1.yaml
 
@@ -54,7 +51,7 @@ allow-lan: true
 disable-keep-alive: true
 unified-delay: true
 tcp-concurrent: true
-log-level: warning
+log-level: debug
 find-process-mode: always
 bind-address: "*"
 keep-alive-interval: 15
@@ -66,8 +63,8 @@ external-controller: 0.0.0.0:9090
 secret: "yyds666"
 
 profile:
-  store-selected: true
-  store-fake-ip: true
+  store-selected: false
+  store-fake-ip: false
 
 sniffer:
   enable: true
@@ -123,31 +120,25 @@ dns:
 
 # ==================== Proxy Groups ====================
 proxy-groups:
-  # Main test exit. Select 美宽自动 for automatic health-check; select 美宽手动 to test one exit node.
-  - {name: 海外流量, type: select, proxies: [美宽自动, 美宽手动], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png"}
+  # Fix one residential exit B for each test.
+  - {name: 海外流量, type: select, proxies: [美宽手动], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png"}
 
-  # Front proxy pool referenced by US residential nodes through dialer-proxy.
-  - {name: AI前置, type: select, proxies: [美国自动, 香港自动, 美国手动, 香港手动], icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  # Fix one front proxy A for each test. Residential exit nodes reference this group through dialer-proxy.
+  - {name: AI前置, type: select, proxies: [美国手动, 香港手动], icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
 
-  # US residential exits.
-  - {name: 美宽自动, <<: *BaseUT, include-all: true, filter: *FilterUSHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  # Residential exit B.
   - {name: 美宽手动, type: select, include-all: true, filter: *FilterUSHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"}
 
-  # Front proxy candidates. These groups intentionally exclude residential nodes.
-  - {name: 美国自动, <<: *BaseUT, include-all: true, filter: *FilterUS, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 香港自动, <<: *BaseUT, include-all: true, filter: *FilterHK, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  # Front proxy A candidates. These groups intentionally exclude residential nodes.
   - {name: 美国手动, type: select, include-all: true, filter: *FilterUS, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"}
   - {name: 香港手动, type: select, include-all: true, filter: *FilterHK, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Hong_Kong.png"}
 
 # ==================== Rules ====================
 rules:
-  # Keep local and China traffic direct so test failures are easier to isolate.
+  # Keep local traffic direct.
   - GEOIP,LAN,DIRECT,no-resolve
-  - GEOSITE,cn,DIRECT
-  - GEOIP,CN,DIRECT,no-resolve
 
-  # Overseas domain coverage.
-  - GEOSITE,geolocation-!cn,海外流量
+  # Explicit overseas services take priority over generic China classification.
   - RULE-SET,Proxy,海外流量
   - RULE-SET,OpenAI,海外流量
   - RULE-SET,Claude,海外流量
@@ -161,13 +152,18 @@ rules:
   - RULE-SET,YouTube,海外流量
   - RULE-SET,Streaming,海外流量
 
-  # Overseas IP coverage.
+  # Generic overseas domain coverage, followed by the China domain fallback.
+  - GEOSITE,geolocation-!cn,海外流量
+  - GEOSITE,cn,DIRECT
+
+  # Explicit overseas IP coverage takes priority over the China IP fallback.
   - RULE-SET,ProxyIP,海外流量,no-resolve
   - RULE-SET,AIIP,海外流量,no-resolve
   - RULE-SET,GoogleIP,海外流量,no-resolve
   - RULE-SET,TelegramIP,海外流量,no-resolve
   - RULE-SET,FacebookIP,海外流量,no-resolve
   - RULE-SET,StreamingIP,海外流量,no-resolve
+  - GEOIP,CN,DIRECT,no-resolve
 
   # For this diagnostic profile, unknown traffic should still test the chain path.
   - MATCH,海外流量
