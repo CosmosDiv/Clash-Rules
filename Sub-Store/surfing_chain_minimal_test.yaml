@@ -1,11 +1,11 @@
 # Minimal chain proxy test profile.
-# Purpose: verify US residential exits chained through AI前置.
+# Purpose: verify US residential exits chained through 落地前置.
 
 # Plain US/HK nodes used as front proxies. Explicitly exclude residential nodes.
 FilterUS: &FilterUS '(?i)^(?=.*(美|美国|🇺🇸|USA|(?:^|[^A-Za-z])US(?:[^A-Za-z]|$)|SJC|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD))(?!.*(家宽|住宅|5G网络|星链)).*$'
 FilterHK: &FilterHK '(?i)^(?=.*(港|香港|🇭🇰|HK|Hong|HKG|澳门|澳門|🇲🇴|Macao|Macau|MFM|(?:^|[^A-Za-z])MO(?:[^A-Za-z]|$)))(?!.*(家宽|住宅|5G网络|星链)).*$'
 
-# US residential exits. These nodes should receive dialer-proxy: AI前置 from Sub-Store.
+# US residential exits. These nodes should receive dialer-proxy: 落地前置 from Sub-Store.
 FilterUSHome: &FilterUSHome '(?i)^(?=.*(美|美国|🇺🇸|USA|(?:^|[^A-Za-z])US(?:[^A-Za-z]|$)|SJC|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD))(?=.*(家宽|住宅|5G网络|星链)).*$'
 
 # ==================== Proxy Provider ====================
@@ -120,7 +120,7 @@ proxy-groups:
   - {name: 海外流量, type: select, proxies: [美宽手动], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png"}
 
   # Fix one front proxy A for each test. Residential exit nodes reference this group through dialer-proxy.
-  - {name: AI前置, type: select, proxies: [美国手动, 香港手动], icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 落地前置, type: select, proxies: [美国手动, 香港手动], icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
 
   # Residential exit B.
   - {name: 美宽手动, type: select, include-all: true, filter: *FilterUSHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"}
