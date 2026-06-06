@@ -120,7 +120,7 @@ proxy-groups:
   - {name: 海外流量, type: select, proxies: [美宽手动], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png"}
 
   # Fix one front proxy A for each test. Residential exit nodes reference this group through dialer-proxy.
-  - {name: 落地前置, type: select, proxies: [美国手动, 香港手动], icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 落地前置, type: select, proxies: [美国手动, 香港手动, DIRECT], icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
 
   # Residential exit B.
   - {name: 美宽手动, type: select, include-all: true, filter: *FilterUSHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"}
