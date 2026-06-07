@@ -225,7 +225,7 @@ proxy-groups:
 
   # ==================== 功能策略组 ====================
   # 供节点内链式代理引用，作为美国家宽等出口节点的前置代理池。
-  - {name: AI前置,     <<: *AIFB, proxies: [美国自动, 日本自动, 香港自动, 台湾自动, 狮城自动], icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 落地前置,     <<: *AIFB, proxies: [美国自动, 日本自动, 香港自动, 台湾自动, 狮城自动], icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
   - {name: 网络测试,     <<: *SelectDC, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Speedtest.png"}
   - {name: 抖快书定位,   type: select, proxies: [直接连接, 香港策略, 台湾策略, 狮城策略, 日本策略, 韩国策略, 美国策略, 英国策略, 欧盟策略], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Domestic.png"}
   - {name: 豆奶节点,     <<: *BaseUT, include-all: true, filter: *FilterDN}
