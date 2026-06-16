@@ -85,6 +85,7 @@ geo-auto-update: true # 是否自动更新 geodata
 geo-update-interval: 24 # 更新间隔,单位:小时
 # 使用 geodata 模式（而非传统的 IP-CIDR 文件）
 geodata-mode: true
+geodata-loader: standard
 
 # ==================== 核心配置 ====================
 # 基础配置
@@ -198,6 +199,7 @@ dns:
     - +.miwifi.com
     - +.docker.io
     - +.market.xiaomi.com
+    - +.push.apple.com
 
 # ==================== 代理策略组 ====================
 proxy-groups:

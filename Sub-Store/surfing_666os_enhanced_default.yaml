@@ -79,6 +79,8 @@ proxy-providers:
       enable: true
       url: "https://www.gstatic.com/generate_204"
       interval: 300
+    override:
+      client-fingerprint: chrome
     url: ""
     path: ./proxies/proxy1.yaml
 
@@ -118,12 +120,6 @@ find-process-mode: always
 experimental:
   # hy2节点有问题的时候再改为true
   quic-go-disable-gso: false
-  http-headers:
-    request:
-      - name: "User-Agent"
-        value: "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
-      - name: "Accept-Language"
-        value: "en-US,en;q=0.9"
 
 # 管理面板配置
 external-ui-url: "https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip"
@@ -153,7 +149,7 @@ sniffer:
   force-domain:
     - "+.v2ex.com"
   skip-domain:
-    - "Mijia Cloud"
+    - "+.io.mi.com"
     - "+.push.apple.com"
 
 # TUN模式配置
@@ -166,10 +162,12 @@ tun:
     - tcp://any:53
   udp-timeout: 300
   auto-route: true
-  strict-route: true
   # 如果不行的话，下面的true可以改为false试一下。
   auto-redirect: true
   auto-detect-interface: true
+
+hosts:
+  services.googleapis.cn: services.googleapis.com
 
 # DNS配置
 dns:
@@ -178,7 +176,7 @@ dns:
   listen: 0.0.0.0:1053
   enhanced-mode: fake-ip
   fake-ip-range: 198.18.0.1/16
-  fake-ip-range6: fdfe:dcba:9876::/48
+  fake-ip-range6: fdfe:dcba:9876::/64
   default-nameserver:
     - 119.29.29.29
     - 180.184.1.1
