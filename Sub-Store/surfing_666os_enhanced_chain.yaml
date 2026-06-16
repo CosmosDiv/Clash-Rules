@@ -118,7 +118,7 @@ keep-alive-idle: 600
 
 
 # 实验性功能
-experimental: 
+experimental:
   # hy2节点有问题的时候再改为true
   quic-go-disable-gso: false
   http-headers:
@@ -129,7 +129,7 @@ experimental:
         value: "en-US,en;q=0.9"
 
 # 管理面板配置
-external-ui-url: https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip
+external-ui-url: "https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip"
 external-ui: "./webroot/Zash/"
 external-controller: 0.0.0.0:9090
 secret: "yyds666"

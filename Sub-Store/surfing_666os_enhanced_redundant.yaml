@@ -118,7 +118,7 @@ keep-alive-idle: 600
 
 
 # 实验性功能
-experimental: 
+experimental:
   # hy2节点有问题的时候再改为true
   quic-go-disable-gso: false
   http-headers:
@@ -129,7 +129,7 @@ experimental:
         value: "en-US,en;q=0.9"
 
 # 管理面板配置
-external-ui-url: https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip
+external-ui-url: "https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip"
 external-ui: "./webroot/Zash/"
 external-controller: 0.0.0.0:9090
 secret: "yyds666"
@@ -184,7 +184,7 @@ hosts:
   dns.google: [8.8.8.8, 8.8.4.4, "2001:4860:4860::8888", "2001:4860:4860::8844"]
   cloudflare-dns.com: [1.1.1.1, 1.0.0.1, "2606:4700:4700::1111", "2606:4700:4700::1001"]
 
-  
+
 # DNS配置
 dns:
   enable: true
