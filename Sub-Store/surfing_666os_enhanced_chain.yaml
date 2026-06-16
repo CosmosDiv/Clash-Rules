@@ -64,8 +64,8 @@ SelectUS: &SelectUS {type: select, proxies: [美国策略, 默认代理, 故障�
 SelectHM: &SelectHM {type: select, proxies: [美国家宽, 美国策略, 默认代理, 家宽手动, 全球手动, 直接连接]}
 # AI 专用入口，优先使用美国家宽，失败时仍限制在更接近 AI 使用场景的节点池内
 SelectAI: &SelectAI {type: select, proxies: [美国家宽, 美宽手动, 美国策略]}
-# 链式代理前置入口，默认先用落地自动，测试时再切到前置自动/前置手动。
-SelectFront: &SelectFront {type: select, proxies: [落地自动, 前置自动, 前置手动, 直接连接]}
+# 链式代理前置入口，默认先用前置地区自动，测试时再切到筛选自动/手动。
+SelectFront: &SelectFront {type: select, proxies: [前置地区自动, 前置筛选自动, 前置筛选手动, 直接连接]}
 
 # ==================== 代理提供者 ====================
 proxy-providers:
@@ -231,9 +231,9 @@ proxy-groups:
   # ==================== 功能策略组 ====================
   # 供节点内链式代理引用，作为美国家宽等出口节点的前置入口。
   - {name: 落地前置,     <<: *SelectFront, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 落地自动,     <<: *BaseFB, proxies: [美国自动, 香港自动, 日本自动, 台湾自动, 狮城自动], icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 前置手动,     type: select, include-all: true, filter: *FilterFront, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"}
-  - {name: 前置自动,     <<: *BaseUT, include-all: true, filter: *FilterFront, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 前置地区自动, <<: *BaseFB, proxies: [美国自动, 香港自动, 日本自动, 台湾自动, 狮城自动], icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 前置筛选手动, type: select, include-all: true, filter: *FilterFront, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"}
+  - {name: 前置筛选自动, <<: *BaseUT, include-all: true, filter: *FilterFront, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
   - {name: 网络测试,     <<: *SelectDC, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Speedtest.png"}
   - {name: 抖快书定位,   type: select, proxies: [直接连接, 香港策略, 台湾策略, 狮城策略, 日本策略, 韩国策略, 美国策略, 英国策略, 欧盟策略], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Domestic.png"}
   - {name: 豆奶优选,     <<: *BaseUT, include-all: true, filter: *FilterDN}
