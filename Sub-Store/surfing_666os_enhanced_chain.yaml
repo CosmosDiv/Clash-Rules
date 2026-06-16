@@ -6,7 +6,6 @@
 
 # 策略组类型模板 - 定义不同的策略组基础配置
 BaseFB: &BaseFB {type: fallback, interval: 600, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204}
-AIFB: &AIFB {type: fallback, interval: 600, lazy: false, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204}
 BaseUT: &BaseUT {type: url-test, interval: 600, tolerance: 60, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 5000, expected-status: 204, hidden: true}
 
 
@@ -37,6 +36,10 @@ FilterEUHome: &FilterEUHome '(?i)^(?=.*(欧洲|欧盟|Europe|European|EU|英国|
 # 豆奶节点筛选
 FilterDN: &FilterDN '(?i)(豆奶|dounai|dn)'
 
+# 测试前置关键词：把测试节点名统一加同一标记，每次只改下面括号里的词。
+# 例如节点名标记为 xxx 时，把 前置测试 改成 xxx。
+FilterFront: &FilterFront '(?i)^(?=.*(前置测试))(?!.*(家宽|住宅|5G网络|星链)).*$'
+
 # AL 表示 all，用于排除订阅说明类节点后的全量节点筛选
 FilterAL: &FilterAL '^(?!.*(DIRECT|直接连接|群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))'
 
@@ -61,6 +64,8 @@ SelectUS: &SelectUS {type: select, proxies: [美国策略, 默认代理, 故障�
 SelectHM: &SelectHM {type: select, proxies: [美国家宽, 美国策略, 默认代理, 家宽手动, 全球手动, 直接连接]}
 # AI 专用入口，优先使用美国家宽，失败时仍限制在更接近 AI 使用场景的节点池内
 SelectAI: &SelectAI {type: select, proxies: [美国家宽, 美宽手动, 美国策略]}
+# 链式代理前置入口，默认先用落地自动，测试时再切到前置自动/前置手动。
+SelectFront: &SelectFront {type: select, proxies: [落地自动, 前置自动, 前置手动, 直接连接]}
 
 # ==================== 代理提供者 ====================
 proxy-providers:
@@ -224,11 +229,14 @@ proxy-groups:
   - {name: 直接连接,     type: select, proxies: [DIRECT], hidden: true, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Direct.png"}
 
   # ==================== 功能策略组 ====================
-  # 供节点内链式代理引用，作为美国家宽等出口节点的前置代理池。
-  - {name: 落地前置,     <<: *AIFB, proxies: [美国自动, 日本自动, 香港自动, 台湾自动, 狮城自动], icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  # 供节点内链式代理引用，作为美国家宽等出口节点的前置入口。
+  - {name: 落地前置,     <<: *SelectFront, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 落地自动,     <<: *BaseFB, proxies: [美国自动, 香港自动, 日本自动, 台湾自动, 狮城自动], icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 前置手动,     type: select, include-all: true, filter: *FilterFront, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"}
+  - {name: 前置自动,     <<: *BaseUT, include-all: true, filter: *FilterFront, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
   - {name: 网络测试,     <<: *SelectDC, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Speedtest.png"}
   - {name: 抖快书定位,   type: select, proxies: [直接连接, 香港策略, 台湾策略, 狮城策略, 日本策略, 韩国策略, 美国策略, 英国策略, 欧盟策略], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Domestic.png"}
-  - {name: 豆奶节点,     <<: *BaseUT, include-all: true, filter: *FilterDN}
+  - {name: 豆奶优选,     <<: *BaseUT, include-all: true, filter: *FilterDN}
 
   # ==================== 媒体服务 ====================
   - {name: Emby服,       <<: *SelectPY, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Emby.png"}
@@ -353,8 +361,9 @@ rules:
   - RULE-SET,Netflix,奈飞视频
   - RULE-SET,Disney,奈飞视频
   - RULE-SET,HBO,奈飞视频
+  # YouTube 默认走豆奶优选，原油管视频分类保留为注释，恢复时互换下面两行。
   # - RULE-SET,YouTube,油管视频
-  - RULE-SET,YouTube,豆奶节点
+  - RULE-SET,YouTube,豆奶优选
   - RULE-SET,Streaming,国际媒体
   - RULE-SET,Apple,苹果服务
   - RULE-SET,Google,谷歌服务
