@@ -2,11 +2,12 @@
 # 然后为了访问国内可能存在的小众站点正常，国内ip选择了一个尽可能大的，然后没用加no-resolve
 # 如果要防止泄露，本规则直接最后的所有ip规则后面加no-resolve
 # ==================== 锚点配置 ====================
-# 代理提供者模板 - 订阅源基础配置
 
 # 策略组类型模板 - 定义不同的策略组基础配置
-BaseFB: &BaseFB {type: fallback, interval: 600, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204}
-BaseUT: &BaseUT {type: url-test, interval: 600, tolerance: 60, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 5000, expected-status: 204, hidden: true}
+BaseFB: &BaseFB {type: fallback, interval: 300, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204}
+BaseUTNear: &BaseUTNear {type: url-test, interval: 300, tolerance: 20, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true}
+BaseUTMid:  &BaseUTMid  {type: url-test, interval: 300, tolerance: 35, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true}
+BaseUTFar:  &BaseUTFar  {type: url-test, interval: 300, tolerance: 50, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true}
 
 
 # 节点筛选正则表达式 - 基于地理位置和关键词过滤
@@ -36,56 +37,61 @@ FilterEUHome: &FilterEUHome '(?i)^(?=.*(欧洲|欧盟|Europe|European|EU|英国|
 # 豆奶节点筛选
 FilterDN: &FilterDN '(?i)(豆奶|dounai|dn)'
 
-# 测试前置关键词：把测试节点名统一加同一标记，每次只改下面括号里的词。
-# 默认标记为 frontx；以后只需在 Sub-Store 里给可当前置的节点名加 frontx。
+# 测试前置关键词：默认标记为 frontx；以后只需在 Sub-Store 里给可当前置的节点名加 frontx。
 FilterFront: &FilterFront '(?i)^(?=.*(frontx))(?!.*(家宽|住宅|5G网络|星链)).*$'
 
-# AL 表示 all，用于排除订阅说明类节点后的全量节点筛选
+# al是all,所有
 FilterAL: &FilterAL '^(?!.*(DIRECT|直接连接|群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))'
 
+
 # 策略组代理列表模板 - 预定义的代理节点优先级排序
-# FB 默认代理入口，优先走故障转移
+# 这里我理解,应该是直接定义分组里面包含的节点.然后不同的分组有不同的优先级
+# FB默认选择fallback组包含的分组排序
 SelectFB: &SelectFB {type: select, proxies: [故障转移, 香港策略, 狮城策略, 日本策略, 韩国策略, 美国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
-# PY 通用代理入口，保留手动切换空间
+# PY默认代理组的分组排序
 SelectPY: &SelectPY {type: select, proxies: [默认代理, 故障转移, 香港策略, 狮城策略, 日本策略, 韩国策略, 美国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
-# DC 直连优先入口，必要时可手动切回代理
+# DC默认直连组的分组排序
 SelectDC: &SelectDC {type: select, proxies: [直接连接, 默认代理, 故障转移, 香港策略, 狮城策略, 日本策略, 韩国策略, 美国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动]}
-# HK 香港优先入口
+# HK默认香港的分组排序
 SelectHK: &SelectHK {type: select, proxies: [香港策略, 默认代理, 故障转移, 狮城策略, 日本策略, 韩国策略, 美国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
-# TW 台湾优先入口
+# HK默认台湾的分组排序
 SelectTW: &SelectTW {type: select, proxies: [台湾策略, 香港策略, 默认代理, 故障转移, 狮城策略, 日本策略, 韩国策略, 美国策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
-# JP 日本优先入口
+# HK默认日本的分组排序
 SelectJP: &SelectJP {type: select, proxies: [日本策略, 香港策略, 默认代理, 故障转移, 狮城策略, 韩国策略, 美国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
-# SG 新加坡优先入口
+# SG默认新加坡的分组排序
 SelectSG: &SelectSG {type: select, proxies: [狮城策略, 默认代理, 故障转移, 香港策略, 日本策略, 韩国策略, 美国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
-# US 美国优先入口
+# US默认美国分组的排序
 SelectUS: &SelectUS {type: select, proxies: [美国策略, 默认代理, 故障转移, 香港策略, 狮城策略, 日本策略, 韩国策略, 台湾策略, 英国策略, 欧盟策略, 家宽手动, 全球手动, 直接连接]}
-# HM 家宽优先入口
+# HM默认手动家宽分组的排序
 SelectHM: &SelectHM {type: select, proxies: [美国家宽, 美国策略, 默认代理, 家宽手动, 全球手动, 直接连接]}
 # AI 专用入口，优先使用美国家宽，失败时仍限制在更接近 AI 使用场景的节点池内
 SelectAI: &SelectAI {type: select, proxies: [美国家宽, 美宽手动, 美国策略]}
 # 链式代理前置入口，默认先用前置地区自动，测试时再切到筛选自动/手动。
 SelectFront: &SelectFront {type: select, proxies: [前置地区自动, 前置筛选自动, 前置筛选手动, 直接连接]}
 
-# ==================== 代理提供者 ====================
+
+
+
+# ==================== 代理提供者 Proxy Provider ====================
+# 用于从订阅链接获取节点，多机场用户复制整个 provider1 块并改名为 provider2, provider3...
+# 同时在后续所有 proxy-groups 的 use 列表中添加新provider
 proxy-providers:
-  proxy1:
-    type: http
-    interval: 86400
-    proxy: DIRECT
-    header: # 如遇订阅加载不出来请切换ua
-      User-Agent:  # 使用注释法由上到下 默认使用第一个
-        - "ClashMetaForAndroid/2.11.2.Meta"
-        - "clash-verge/v2.2.3"
-        - "ClashforWindows/0.19.23"
-        - "clash.meta"
-        - "mihomo"
-    health-check:
+  provider1:
+    type: http  # 类型：http（从URL获取）或 file（本地文件）
+    url: "url"  # **填入你的订阅链接**
+    interval: 3600  # 订阅更新间隔（秒），3600=1小时
+    path: ./proxy_provider/provider1.yaml # 本地缓存路径
+    proxy: DIRECT  # 下载订阅时使用的代理策略
+    header:  # 自定义 HTTP 请求头
+    health-check:  # 节点健康检查
       enable: true
-      url: "https://www.gstatic.com/generate_204"
-      interval: 600
-    url: ""
-    path: ./proxies/proxy1.yaml
+      interval: 600  # 检查间隔（秒）
+      url: "https://cp.cloudflare.com/generate_204"
+    override:  # 覆写节点配置
+      skip-cert-verify: true  # 跳过证书验证
+      udp: true  # 启用UDP
+      # additional-prefix: "[provider1]"  # 为节点名添加前缀
+      # additional-suffix: "test"  # 为节点名添加后缀
 
 # ==================== 地理数据库配置 GeoData Configuration ====================
 # 用于 IP 和域名的地理位置及分类判断
@@ -101,83 +107,114 @@ geo-auto-update: true # 是否自动更新 geodata
 geo-update-interval: 24 # 更新间隔,单位:小时
 # 使用 geodata 模式（而非传统的 IP-CIDR 文件）
 geodata-mode: true
+geodata-loader: standard
 
 
-# ==================== 核心配置 ====================
-# 基础配置
-mixed-port: 7890
-redir-port: 7891
-tproxy-port: 1536
-mode: rule
-ipv6: true
+# ==================== 端口配置 Port Configuration ====================
+# HTTP 代理端口，用于处理 HTTP 协议流量
+port: 7890
+# SOCKS5 代理端口，用于处理 SOCKS5 协议流量
+socks-port: 7891
+# 混合端口（HTTP + SOCKS5），同时支持 HTTP 和 SOCKS5 协议
+mixed-port: 7893
+# 透明代理重定向端口（Linux 环境）
+redir-port: 7892
+# TProxy 端口（Linux 环境的透明代理）
+tproxy-port: 7895
+# 是否允许局域网连接，true 表示允许其他设备通过本机代理上网
 allow-lan: true
-disable-keep-alive: true
-unified-delay: true
+# 绑定地址，"*" 表示监听所有网卡，可指定具体 IP
+bind-address: "*"
+# 工作模式：rule（规则模式）/ global（全局模式）/ direct（直连模式）
+mode: rule
+# 是否启用 TCP 并发，可提高连接性能
 tcp-concurrent: true
-log-level: warning
-find-process-mode: always
-bind-address: '*'
+# 统一延迟计算，使延迟测试更准确
+unified-delay: true
 keep-alive-interval: 15
 keep-alive-idle: 600
 
-
-
-# 实验性功能
-experimental:
-  # hy2节点有问题的时候再改为true
-  quic-go-disable-gso: false
-  http-headers:
-    request:
-      - name: "User-Agent"
-        value: "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
-      - name: "Accept-Language"
-        value: "en-US,en;q=0.9"
-
-# 管理面板配置
-external-ui-url: "https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip"
-external-ui: "./webroot/Zash/"
+# ==================== 日志与控制 ====================
+# 日志级别：silent（静默）/ error（错误）/ warning（警告）/ info（信息）/ debug（调试）
+log-level: info
+# 是否启用 IPv6，true 表示支持 IPv6 流量
+ipv6: true
+# 外部控制器地址，用于 Web UI 和 API 访问，0.0.0.0:9090 表示监听所有网卡的 9090 端口
 external-controller: 0.0.0.0:9090
-secret: "yyds666"
 
-# 配置存储
+# ==================== 配置文件存储 Profile ====================
 profile:
+  # 是否保存用户选择的策略组（重启后自动恢复）
   store-selected: true
+  # 是否保存 Fake-IP 映射表（重启后保留 DNS 缓存）
   store-fake-ip: true
 
-# 流量嗅探
+# ==================== 流量嗅探器 Sniffer ====================
+# 嗅探器可以通过分析流量内容还原真实域名，提高分流准确性
 sniffer:
+  # 启用嗅探功能
   enable: true
-  force-dns-mapping: true
-  parse-pure-ip: true
+  # 使用嗅探结果覆盖连接目标（推荐开启）
   override-destination: true
+  # 嗅探协议配置
   sniff:
-    HTTP:
-      ports: [80, 8080-8880]
-      override-destination: true
-    TLS:
-      ports: [443, 8443]
+    # QUIC 协议嗅探（HTTP/3）
     QUIC:
-      ports: [443, 8443]
+      ports:
+      - 443
+      - 8443  # 常用替代 HTTPS 端口
+    # TLS 协议嗅探（HTTPS）
+    TLS:
+      ports:
+      - 443  # 标准 HTTPS 端口
+      - 8443  # 常用替代 HTTPS 端口
+    # HTTP 协议嗅探
+    HTTP:
+      ports:
+      - 80  # 标准 HTTP 端口
+      - 8080-8880  # HTTP 常用端口范围
+      override-destination: true
+  # 强制对这些域名进行嗅探（即使已经有目标地址）
   force-domain:
-    - "+.v2ex.com"
+    - "+.netflix.com"  # Netflix 主域名
+    - "+.nflxvideo.net"  # Netflix CDN
+    - "+.amazonaws.com"  # AWS 云服务
+    - "+.media.dssott.com"  # Disney+ 流媒体
+  # 跳过对这些域名的嗅探（避免干扰）
   skip-domain:
-    - "Mijia Cloud"
-    - "+.push.apple.com"
+    - "+.apple.com"  # 苹果服务
+    - "Mijia Cloud"  # 米家云服务
+    - "dlg.io.mi.com"  # 小米设备通信
+    - "+.oray.com"  # 花生壳服务
+    - "+.sunlogin.net"  # 向日葵远程控制
+    - "+.push.apple.com"  # 苹果推送服务
+  # 解析纯 IP 连接（尝试通过 rDNS 反向解析获得域名）
+  parse-pure-ip: true
+  # 强制 DNS 映射（对纯 IP 连接尝试 DNS 映射）
+  force-dns-mapping: true
 
-# TUN模式配置
+# ==================== TUN 虚拟网卡配置 ====================
+# TUN 模式可以接管系统全部流量，实现真正的全局代理
 tun:
-  enable: false
-  device: Meta
-  stack: gvisor
+  # 是否启用 TUN 模式
+  enable: true
+  # 网络栈：system（系统栈）/ gvisor（内置用户态栈）/ mixed（混合）
+  stack: system
+  # DNS 劫持配置，劫持所有发往 53 端口的 DNS 请求
   dns-hijack:
-    - any:53
-    - tcp://any:53
-  udp-timeout: 300
-  auto-route: true
-  strict-route: true
-  # TUN 异常时可临时改为 false 诊断兼容性。
-  auto-redirect: true
-  auto-detect-interface: true
+    - "any:53"
+    - "tcp://any:53"
+    - 0.0.0.0:53
+  # 自动检测网络接口（OpenClash 环境下应设为 false，由 OpenClash 管理）
+  auto-detect-interface: false
+  # 自动配置路由表（OpenClash 环境下应设为 false）
+  auto-route: false
+  # 自动配置 iptables 重定向（OpenClash 环境下应设为 false）
+  auto-redirect: false
+  # 严格路由模式（OpenClash 环境下应设为 false）
+  strict-route: false
+  # 端点无关 NAT（提高 NAT 类型兼容性，适用于 P2P 和游戏）
+  endpoint-independent-nat: true
 
 hosts:
   miwifi.com: 192.168.31.2
@@ -189,33 +226,49 @@ hosts:
   dns.google: [8.8.8.8, 8.8.4.4, "2001:4860:4860::8888", "2001:4860:4860::8844"]
   cloudflare-dns.com: [1.1.1.1, 1.0.0.1, "2606:4700:4700::1111", "2606:4700:4700::1001"]
 
-# DNS配置
+# ==================== DNS 配置 ====================
 dns:
+  # 启用内置 DNS 服务器
   enable: true
+  # DNS 服务器监听地址，0.0.0.0:7874 表示监听所有网卡的 7874 端口
+  listen: 0.0.0.0:7874
+  # 是否解析 IPv6 地址
   ipv6: true
-  listen: 0.0.0.0:1053
-  enhanced-mode: fake-ip
-  fake-ip-range: 198.18.0.1/16
-  fake-ip-range6: fdab:47c2:9e1f:9876::1/64
+  # 默认 DNS 服务器（用于解析其他 DNS 服务器的域名），必须使用 IP 地址或支持 DoT 的服务器
   default-nameserver:
+    - 114.114.114.114  # 114 公共 DNS
+    - tls://223.5.5.5:853  # 阿里云 DoT
     - 119.29.29.29
     - 180.184.1.1
     - 223.5.5.5
-  nameserver:
-    - https://223.5.5.5/dns-query#h3=true
-    - https://dns.alidns.com/dns-query
-    - https://223.5.5.5/dns-query
-    - https://doh.pub/dns-query
+  # DNS 增强模式：fake-ip（虚假 IP）/ redir-host（真实 IP），fake-ip 模式性能更好
+  enhanced-mode: fake-ip
+  # Fake-IP 地址池范围（私有地址段，不会与真实 IP 冲突）
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-range6: fdfe:dcba:9876::/48
+  # Fake-IP 过滤列表（这些域名将返回真实 IP 而非 Fake-IP）
   fake-ip-filter:
-    - "+.pub.3gppnetwork.org"
     - "+.bing.com"
-    - "+.miwifi.com"
-    - "+.docker.io"
-    - "+.market.xiaomi.com"
-    - "+.push.apple.com"
+    - +.miwifi.com
+    - +.docker.io
+    - +.market.xiaomi.com
+    - +.push.apple.com
+    - '*.lan'  # 局域网域名
+    - localhost.ptlogin2.qq.com  # QQ 登录域名
     - "rule-set:Direct"
     - "rule-set:Private"
     - "rule-set:China"
+    - geosite:cn  # 中国大陆域名（使用 GeoSite 数据）
+  # Fake-IP 过滤模式：blacklist（黑名单）/ whitelist（白名单）
+  fake-ip-filter-mode: blacklist
+  # 是否遵循规则（false 表示所有 DNS 查询都通过直连查询，不经过代理规则）
+  respect-rules: false
+  # 主 DNS 服务器列表（用于实际域名解析）
+  nameserver:
+    - https://223.5.5.5/dns-query#h3=true
+    - https://223.5.5.5/dns-query
+    - https://doh.pub/dns-query  # 腾讯 DoH
+    - https://dns.alidns.com/dns-query  # 阿里云 DoH
 
 
 # ==================== 代理策略组 ====================
@@ -233,10 +286,10 @@ proxy-groups:
   - {name: 落地前置,     <<: *SelectFront, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
   - {name: 前置地区自动, <<: *BaseFB, proxies: [美国自动, 香港自动, 日本自动, 台湾自动, 狮城自动], icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
   - {name: 前置筛选手动, type: select, include-all: true, filter: *FilterFront, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"}
-  - {name: 前置筛选自动, <<: *BaseUT, include-all: true, filter: *FilterFront, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 前置筛选自动, <<: *BaseUTMid, include-all: true, filter: *FilterFront, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
   - {name: 网络测试,     <<: *SelectDC, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Speedtest.png"}
   - {name: 抖快书定位,   type: select, proxies: [直接连接, 香港策略, 台湾策略, 狮城策略, 日本策略, 韩国策略, 美国策略, 英国策略, 欧盟策略], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Domestic.png"}
-  - {name: 豆奶优选,     <<: *BaseUT, include-all: true, filter: *FilterDN}
+  - {name: 豆奶优选,     <<: *BaseUTMid, include-all: true, filter: *FilterDN}
 
   # ==================== 媒体服务 ====================
   - {name: Emby服,       <<: *SelectPY, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Emby.png"}
@@ -290,24 +343,24 @@ proxy-groups:
   - {name: 美宽手动,     type: select, include-all: true, filter: *FilterUSHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"}
 
   # ==================== 地区自动测速组 ====================
-  - {name: 香港自动,     <<: *BaseUT, include-all: true, filter: *FilterHK, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 台湾自动,     <<: *BaseUT, include-all: true, filter: *FilterTW, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 狮城自动,     <<: *BaseUT, include-all: true, filter: *FilterSG, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 日本自动,     <<: *BaseUT, include-all: true, filter: *FilterJP, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 韩国自动,     <<: *BaseUT, include-all: true, filter: *FilterKR, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 美国自动,     <<: *BaseUT, include-all: true, filter: *FilterUS, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 英国自动,     <<: *BaseUT, include-all: true, filter: *FilterUK, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 欧盟自动,     <<: *BaseUT, include-all: true, filter: *FilterEU, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 香港自动,     <<: *BaseUTNear, include-all: true, filter: *FilterHK, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 台湾自动,     <<: *BaseUTMid,  include-all: true, filter: *FilterTW, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 狮城自动,     <<: *BaseUTMid,  include-all: true, filter: *FilterSG, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 日本自动,     <<: *BaseUTMid,  include-all: true, filter: *FilterJP, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 韩国自动,     <<: *BaseUTNear, include-all: true, filter: *FilterKR, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 美国自动,     <<: *BaseUTFar,  include-all: true, filter: *FilterUS, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 英国自动,     <<: *BaseUTFar,  include-all: true, filter: *FilterUK, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 欧盟自动,     <<: *BaseUTFar,  include-all: true, filter: *FilterEU, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
 
   # ==================== 家宽自动测速组 ====================
-  - {name: 香港家宽,     <<: *BaseUT, include-all: true, filter: *FilterHKHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 台湾家宽,     <<: *BaseUT, include-all: true, filter: *FilterTWHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 狮城家宽,     <<: *BaseUT, include-all: true, filter: *FilterSGHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 日本家宽,     <<: *BaseUT, include-all: true, filter: *FilterJPHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 韩国家宽,     <<: *BaseUT, include-all: true, filter: *FilterKRHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 美国家宽,     <<: *BaseUT, include-all: true, filter: *FilterUSHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 英国家宽,     <<: *BaseUT, include-all: true, filter: *FilterUKHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 欧盟家宽,     <<: *BaseUT, include-all: true, filter: *FilterEUHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 香港家宽,     <<: *BaseUTNear, include-all: true, filter: *FilterHKHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 台湾家宽,     <<: *BaseUTMid,  include-all: true, filter: *FilterTWHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 狮城家宽,     <<: *BaseUTMid,  include-all: true, filter: *FilterSGHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 日本家宽,     <<: *BaseUTMid,  include-all: true, filter: *FilterJPHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 韩国家宽,     <<: *BaseUTNear, include-all: true, filter: *FilterKRHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 美国家宽,     <<: *BaseUTFar,  include-all: true, filter: *FilterUSHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 英国家宽,     <<: *BaseUTFar,  include-all: true, filter: *FilterUKHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 欧盟家宽,     <<: *BaseUTFar,  include-all: true, filter: *FilterEUHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
 
 # ==================== 规则路由 Rules ====================
 rules:
@@ -370,7 +423,7 @@ rules:
   - RULE-SET,OneDrive,微软服务
   - RULE-SET,Microsoft,微软服务
 
-  # AI 服务定位检测
+  # Cloaq 自动识别特征
   - DOMAIN,ip-api.com,人工智能
   - DOMAIN-SUFFIX,ip-api.com,人工智能
 
