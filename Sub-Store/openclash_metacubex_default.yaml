@@ -252,6 +252,7 @@ proxy-groups:
   # ==================== AI 服务 ====================
   - {name: Gemini,       <<: *SelectUS, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Magic.png"}
   - {name: AI 服务,      <<: *SelectHM, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/ChatGPT.png"}
+  - {name: RedPocket eSIM, <<: *SelectHM, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"}
 
   # ==================== 媒体服务 ====================
   - {name: 油管视频,     <<: *SelectSG, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/YouTube.png"}
@@ -366,17 +367,17 @@ rule-providers:
       - DOMAIN,anthropic-com.ghost.io
 
       # ===== 监控 / 遥测 =====
-      - DOMAIN-SUFFIX,sentry.io
-      - DOMAIN-SUFFIX,statsigapi.net
+      # - DOMAIN-SUFFIX,sentry.io
+      # - DOMAIN-SUFFIX,statsigapi.net
       - DOMAIN,browser-intake-us5-datadoghq.com
-      - DOMAIN-KEYWORD,datadog
-      - DOMAIN-KEYWORD,sentry
-      - DOMAIN-KEYWORD,sift
+      # - DOMAIN-KEYWORD,datadog
+      # - DOMAIN-KEYWORD,sentry
+      # - DOMAIN-KEYWORD,sift
 
       # ===== 第三方 widget / 客服 / 统计 =====
-      - DOMAIN-SUFFIX,intercom.io
-      - DOMAIN-SUFFIX,intercomcdn.com
-      - DOMAIN,cdn.usefathom.com
+      # - DOMAIN-SUFFIX,intercom.io
+      # - DOMAIN-SUFFIX,intercomcdn.com
+      # - DOMAIN,cdn.usefathom.com
 
       # ===== 兜底规则（网页建议全收）=====
       - GEOSITE,anthropic
@@ -390,6 +391,88 @@ rule-providers:
       - IP-CIDR,160.79.104.0/21,no-resolve
       - IP-CIDR6,2607:6bc0::/32,no-resolve
       - IP-ASN,399358,no-resolve
+
+  # ---------------- RedPocket eSIM 专项规则块 ----------------
+  # 默认走 RedPocket eSIM 策略组；组内默认美国家宽，便于后续单独切换。
+  redpocket-esim:
+    type: inline
+    behavior: classical
+    payload:
+      # RedPocket Account / Login / Activation / Support
+      - DOMAIN-SUFFIX,redpocket.com
+      - DOMAIN-SUFFIX,redpocketmobile.com
+      - DOMAIN,api.redpocket.com
+      - DOMAIN,my.redpocketmobile.com
+      - DOMAIN,wireless.redpocket.com
+      - DOMAIN,help.redpocket.com
+      - DOMAIN,privacy.redpocket.com
+
+      # RedPocket eSIM / Activation: GSMA / GSMT / CDMA
+      - DOMAIN,rsp-4002.idemia.io
+      - DOMAIN,cust-005-v4-prod-atl2.gdsb.net
+      - DOMAIN,rpt.vzw.otgeuicc.com
+
+      # RedPocket GSMA / AT&T APN / MMS
+      - DOMAIN,mmsc.mobile.att.net
+      - DOMAIN,proxy.mobile.att.net
+      - DOMAIN-SUFFIX,rpmobileweb.com
+      - DOMAIN,proxy.mvno.rpmobileweb.com
+      - DOMAIN,mmsc.cingular.com
+
+      # RedPocket GSMT / T-Mobile APN / MMS
+      - DOMAIN,wholesale.mmsmvno.com
+      - DOMAIN-SUFFIX,wholesale.mmsmvno.com
+
+      # GSMA / AT&T Wi-Fi Calling / IMS / ePDG
+      - DOMAIN,epdg.epc.att.net
+      - DOMAIN-SUFFIX,epdg.epc.att.net
+      - DOMAIN,sentitlement2.mobile.att.net
+      - DOMAIN,vvm.mobile.att.net
+      - DOMAIN,epdg.epc.att-idns.net
+
+      # GSMA / AT&T 3GPP ePDG
+      - DOMAIN,epdg.epc.mnc410.mcc310.pub.3gppnetwork.org
+      - DOMAIN,epdg.epc.mnc150.mcc310.pub.3gppnetwork.org
+      - DOMAIN,epdg.epc.mnc280.mcc310.pub.3gppnetwork.org
+      - DOMAIN,epdg.epc.mnc950.mcc310.pub.3gppnetwork.org
+      - DOMAIN,epdg.epc.mnc180.mcc311.pub.3gppnetwork.org
+      - DOMAIN,epdg.epc.mnc100.mcc313.pub.3gppnetwork.org
+
+      # GSMT / T-Mobile Wi-Fi Calling / IMS / ePDG
+      - DOMAIN,epdg.epc.mnc260.mcc310.pub.3gppnetwork.org
+      - DOMAIN,ss.epdg.epc.mnc260.mcc310.pub.3gppnetwork.org
+      - DOMAIN,ss.epdg.epc.geo.mnc260.mcc310.pub.3gppnetwork.org
+      - DOMAIN-SUFFIX,mnc260.mcc310.pub.3gppnetwork.org
+
+      # T-Mobile authentication / CRL
+      - DOMAIN,crl.t-mobile.com
+
+      # CDMA / Verizon eSIM / Wi-Fi Calling / IMS / ePDG
+      - DOMAIN,wo.vzwwo.com
+      - DOMAIN,sg.vzwfemto.com
+      - DOMAIN,spg.vzw.com
+      - DOMAIN,epdg.epc.mnc480.mcc311.pub.3gppnetwork.org
+      - DOMAIN-SUFFIX,mnc480.mcc311.pub.3gppnetwork.org
+
+      # Optional disabled: Wi-Fi Calling ports, IMAP 143, SIP 5061, all 3GPP ePDG.
+      # - AND,((NETWORK,UDP),(DST-PORT,500))
+      # - AND,((NETWORK,UDP),(DST-PORT,4500))
+      # - AND,((NETWORK,TCP),(DST-PORT,143))
+      # - AND,((NETWORK,TCP),(DST-PORT,5061))
+      # - AND,((NETWORK,UDP),(DST-PORT,5061))
+      # - DOMAIN-SUFFIX,3gppnetwork.org
+
+  redpocket-esim-ip:
+    type: inline
+    behavior: classical
+    payload:
+      # RedPocket GSMA / AT&T legacy MMS proxy
+      - IP-CIDR,66.209.11.33/32,no-resolve
+      # T-Mobile / GSMT Wi-Fi Calling ranges: broad fallback, keep scoped to RedPocket eSIM group.
+      - IP-CIDR,208.54.0.0/16,no-resolve
+      - IP-CIDR,66.94.0.0/19,no-resolve
+      # T-Mobile authentication / CRL
+      - IP-CIDR,206.29.177.36/32,no-resolve
 
   # ========= 域名规则集 =========
   private:                {<<: *BehaviorDN, path: ./rules/private.mrs, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/private.mrs"}
@@ -522,6 +605,9 @@ rules:
   # 私有网络
   - RULE-SET,private,私有网络
 
+  # 自定义业务规则（精确优先）
+  - RULE-SET,redpocket-esim,RedPocket eSIM
+
   # Cloaq自动识别ip修改特征
   - DOMAIN,ip-api.com,AI 服务
   - DOMAIN-SUFFIX,ip-api.com,AI 服务
@@ -652,6 +738,7 @@ rules:
   - AND,((DST-PORT,443),(NETWORK,UDP),(GEOIP,LAN,no-resolve)),私有网络
   - GEOIP,private,私有网络,no-resolve
   - RULE-SET,private-ip,私有网络,no-resolve
+  - RULE-SET,redpocket-esim-ip,RedPocket eSIM,no-resolve
   # 漏网的海外 QUIC：通过 IP 兜底拦截（允许触发 DNS 解析，接受泄露）
   - AND,((DST-PORT,443),(NETWORK,UDP),(NOT,((GEOIP,CN)))),REJECT
   # Claude / Anthropic IP 兜底
