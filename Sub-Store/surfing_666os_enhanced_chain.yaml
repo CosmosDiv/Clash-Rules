@@ -7,7 +7,7 @@
 # 策略组类型模板 - 定义不同的策略组基础配置
 BaseFB: &BaseFB {type: fallback, interval: 600, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204}
 BaseUT: &BaseUT {type: url-test, interval: 600, tolerance: 60, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 5000, expected-status: 204, hidden: true}
-
+BaseUT_USHome: &BaseUT_USHome {type: url-test, interval: 600, tolerance: 60, lazy: true, url: 'https://www.meta.ai/', timeout: 5000, expected-status: '200-399', hidden: true}
 
 # 节点筛选正则表达式 - 基于地理位置和关键词过滤
 # 地区节点的筛选表达式
@@ -306,7 +306,7 @@ proxy-groups:
   - {name: 狮城家宽,     <<: *BaseUT, include-all: true, filter: *FilterSGHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
   - {name: 日本家宽,     <<: *BaseUT, include-all: true, filter: *FilterJPHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
   - {name: 韩国家宽,     <<: *BaseUT, include-all: true, filter: *FilterKRHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 美国家宽,     <<: *BaseUT, include-all: true, filter: *FilterUSHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 美国家宽,     <<: *BaseUT_USHome, include-all: true, filter: *FilterUSHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
   - {name: 英国家宽,     <<: *BaseUT, include-all: true, filter: *FilterUKHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
   - {name: 欧盟家宽,     <<: *BaseUT, include-all: true, filter: *FilterEUHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
 
