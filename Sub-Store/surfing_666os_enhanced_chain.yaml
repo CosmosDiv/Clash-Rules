@@ -7,7 +7,7 @@
 # 策略组类型模板 - 定义不同的策略组基础配置
 BaseFB: &BaseFB {type: fallback, interval: 600, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204}
 BaseUT: &BaseUT {type: url-test, interval: 600, tolerance: 60, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 5000, expected-status: 204, hidden: true}
-BaseUT_USHome: &BaseUT_USHome {type: url-test, interval: 600, tolerance: 60, lazy: true, url: 'https://www.meta.ai/', timeout: 5000, expected-status: '200-399', hidden: true}
+BaseUT_USHome: &BaseUT_USHome {type: url-test, interval: 900, tolerance: 60, lazy: true, url: 'https://aistudio.google.com/app/prompts/new_chat', timeout: 10000, expected-status: '200-399', hidden: true}
 
 # 节点筛选正则表达式 - 基于地理位置和关键词过滤
 # 地区节点的筛选表达式
@@ -184,10 +184,6 @@ hosts:
   "epdg.epc.mnc010.mcc234.pub.3gppnetwork.org": [87.194.8.8, 87.194.88.8, 87.194.89.8, 87.194.9.8]
   services.googleapis.cn: services.googleapis.com
   cn.bing.com: www4.bing.com
-  dns.alidns.com: [223.5.5.5, 223.6.6.6, "2400:3200::1", "2400:3200:baba::1"]
-  doh.pub: [1.12.12.12, 1.12.12.21, 120.53.53.53]
-  dns.google: [8.8.8.8, 8.8.4.4, "2001:4860:4860::8888", "2001:4860:4860::8844"]
-  cloudflare-dns.com: [1.1.1.1, 1.0.0.1, "2606:4700:4700::1111", "2606:4700:4700::1001"]
 
 # DNS配置
 dns:
