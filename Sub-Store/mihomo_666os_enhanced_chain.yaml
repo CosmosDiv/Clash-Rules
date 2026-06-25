@@ -10,7 +10,7 @@ BaseFB: &BaseFB {type: fallback, interval: 300, lazy: true, url: 'https://www.gs
 BaseUTNear: &BaseUTNear {type: url-test, interval: 300, tolerance: 20, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true}
 BaseUTMid:  &BaseUTMid  {type: url-test, interval: 300, tolerance: 35, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true}
 BaseUTFar:  &BaseUTFar  {type: url-test, interval: 300, tolerance: 50, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true}
-
+BaseUSHome: &BaseUSHome {type: url-test, interval: 900, tolerance: 60, lazy: true, url: 'https://aistudio.google.com/app/prompts/new_chat', timeout: 10000, expected-status: '200-399', hidden: true}
 
 # 节点筛选正则表达式 - 基于地理位置和关键词过滤
 # 地区节点的筛选表达式
@@ -173,10 +173,6 @@ hosts:
   "epdg.epc.mnc010.mcc234.pub.3gppnetwork.org": [87.194.8.8, 87.194.88.8, 87.194.89.8, 87.194.9.8]
   services.googleapis.cn: services.googleapis.com
   cn.bing.com: www4.bing.com
-  dns.alidns.com: [223.5.5.5, 223.6.6.6, "2400:3200::1", "2400:3200:baba::1"]
-  doh.pub: [1.12.12.12, 1.12.12.21, 120.53.53.53]
-  dns.google: [8.8.8.8, 8.8.4.4, "2001:4860:4860::8888", "2001:4860:4860::8844"]
-  cloudflare-dns.com: [1.1.1.1, 1.0.0.1, "2606:4700:4700::1111", "2606:4700:4700::1001"]
 
 # DNS配置
 dns:
@@ -299,7 +295,7 @@ proxy-groups:
   - {name: 狮城家宽,     <<: *BaseUTMid,  include-all: true, filter: *FilterSGHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
   - {name: 日本家宽,     <<: *BaseUTMid,  include-all: true, filter: *FilterJPHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
   - {name: 韩国家宽,     <<: *BaseUTNear, include-all: true, filter: *FilterKRHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 美国家宽,     <<: *BaseUTFar,  include-all: true, filter: *FilterUSHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 美国家宽,     <<: *BaseUSHome,  include-all: true, filter: *FilterUSHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
   - {name: 英国家宽,     <<: *BaseUTFar,  include-all: true, filter: *FilterUKHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
   - {name: 欧盟家宽,     <<: *BaseUTFar,  include-all: true, filter: *FilterEUHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
 
