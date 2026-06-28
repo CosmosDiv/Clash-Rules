@@ -180,7 +180,7 @@ hosts:
 # DNS配置
 dns:
   enable: true
-  ipv6: true
+ ipv6: true
   use-hosts: true # 使用hosts
   use-system-hosts: true # 使用系统hosts
   listen: 0.0.0.0:1053
@@ -284,23 +284,23 @@ proxy-groups:
 
   # ==================== 地区自动测速组 ====================
   - {name: 香港自动,     <<: *BaseUTNear, include-all: true, filter: *FilterHK, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 台湾自动,     <<: *BaseUTMid,  include-all: true, filter: *FilterTW, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 狮城自动,     <<: *BaseUTMid,  include-all: true, filter: *FilterSG, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 日本自动,     <<: *BaseUTMid,  include-all: true, filter: *FilterJP, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 台湾自动,     <<: *BaseUTMid, include-all: true, filter: *FilterTW, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 狮城自动,     <<: *BaseUTMid, include-all: true, filter: *FilterSG, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 日本自动,     <<: *BaseUTMid, includqe-all: true, filter: *FilterJP, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
   - {name: 韩国自动,     <<: *BaseUTNear, include-all: true, filter: *FilterKR, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 美国自动,     <<: *BaseUTFar,  include-all: true, filter: *FilterUS, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 英国自动,     <<: *BaseUTFar,  include-all: true, filter: *FilterUK, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 欧盟自动,     <<: *BaseUTFar,  include-all: true, filter: *FilterEU, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 美国自动,     <<: *BaseUTFar, include-all: true, filter: *FilterUS, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 英国自动,     <<: *BaseUTFar, include-all: true, filter: *FilterUK, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 欧盟自动,     <<: *BaseUTFar, include-all: true, filter: *FilterEU, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
 
   # ==================== 家宽自动测速组 ====================
   - {name: 香港家宽,     <<: *BaseUTNear, include-all: true, filter: *FilterHKHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 台湾家宽,     <<: *BaseUTMid,  include-all: true, filter: *FilterTWHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 狮城家宽,     <<: *BaseUTMid,  include-all: true, filter: *FilterSGHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 日本家宽,     <<: *BaseUTMid,  include-all: true, filter: *FilterJPHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 台湾家宽,     <<: *BaseUTMid, include-all: true, filter: *FilterTWHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 狮城家宽,     <<: *BaseUTMid, include-all: true, filter: *FilterSGHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 日本家宽,     <<: *BaseUTMid, include-all: true, filter: *FilterJPHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
   - {name: 韩国家宽,     <<: *BaseUTNear, include-all: true, filter: *FilterKRHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
   - {name: 美国家宽,     <<: *USHomeFB, include-all: true, filter: *FilterUSHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 英国家宽,     <<: *BaseUTFar,  include-all: true, filter: *FilterUKHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 欧盟家宽,     <<: *BaseUTFar,  include-all: true, filter: *FilterEUHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 英国家宽,     <<: *BaseUTFar, include-all: true, filter: *FilterUKHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 欧盟家宽,     <<: *BaseUTFar, include-all: true, filter: *FilterEUHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
 
 # ==================== 规则路由 Rules ====================
 rules:
@@ -566,7 +566,7 @@ rule-providers:
   Telegram:       {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Telegram.mrs"}
   Twitter:        {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Twitter.mrs"}
   Facebook:       {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Facebook.mrs"}
-  Instagram:      {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Instagram.mrs"}
+ instagram:      {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Instagram.mrs"}
   SocialMedia:    {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/SocialMedia.mrs"}
   NewsMedia:      {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/NewsMedia.mrs"}
   Games:          {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Games.mrs"}
