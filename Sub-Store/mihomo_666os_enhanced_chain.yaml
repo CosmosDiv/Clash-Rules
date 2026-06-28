@@ -279,8 +279,8 @@ proxy-groups:
 
   # ==================== 其他策略组 ====================
   - {name: 全球手动,     type: select, include-all: true, filter: *FilterAL, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Global.png"}
-  - {name: 家宽手动,     type: select, empty-fallback: REJECT, include-all: true, filter: *FilterHM, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Server.png"}
-  - {name: 美家手动,     type: select, include-all: true, filter: *FilterUSHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"}
+  - {name: 家宽手动,     type: select, include-all: true, filter: *FilterHM, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Server.png"}
+  - {name: 美家手动,     type: select, empty-fallback: REJECT, include-all: true, filter: *FilterUSHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"}
 
   # ==================== 地区自动测速组 ====================
   - {name: 香港自动,     <<: *BaseUTNear, include-all: true, filter: *FilterHK, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
