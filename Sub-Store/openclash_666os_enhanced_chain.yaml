@@ -148,7 +148,7 @@ external-controller: 0.0.0.0:9090
 # ==================== 配置文件存储 Profile ====================
 profile:
   # 是否保存用户选择的策略组（重启后自动恢复）
-  store-selected: true
+  store-selected: false
   # 是否保存 Fake-IP 映射表（重启后保留 DNS 缓存）
   store-fake-ip: true
 
