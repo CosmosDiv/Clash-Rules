@@ -140,7 +140,7 @@ secret: yyds666
 
 # 配置存储
 profile:
-  store-selected: true
+  store-selected: false
   store-fake-ip: true
 
 # 流量嗅探
