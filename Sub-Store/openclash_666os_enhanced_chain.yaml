@@ -82,13 +82,13 @@ proxy-providers:
   provider1:
     type: http  # 类型：http（从URL获取）或 file（本地文件）
     url: "url"  # **填入你的订阅链接**
-    interval: 3600  # 订阅更新间隔（秒），3600=1小时
+   interval: 3600  # 订阅更新间隔（秒），3600=1小时
     path: ./proxy_provider/provider1.yaml # 本地缓存路径
     proxy: DIRECT  # 下载订阅时使用的代理策略
     header:  # 自定义 HTTP 请求头
     health-check:  # 节点健康检查
       enable: true
-      interval: 600  # 检查间隔（秒）
+     interval: 600  # 检查间隔（秒）
       url: "https://cp.cloudflare.com/generate_204"
     override:  # 覆写节点配置
       skip-cert-verify: true  # 跳过证书验证
@@ -232,7 +232,7 @@ dns:
   # DNS 服务器监听地址，0.0.0.0:7874 表示监听所有网卡的 7874 端口
   listen: 0.0.0.0:7874
   # 是否解析 IPv6 地址
-  ipv6: true
+ ipv6: true
   # 默认 DNS 服务器（用于解析其他 DNS 服务器的域名），必须使用 IP 地址或支持 DoT 的服务器
   default-nameserver:
     - 114.114.114.114  # 114 公共 DNS
@@ -344,23 +344,23 @@ proxy-groups:
 
   # ==================== 地区自动测速组 ====================
   - {name: 香港自动,     <<: *BaseUTNear, include-all: true, filter: *FilterHK, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 台湾自动,     <<: *BaseUTMid,  include-all: true, filter: *FilterTW, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 狮城自动,     <<: *BaseUTMid,  include-all: true, filter: *FilterSG, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 日本自动,     <<: *BaseUTMid,  include-all: true, filter: *FilterJP, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 台湾自动,     <<: *BaseUTMid, include-all: true, filter: *FilterTW, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 狮城自动,     <<: *BaseUTMid, include-all: true, filter: *FilterSG, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 日本自动,     <<: *BaseUTMid, include-all: true, filter: *FilterJP, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
   - {name: 韩国自动,     <<: *BaseUTNear, include-all: true, filter: *FilterKR, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 美国自动,     <<: *BaseUTFar,  include-all: true, filter: *FilterUS, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 英国自动,     <<: *BaseUTFar,  include-all: true, filter: *FilterUK, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 欧盟自动,     <<: *BaseUTFar,  include-all: true, filter: *FilterEU, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 美国自动,     <<: *BaseUTFar, include-all: true, filter: *FilterUS, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 英国自动,     <<: *BaseUTFar, include-all: true, filter: *FilterUK, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 欧盟自动,     <<: *BaseUTFar, include-all: true, filter: *FilterEU, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
 
   # ==================== 家宽自动测速组 ====================
   - {name: 香港家宽,     <<: *BaseUTNear, include-all: true, filter: *FilterHKHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 台湾家宽,     <<: *BaseUTMid,  include-all: true, filter: *FilterTWHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 狮城家宽,     <<: *BaseUTMid,  include-all: true, filter: *FilterSGHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 日本家宽,     <<: *BaseUTMid,  include-all: true, filter: *FilterJPHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 台湾家宽,     <<: *BaseUTMid, include-all: true, filter: *FilterTWHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 狮城家宽,     <<: *BaseUTMid, include-all: true, filter: *FilterSGHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 日本家宽,     <<: *BaseUTMid, include-all: true, filter: *FilterJPHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
   - {name: 韩国家宽,     <<: *BaseUTNear, include-all: true, filter: *FilterKRHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
   - {name: 美国家宽,     <<: *USHomeFB, include-all: true, filter: *FilterUSHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 英国家宽,     <<: *BaseUTFar,  include-all: true, filter: *FilterUKHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 欧盟家宽,     <<: *BaseUTFar,  include-all: true, filter: *FilterEUHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 英国家宽,     <<: *BaseUTFar, include-all: true, filter: *FilterUKHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 欧盟家宽,     <<: *BaseUTFar, include-all: true, filter: *FilterEUHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
 
 # ==================== 规则路由 Rules ====================
 rules:
@@ -626,7 +626,7 @@ rule-providers:
   Telegram:       {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Telegram.mrs"}
   Twitter:        {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Twitter.mrs"}
   Facebook:       {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Facebook.mrs"}
-  Instagram:      {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Instagram.mrs"}
+ instagram:      {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Instagram.mrs"}
   SocialMedia:    {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/SocialMedia.mrs"}
   NewsMedia:      {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/NewsMedia.mrs"}
   Games:          {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Games.mrs"}
