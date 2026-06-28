@@ -4,11 +4,11 @@
 # ==================== 锚点配置 ====================
 
 # 策略组类型模板 - 定义不同的策略组基础配置
-BaseFB: &BaseFB {type: fallback, interval: 300, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204}
-BaseUTNear: &BaseUTNear {type: url-test, interval: 300, tolerance: 20, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true}
-BaseUTMid:  &BaseUTMid  {type: url-test, interval: 300, tolerance: 35, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true}
-BaseUTFar:  &BaseUTFar  {type: url-test, interval: 300, tolerance: 50, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true}
-USHomeFB: &USHomeFB {type: fallback, interval: 900, lazy: true, url: 'https://aistudio.google.com/app/prompts/new_chat', timeout: 10000, expected-status: '200-399', hidden: true}
+BaseFB: &BaseFB {type: fallback, interval: 300, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, empty-fallback: REJECT}
+BaseUTNear: &BaseUTNear {type: url-test, interval: 300, tolerance: 20, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true, empty-fallback: REJECT}
+BaseUTMid:  &BaseUTMid  {type: url-test, interval: 300, tolerance: 35, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true, empty-fallback: REJECT}
+BaseUTFar:  &BaseUTFar  {type: url-test, interval: 300, tolerance: 50, lazy: true, url: 'https://www.gstatic.com/generate_204', timeout: 3000, expected-status: 204, hidden: true, empty-fallback: REJECT}
+USHomeFB: &USHomeFB {type: fallback, interval: 900, lazy: true, url: 'https://aistudio.google.com/app/prompts/new_chat', timeout: 10000, expected-status: '200-399', hidden: true, empty-fallback: REJECT}
 
 # 节点筛选正则表达式 - 基于地理位置和关键词过滤
 # 地区节点的筛选表达式
@@ -339,8 +339,8 @@ proxy-groups:
 
   # ==================== 其他策略组 ====================
   - {name: 全球手动,     type: select, include-all: true, filter: *FilterAL, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Global.png"}
-  - {name: 家宽手动,     type: select, empty-fallback: REJECT, include-all: true, filter: *FilterHM, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Server.png"}
-  - {name: 美宽手动,     type: select, include-all: true, filter: *FilterUSHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"}
+  - {name: 家宽手动,     type: select, include-all: true, filter: *FilterHM, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Server.png"}
+  - {name: 美宽手动,     type: select, empty-fallback: REJECT, include-all: true, filter: *FilterUSHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"}
 
   # ==================== 地区自动测速组 ====================
   - {name: 香港自动,     <<: *BaseUTNear, include-all: true, filter: *FilterHK, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
@@ -358,7 +358,7 @@ proxy-groups:
   - {name: 狮城家宽,     <<: *BaseUTMid,  include-all: true, filter: *FilterSGHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
   - {name: 日本家宽,     <<: *BaseUTMid,  include-all: true, filter: *FilterJPHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
   - {name: 韩国家宽,     <<: *BaseUTNear, include-all: true, filter: *FilterKRHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
-  - {name: 美国家宽,     <<: *USHomeFB, empty-fallback: REJECT,  include-all: true, filter: *FilterUSHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
+  - {name: 美国家宽,     <<: *USHomeFB, include-all: true, filter: *FilterUSHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
   - {name: 英国家宽,     <<: *BaseUTFar,  include-all: true, filter: *FilterUKHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
   - {name: 欧盟家宽,     <<: *BaseUTFar,  include-all: true, filter: *FilterEUHome, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"}
 
