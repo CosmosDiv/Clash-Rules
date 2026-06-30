@@ -626,7 +626,7 @@ rule-providers:
   Telegram:       {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Telegram.mrs"}
   Twitter:        {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Twitter.mrs"}
   Facebook:       {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Facebook.mrs"}
-  instagram:      {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Instagram.mrs"}
+  Instagram:      {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Instagram.mrs"}
   SocialMedia:    {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/SocialMedia.mrs"}
   NewsMedia:      {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/NewsMedia.mrs"}
   Games:          {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Games.mrs"}
