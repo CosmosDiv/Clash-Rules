@@ -82,13 +82,13 @@ proxy-providers:
   provider1:
     type: http  # 类型：http（从URL获取）或 file（本地文件）
     url: "url"  # **填入你的订阅链接**
-   interval: 3600  # 订阅更新间隔（秒），3600=1小时
+    interval: 3600  # 订阅更新间隔（秒），3600=1小时
     path: ./proxy_provider/provider1.yaml # 本地缓存路径
     proxy: DIRECT  # 下载订阅时使用的代理策略
     header:  # 自定义 HTTP 请求头
     health-check:  # 节点健康检查
       enable: true
-     interval: 600  # 检查间隔（秒）
+      interval: 600  # 检查间隔（秒）
       url: "https://cp.cloudflare.com/generate_204"
     override:  # 覆写节点配置
       skip-cert-verify: true  # 跳过证书验证
@@ -232,7 +232,7 @@ dns:
   # DNS 服务器监听地址，0.0.0.0:7874 表示监听所有网卡的 7874 端口
   listen: 0.0.0.0:7874
   # 是否解析 IPv6 地址
- ipv6: true
+  ipv6: true
   # 默认 DNS 服务器（用于解析其他 DNS 服务器的域名），必须使用 IP 地址或支持 DoT 的服务器
   default-nameserver:
     - 114.114.114.114  # 114 公共 DNS
@@ -626,7 +626,7 @@ rule-providers:
   Telegram:       {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Telegram.mrs"}
   Twitter:        {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Twitter.mrs"}
   Facebook:       {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Facebook.mrs"}
- instagram:      {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Instagram.mrs"}
+  instagram:      {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Instagram.mrs"}
   SocialMedia:    {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/SocialMedia.mrs"}
   NewsMedia:      {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/NewsMedia.mrs"}
   Games:          {<<: *BehaviorDN, url: "https://github.com/666OS/rules/raw/release/mihomo/domain/Games.mrs"}
