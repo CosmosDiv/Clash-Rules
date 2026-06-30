@@ -81,7 +81,7 @@ SelectFront: &SelectFront {type: select, proxies: [前置地区自动, 前置筛
 proxy-providers:
   provider1:
     type: http  # 类型：http（从URL获取）或 file（本地文件）
-    url: "url"  # **填入你的订阅链接**
+    url: ""  # **填入你的订阅链接**
     interval: 3600  # 订阅更新间隔（秒），3600=1小时
     path: ./proxy_provider/provider1.yaml # 本地缓存路径
     proxy: DIRECT  # 下载订阅时使用的代理策略
