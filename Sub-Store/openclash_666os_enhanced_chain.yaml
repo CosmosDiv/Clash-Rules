@@ -305,7 +305,7 @@ proxy-groups:
   - {name: 社交平台,     <<: *SelectUS, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Instagram.png"}
 
   # ==================== 商业服务 ====================
-  - {name: Gemini,       <<: *SelectAI, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Magic.png"}
+  - {name: Gemini,       <<: *SelectUS, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Magic.png"}
   - {name: 人工智能,     <<: *SelectAI, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/ChatGPT.png"}
   - {name: RedPocket eSIM, <<: *SelectHM, icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"}
   - {name: GitHub,       <<: *SelectPY, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/GitHub.png"}
@@ -314,7 +314,7 @@ proxy-groups:
   - {name: 货币平台,     <<: *SelectSG, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Cryptocurrency.png"}
   - {name: 游戏平台,     <<: *SelectHK, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Game.png"}
   - {name: 微软服务,     <<: *SelectUS, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Microsoft.png"}
-  - {name: 谷歌服务,     <<: *SelectAI, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Google_Search.png"}
+  - {name: 谷歌服务,     <<: *SelectUS, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Google_Search.png"}
   - {name: 苹果服务,     <<: *SelectUS, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Apple.png"}
 
   # ==================== 地区策略组 ====================
