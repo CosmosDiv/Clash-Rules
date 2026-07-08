@@ -344,8 +344,8 @@ rules:
   - RULE-SET,Gemini,Gemini
 
   # ===== AI 泛化兼容层（可能覆盖更广，置于专项后）=====
-  - RULE-SET,category-ai-chat-!cn,人工智能
   - RULE-SET,AI,人工智能
+  - RULE-SET,category-ai-chat-!cn,人工智能
   - RULE-SET,Cloudflare,Cloudflare
   - RULE-SET,GitHub,GitHub
   - DOMAIN-KEYWORD,speedtest,网络测试
@@ -450,17 +450,17 @@ rule-providers:
       - DOMAIN,anthropic.com.cdn.cloudflare.net
       - DOMAIN,anthropic.auth0.com
       - DOMAIN,anthropic-com.ghost.io
-      # - DOMAIN-SUFFIX,sentry.io
-      # - DOMAIN-SUFFIX,statsigapi.net
+      - DOMAIN-SUFFIX,sentry.io
+      - DOMAIN-SUFFIX,statsigapi.net
       - DOMAIN,browser-intake-us5-datadoghq.com
       # 注意：以下关键词规则覆盖面较广，保留用于 Claude 完整性；
       # 若观察到误分流，可收敛为更精确的 DOMAIN/DOMAIN-SUFFIX。
-      # - DOMAIN-KEYWORD,datadog
-      # - DOMAIN-KEYWORD,sentry
-      # - DOMAIN-KEYWORD,sift
-      # - DOMAIN-SUFFIX,intercom.io
-      # - DOMAIN-SUFFIX,intercomcdn.com
-      # - DOMAIN,cdn.usefathom.com
+      - DOMAIN-KEYWORD,datadog
+      - DOMAIN-KEYWORD,sentry
+      - DOMAIN-KEYWORD,sift
+      - DOMAIN-SUFFIX,intercom.io
+      - DOMAIN-SUFFIX,intercomcdn.com
+      - DOMAIN,cdn.usefathom.com
       - GEOSITE,anthropic
       - GEOSITE,category-ntp
 
