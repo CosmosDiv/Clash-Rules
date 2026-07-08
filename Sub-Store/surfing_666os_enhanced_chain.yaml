@@ -346,6 +346,7 @@ rules:
   # ===== AI 泛化兼容层（可能覆盖更广，置于专项后）=====
   - RULE-SET,AI,人工智能
   - RULE-SET,category-ai-chat-!cn,人工智能
+  
   - RULE-SET,Cloudflare,Cloudflare
   - RULE-SET,GitHub,GitHub
   - DOMAIN-KEYWORD,speedtest,网络测试
