@@ -513,7 +513,7 @@ rule-providers:
       - DOMAIN-SUFFIX,intercomcdn.com
       - DOMAIN,cdn.usefathom.com
       - GEOSITE,anthropic
-      - GEOSITE,category-ntp
+      # - GEOSITE,category-ntp
 
   anthropic-web-full-ip:
     type: inline
