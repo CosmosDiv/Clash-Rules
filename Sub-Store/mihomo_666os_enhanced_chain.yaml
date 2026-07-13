@@ -304,6 +304,8 @@ proxy-groups:
 
 # ==================== 规则路由 Rules ====================
 rules:
+  # 自定义的规则
+  - DOMAIN,sub.voidfield42.com,DIRECT
   # 拦截规则
   - RULE-SET,Tracking,REJECT
   - RULE-SET,Advertising,REJECT
