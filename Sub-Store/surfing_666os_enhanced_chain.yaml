@@ -315,6 +315,8 @@ proxy-groups:
 rules:
   # 自定义的规则
   - DOMAIN,sub.voidfield42.com,DIRECT
+  - DOMAIN-SUFFIX,glkvm.cn,DIRECT
+  
   # 拦截规则
   - RULE-SET,Tracking,REJECT
   - RULE-SET,Advertising,REJECT
