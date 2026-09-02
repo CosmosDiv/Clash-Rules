@@ -39,7 +39,7 @@
 // 示例：
 //   US @DN Bulk·1x｜US-LA-01
 //   JP @DN Bulk·BGP·Relay·1x｜JP-日本BGP-[美西转]-1x
-//   US @Railgun ResIP·StaticIP·Stream·1x｜US-F1
+//   US @RG ResIP·StaticIP·Stream·1x｜US-F1
 //
 // 其中：
 //   @  = 来源机场
