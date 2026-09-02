@@ -37,8 +37,8 @@
 //   无额外属性时：Region @Source｜Tail
 //
 // 示例：
-//   US @Dounai Bulk·1x｜US-LA-01
-//   JP @Dounai Bulk·BGP·Relay·1x｜JP-日本BGP-[美西转]-1x
+//   US @DN Bulk·1x｜US-LA-01
+//   JP @DN Bulk·BGP·Relay·1x｜JP-日本BGP-[美西转]-1x
 //   US @Railgun ResIP·StaticIP·Stream·1x｜US-F1
 //
 // 其中：
@@ -69,7 +69,7 @@
 //
 // 机场
 //   手动指定来源名称。不填时自动读取当前 Sub-Store 订阅名称。
-//   机场 = Dounai
+//   机场 = DN
 //
 // 默认标签
 //   给本订阅所有节点增加相同的标准属性。
@@ -188,7 +188,7 @@
 //   默认标签 = 大流量
 //
 // C. 机场自己的节点代码：
-//   机场 = Dounai
+//   机场 = DN
 //   默认标签 = 大流量
 //   家宽 = aa|dd
 //   固定IP = cc|dd
@@ -208,7 +208,7 @@
 //
 // G. 不显示机场原始名称：
 //   保留原名 = 0
-//   输出示例：US @Dounai Bulk·1x｜#19ECAD
+//   输出示例：US @DN Bulk·1x｜#19ECAD
 //
 // ============================================================================
 // 七、使用原则
