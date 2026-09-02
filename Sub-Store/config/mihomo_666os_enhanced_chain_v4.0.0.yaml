@@ -1,0 +1,1164 @@
+# ============================================================================
+# Mihomo Bare-Core Quality / Identity Routing V4.0.0
+# Target: Mihomo v1.19.30+
+#
+# Ordinary nodes: Node Standardizer V2.1.3 -> IPQuality V1.1.1 -> Mihomo
+# Chain nodes:    Node Standardizer V2.1.3 -> Mihomo (skip IPQuality)
+#
+# Node source modes (normally use one at a time):
+#   1. Static nodes written to top-level `proxies:` by Sub-Store
+#   2. One Sub-Store URL in `proxy-providers.proxy1.url`
+# Real-node groups use include-all + normalized-name filters, so both modes share
+# the same policy logic.
+# ============================================================================
+
+# ==================== 00. User Configuration ====================
+# Normal maintenance should start here.
+x-user-config:
+  provider-url: &provider-url ""
+  provider-path: &provider-path ./proxies/proxy1.yaml
+  provider-update-interval: &provider-update-interval 86400
+
+  test-url: &test-url https://www.gstatic.com/generate_204
+  test-interval: &test-interval 600
+  test-timeout: &test-timeout 3000
+  test-tolerance: &test-tolerance 80
+
+  rule-update-interval: &rule-update-interval 86400
+
+
+# ==================== 01. Reusable Templates ====================
+x-fallback: &fallback
+  type: fallback
+  interval: *test-interval
+  lazy: true
+  url: *test-url
+  timeout: *test-timeout
+  expected-status: 204
+  empty-fallback: REJECT
+
+x-url-test: &url-test
+  type: url-test
+  include-all: true
+  interval: *test-interval
+  tolerance: *test-tolerance
+  lazy: true
+  url: *test-url
+  timeout: *test-timeout
+  expected-status: 204
+  empty-fallback: REJECT
+
+x-select-nodes: &select-nodes
+  type: select
+  include-all: true
+  empty-fallback: REJECT
+
+# ==================== 02. Node Filters ====================
+# Filters consume Standardizer/IPQuality facts only; YAML does not re-infer IP identity.
+x-filter-chain: &filter-chain '(?i)^US @Chain-[^ ｜]+(?: |｜|$)`(?i)^JP @Chain-[^ ｜]+(?: |｜|$)`(?i)^SG @Chain-[^ ｜]+(?: |｜|$)`(?i)^(?!(?:US|JP|SG) )(?:[A-Z]{2}|Multi|Unknown) @Chain-[^ ｜]+(?: |｜|$)'
+x-exclude-chain: &exclude-chain '(?i)^(?:[A-Z]{2}|Multi|Unknown) @Chain-[^ ｜]+(?: |｜|$)'
+
+x-filter-hk-trust: &filter-hk-trust '(?i)^HK (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
+x-filter-hk-normal: &filter-hk-normal '(?i)^HK (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
+x-filter-hk-manual: &filter-hk-manual '(?i)^HK (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+
+x-filter-tw-trust: &filter-tw-trust '(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
+x-filter-tw-normal: &filter-tw-normal '(?i)^TW (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
+x-filter-tw-manual: &filter-tw-manual '(?i)^TW (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+x-filter-tw-cons: &filter-tw-cons '(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ConsIP(?:[·｜]|$)).*$'
+x-filter-tw-busi: &filter-tw-busi '(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]BusiIP(?:[·｜]|$)).*$'
+x-filter-tw-host: &filter-tw-host '(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
+
+x-filter-sg-trust: &filter-sg-trust '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
+x-filter-sg-normal: &filter-sg-normal '(?i)^SG (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
+x-filter-sg-manual: &filter-sg-manual '(?i)^SG (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+x-filter-sg-cons: &filter-sg-cons '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ConsIP(?:[·｜]|$)).*$'
+x-filter-sg-busi: &filter-sg-busi '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]BusiIP(?:[·｜]|$)).*$'
+x-filter-sg-host: &filter-sg-host '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
+
+x-filter-jp-trust: &filter-jp-trust '(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
+x-filter-jp-normal: &filter-jp-normal '(?i)^JP (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
+x-filter-jp-manual: &filter-jp-manual '(?i)^JP (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+x-filter-jp-cons: &filter-jp-cons '(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ConsIP(?:[·｜]|$)).*$'
+x-filter-jp-busi: &filter-jp-busi '(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]BusiIP(?:[·｜]|$)).*$'
+x-filter-jp-host: &filter-jp-host '(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
+
+x-filter-kr-trust: &filter-kr-trust '(?i)^KR (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
+x-filter-kr-normal: &filter-kr-normal '(?i)^KR (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
+x-filter-kr-manual: &filter-kr-manual '(?i)^KR (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+
+x-filter-us-trust: &filter-us-trust '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
+x-filter-us-normal: &filter-us-normal '(?i)^US (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
+x-filter-us-manual: &filter-us-manual '(?i)^US (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+x-filter-us-cons: &filter-us-cons '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ConsIP(?:[·｜]|$)).*$'
+x-filter-us-busi: &filter-us-busi '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]BusiIP(?:[·｜]|$)).*$'
+x-filter-us-host: &filter-us-host '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
+
+x-filter-ca-trust: &filter-ca-trust '(?i)^CA (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
+x-filter-ca-normal: &filter-ca-normal '(?i)^CA (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
+x-filter-ca-manual: &filter-ca-manual '(?i)^CA (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+
+x-filter-au-trust: &filter-au-trust '(?i)^AU (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
+x-filter-au-normal: &filter-au-normal '(?i)^AU (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
+x-filter-au-manual: &filter-au-manual '(?i)^AU (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+
+x-filter-uk-trust: &filter-uk-trust '(?i)^UK (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
+x-filter-uk-normal: &filter-uk-normal '(?i)^UK (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
+x-filter-uk-manual: &filter-uk-manual '(?i)^UK (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+
+x-filter-eu-trust: &filter-eu-trust '(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
+x-filter-eu-normal: &filter-eu-normal '(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
+x-filter-eu-manual: &filter-eu-manual '(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+
+x-filter-all-ordinary: &filter-all-ordinary '(?i)^(?:[A-Z]{2}|Multi|Unknown) @(?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+x-filter-youtube-bulk: &filter-youtube-bulk '(?i)^(?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$))(?=[^｜]*[ ·]Bulk(?:[·｜]|$)).*$'
+x-filter-youtube-auto: &filter-youtube-auto '(?i)^(?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$))(?=[^｜]*[ ·]Bulk(?:[·｜]|$))(?=[^｜]*[ ·](?:0(?:\.\d+)?|1(?:\.0+)?)x(?:[·｜]|$)).*$'
+
+# ==================== 03. Proxy Sources ====================
+# Sub-Store may inject static nodes here. With provider mode, keep this list empty.
+proxies: []
+
+proxy-providers:
+  proxy1:
+    type: http
+    url: *provider-url
+    path: *provider-path
+    interval: *provider-update-interval
+    proxy: DIRECT
+    header:
+      User-Agent:
+        - "ClashMetaForAndroid/2.11.2.Meta"
+        - "clash-verge/v2.2.3"
+        - "ClashforWindows/0.19.23"
+        - "clash.meta"
+        - "mihomo"
+    # Real-node url-test groups perform the policy health checks.
+    health-check:
+      enable: false
+
+# ==================== 04. Mihomo Core ====================
+geox-url:
+  mmdb: "https://testingcf.jsdelivr.net/gh/alecthw/mmdb_china_ip_list@release/Country.mmdb"
+  geoip: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.dat"
+  geosite: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat"
+  asn: "https://testingcf.jsdelivr.net/gh/Loyalsoldier/geoip@release/GeoLite2-ASN.mmdb"
+geo-auto-update: true
+geo-update-interval: 24
+geodata-mode: true
+geodata-loader: memconservative
+
+mode: rule
+port: 7890
+socks-port: 7891
+redir-port: 7892
+mixed-port: 7893
+tproxy-port: 7895
+ipv6: true
+allow-lan: true
+unified-delay: true
+tcp-concurrent: true
+log-level: warning
+bind-address: '*'
+find-process-mode: 'always'
+keep-alive-interval: 15
+keep-alive-idle: 600
+
+authentication:
+  - mihomo:yyds666
+skip-auth-prefixes:
+  - 192.168.1.0/24
+  - 192.168.31.0/24
+  - 192.168.100.0/24
+  - 127.0.0.1/8
+
+experimental:
+  quic-go-disable-gso: false
+
+# ---------- Dashboard ----------
+external-ui-url: "https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip"
+external-ui-name: zashboard
+external-ui: ui
+external-controller: 127.0.0.1:9090
+secret: yyds666
+
+profile:
+  store-selected: true
+  store-fake-ip: true
+
+# ---------- Sniffer ----------
+sniffer:
+  enable: true
+  sniff:
+    HTTP:
+      ports: [80, 8080-8880]
+      override-destination: true
+    TLS:
+      ports: [443, 8443]
+    QUIC:
+      ports: [443, 8443]
+  force-domain:
+    - +.v2ex.com
+  skip-domain:
+    - "Mijia Cloud"
+    - "+.push.apple.com"
+
+# ---------- TUN ----------
+tun:
+  enable: false
+  stack: mixed
+  dns-hijack:
+    - "any:53"
+    - "tcp://any:53"
+  auto-route: true
+  auto-redirect: true
+  auto-detect-interface: true
+
+# ---------- DNS ----------
+dns:
+  enable: true
+  ipv6: true
+  listen: 0.0.0.0:1053
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.0/16
+  fake-ip-range6: fdab:47c2:9e1f:9876::1/64
+  cache-algorithm: arc
+  default-nameserver:
+    - 119.29.29.29
+    - 180.184.1.1
+    - 223.5.5.5
+  nameserver:
+    - https://dns.alidns.com/dns-query
+    - https://doh.pub/dns-query
+  fake-ip-filter:
+    - "+.lan"
+    - "*.local"
+    - "+.miwifi.com"
+    - "+.market.xiaomi.com"
+    - "+.push.apple.com"
+    - "+.pub.3gppnetwork.org"
+
+# ==================== 05. Proxy Groups ====================
+proxy-groups:
+  # ---------- Core ----------
+  - name: Proxy
+    type: select
+    proxies: [Fallback, HK, TW, SG, JP, KR, US, CA, AU, UK, EU, All Nodes, Direct]
+    default-selected: Fallback
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"
+  - name: Fallback
+    <<: *fallback
+    proxies: [HK Auto, TW Auto, SG Auto, JP Auto, KR Auto, US Auto, CA Auto, AU Auto, UK Auto, EU Auto]
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Available.png"
+  - name: Direct
+    type: select
+    proxies: [DIRECT]
+    default-selected: DIRECT
+    hidden: true
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Direct.png"
+  - name: All Nodes
+    <<: *select-nodes
+    filter: *filter-all-ordinary
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"
+  - name: Speedtest
+    type: select
+    proxies: [Direct, Proxy, HK, TW, SG, JP, KR, US, CA, AU, UK, EU]
+    default-selected: Direct
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Speedtest.png"
+
+  # ---------- Front / Chain ----------
+  - name: Front Proxy
+    type: select
+    proxies: [Front Auto, Front Manual, Direct]
+    default-selected: Front Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"
+  - name: Front Auto
+    <<: *fallback
+    proxies: [US Auto, HK Auto, JP Auto, TW Auto, SG Auto]
+    hidden: true
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
+  - name: Front Manual
+    <<: *select-nodes
+    filter: *filter-all-ordinary
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"
+  # Chain landing nodes should already carry `dialer-proxy: Front Proxy` from Sub-Store.
+  - name: Chain
+    <<: *select-nodes
+    filter: *filter-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Server.png"
+
+  # ---------- Services ----------
+  # Ordinary services expose five core regions for a compact UI.
+  # Full 10-region control remains available through Proxy / Fallback / Speedtest.
+  - name: Streaming
+    type: select
+    proxies: [Streaming Auto, HK, JP, TW, SG, US, Proxy]
+    default-selected: Streaming Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Streaming.png"
+  - name: Telegram
+    type: select
+    proxies: [Telegram Auto, HK, JP, TW, SG, US, Proxy]
+    default-selected: Telegram Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Telegram_X.png"
+  - name: Social
+    type: select
+    proxies: [Social Auto, HK, JP, TW, SG, US, Proxy]
+    default-selected: Social Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Instagram.png"
+  - name: Dev
+    type: select
+    proxies: [Dev Auto, HK, JP, TW, SG, US, Proxy]
+    default-selected: Dev Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/GitHub.png"
+  - name: Crypto
+    type: select
+    proxies: [Crypto Auto, HK, JP, TW, SG, US, Proxy]
+    default-selected: Crypto Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Cryptocurrency.png"
+  - name: Games
+    type: select
+    proxies: [Games Auto, HK, JP, TW, SG, US, Proxy]
+    default-selected: Games Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Game.png"
+  - name: Microsoft
+    type: select
+    proxies: [Microsoft Auto, HK, JP, TW, SG, US, Proxy]
+    default-selected: Microsoft Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Microsoft.png"
+  - name: YouTube
+    type: select
+    proxies: [YouTube Auto, YouTube Bulk, YouTube Manual, Proxy]
+    default-selected: YouTube Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/YouTube.png"
+  - name: AI
+    type: select
+    proxies: [AI Auto, US AI, JP AI, TW AI, SG AI, Chain]
+    default-selected: AI Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/ChatGPT.png"
+  - name: RedPocket
+    type: select
+    proxies: [RedPocket Auto, US Trust ConsIP, US Trust BusiIP, US Trust HostIP, Chain]
+    default-selected: RedPocket Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"
+  - name: Apple
+    type: select
+    proxies: [Apple Auto, HK, JP, TW, SG, US, Proxy, Direct]
+    default-selected: Apple Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Apple.png"
+
+  # ---------- Region Selectors ----------
+  - name: HK
+    type: select
+    proxies: [HK Auto, HK Manual]
+    default-selected: HK Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Hong_Kong.png"
+  - name: TW
+    type: select
+    proxies: [TW Auto, TW Manual]
+    default-selected: TW Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/TW.png"
+  - name: SG
+    type: select
+    proxies: [SG Auto, SG Manual]
+    default-selected: SG Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/SG.png"
+  - name: JP
+    type: select
+    proxies: [JP Auto, JP Manual]
+    default-selected: JP Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/JP.png"
+  - name: KR
+    type: select
+    proxies: [KR Auto, KR Manual]
+    default-selected: KR Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/KR.png"
+  - name: US
+    type: select
+    proxies: [US Auto, US Manual]
+    default-selected: US Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"
+  - name: CA
+    type: select
+    proxies: [CA Auto, CA Manual]
+    default-selected: CA Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Canada.png"
+  - name: AU
+    type: select
+    proxies: [AU Auto, AU Manual]
+    default-selected: AU Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Australia.png"
+  - name: UK
+    type: select
+    proxies: [UK Auto, UK Manual]
+    default-selected: UK Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_Kingdom.png"
+  - name: EU
+    type: select
+    proxies: [EU Auto, EU Manual]
+    default-selected: EU Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/EU.png"
+
+  # ---------- Service Auto (hidden) ----------
+  - name: Streaming Auto
+    <<: *fallback
+    proxies: [SG Auto, TW Auto, HK Auto, JP Auto, US Auto]
+    hidden: true
+  - name: Telegram Auto
+    <<: *fallback
+    proxies: [HK Auto, SG Auto, JP Auto, TW Auto, US Auto]
+    hidden: true
+  - name: Social Auto
+    <<: *fallback
+    proxies: [US Auto, SG Auto, TW Auto, HK Auto, JP Auto]
+    hidden: true
+  - name: Dev Auto
+    <<: *fallback
+    proxies: [US Auto, JP Auto, TW Auto, SG Auto, HK Auto]
+    hidden: true
+  - name: Crypto Auto
+    <<: *fallback
+    proxies: [SG Auto, TW Auto, JP Auto, HK Auto, US Auto]
+    hidden: true
+  - name: Games Auto
+    <<: *fallback
+    proxies: [HK Auto, TW Auto, JP Auto, SG Auto, US Auto]
+    hidden: true
+  - name: Microsoft Auto
+    <<: *fallback
+    proxies: [US Auto, JP Auto, TW Auto, SG Auto, HK Auto]
+    hidden: true
+  - name: Apple Auto
+    <<: *fallback
+    proxies: [US Auto, JP Auto, TW Auto, SG Auto, HK Auto]
+    hidden: true
+  - name: AI Auto
+    <<: *fallback
+    proxies: [US AI, JP AI, TW AI, SG AI]
+    hidden: true
+  - name: RedPocket Auto
+    <<: *fallback
+    proxies: [US Trust ConsIP, US Trust BusiIP, US Trust HostIP]
+    hidden: true
+
+  # ---------- YouTube Pools ----------
+  - name: YouTube Auto
+    <<: *url-test
+    filter: *filter-youtube-auto
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: YouTube Bulk
+    <<: *url-test
+    filter: *filter-youtube-bulk
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: YouTube Manual
+    <<: *select-nodes
+    filter: *filter-youtube-bulk
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/YouTube.png"
+
+  # ---------- Region Auto: Trust -> Normal ----------
+  - name: HK Auto
+    <<: *fallback
+    proxies: [HK Trust Auto, HK Normal Auto]
+    hidden: true
+  - name: TW Auto
+    <<: *fallback
+    proxies: [TW Trust Auto, TW Normal Auto]
+    hidden: true
+  - name: SG Auto
+    <<: *fallback
+    proxies: [SG Trust Auto, SG Normal Auto]
+    hidden: true
+  - name: JP Auto
+    <<: *fallback
+    proxies: [JP Trust Auto, JP Normal Auto]
+    hidden: true
+  - name: KR Auto
+    <<: *fallback
+    proxies: [KR Trust Auto, KR Normal Auto]
+    hidden: true
+  - name: US Auto
+    <<: *fallback
+    proxies: [US Trust Auto, US Normal Auto]
+    hidden: true
+  - name: CA Auto
+    <<: *fallback
+    proxies: [CA Trust Auto, CA Normal Auto]
+    hidden: true
+  - name: AU Auto
+    <<: *fallback
+    proxies: [AU Trust Auto, AU Normal Auto]
+    hidden: true
+  - name: UK Auto
+    <<: *fallback
+    proxies: [UK Trust Auto, UK Normal Auto]
+    hidden: true
+  - name: EU Auto
+    <<: *fallback
+    proxies: [EU Trust Auto, EU Normal Auto]
+    hidden: true
+
+  # ---------- Region Quality Pools ----------
+  - name: HK Trust Auto
+    <<: *url-test
+    filter: *filter-hk-trust
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: HK Normal Auto
+    <<: *url-test
+    filter: *filter-hk-normal
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: TW Trust Auto
+    <<: *url-test
+    filter: *filter-tw-trust
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: TW Normal Auto
+    <<: *url-test
+    filter: *filter-tw-normal
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: SG Trust Auto
+    <<: *url-test
+    filter: *filter-sg-trust
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: SG Normal Auto
+    <<: *url-test
+    filter: *filter-sg-normal
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: JP Trust Auto
+    <<: *url-test
+    filter: *filter-jp-trust
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: JP Normal Auto
+    <<: *url-test
+    filter: *filter-jp-normal
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: KR Trust Auto
+    <<: *url-test
+    filter: *filter-kr-trust
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: KR Normal Auto
+    <<: *url-test
+    filter: *filter-kr-normal
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: US Trust Auto
+    <<: *url-test
+    filter: *filter-us-trust
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: US Normal Auto
+    <<: *url-test
+    filter: *filter-us-normal
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: CA Trust Auto
+    <<: *url-test
+    filter: *filter-ca-trust
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: CA Normal Auto
+    <<: *url-test
+    filter: *filter-ca-normal
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: AU Trust Auto
+    <<: *url-test
+    filter: *filter-au-trust
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: AU Normal Auto
+    <<: *url-test
+    filter: *filter-au-normal
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: UK Trust Auto
+    <<: *url-test
+    filter: *filter-uk-trust
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: UK Normal Auto
+    <<: *url-test
+    filter: *filter-uk-normal
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: EU Trust Auto
+    <<: *url-test
+    filter: *filter-eu-trust
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: EU Normal Auto
+    <<: *url-test
+    filter: *filter-eu-normal
+    exclude-filter: *exclude-chain
+    hidden: true
+
+  # ---------- Region Manual ----------
+  - name: HK Manual
+    <<: *select-nodes
+    filter: *filter-hk-manual
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Hong_Kong.png"
+  - name: TW Manual
+    <<: *select-nodes
+    filter: *filter-tw-manual
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/TW.png"
+  - name: SG Manual
+    <<: *select-nodes
+    filter: *filter-sg-manual
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/SG.png"
+  - name: JP Manual
+    <<: *select-nodes
+    filter: *filter-jp-manual
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/JP.png"
+  - name: KR Manual
+    <<: *select-nodes
+    filter: *filter-kr-manual
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/KR.png"
+  - name: US Manual
+    <<: *select-nodes
+    filter: *filter-us-manual
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"
+  - name: CA Manual
+    <<: *select-nodes
+    filter: *filter-ca-manual
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Canada.png"
+  - name: AU Manual
+    <<: *select-nodes
+    filter: *filter-au-manual
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Australia.png"
+  - name: UK Manual
+    <<: *select-nodes
+    filter: *filter-uk-manual
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_Kingdom.png"
+  - name: EU Manual
+    <<: *select-nodes
+    filter: *filter-eu-manual
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/EU.png"
+
+  # ---------- AI Identity Pools ----------
+  - name: US AI
+    <<: *fallback
+    proxies: [US Trust ConsIP, US Trust BusiIP, US Trust HostIP]
+    hidden: true
+  - name: US Trust ConsIP
+    <<: *url-test
+    filter: *filter-us-cons
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: US Trust BusiIP
+    <<: *url-test
+    filter: *filter-us-busi
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: US Trust HostIP
+    <<: *url-test
+    filter: *filter-us-host
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: JP AI
+    <<: *fallback
+    proxies: [JP Trust ConsIP, JP Trust BusiIP, JP Trust HostIP]
+    hidden: true
+  - name: JP Trust ConsIP
+    <<: *url-test
+    filter: *filter-jp-cons
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: JP Trust BusiIP
+    <<: *url-test
+    filter: *filter-jp-busi
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: JP Trust HostIP
+    <<: *url-test
+    filter: *filter-jp-host
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: TW AI
+    <<: *fallback
+    proxies: [TW Trust ConsIP, TW Trust BusiIP, TW Trust HostIP]
+    hidden: true
+  - name: TW Trust ConsIP
+    <<: *url-test
+    filter: *filter-tw-cons
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: TW Trust BusiIP
+    <<: *url-test
+    filter: *filter-tw-busi
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: TW Trust HostIP
+    <<: *url-test
+    filter: *filter-tw-host
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: SG AI
+    <<: *fallback
+    proxies: [SG Trust ConsIP, SG Trust BusiIP, SG Trust HostIP]
+    hidden: true
+  - name: SG Trust ConsIP
+    <<: *url-test
+    filter: *filter-sg-cons
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: SG Trust BusiIP
+    <<: *url-test
+    filter: *filter-sg-busi
+    exclude-filter: *exclude-chain
+    hidden: true
+  - name: SG Trust HostIP
+    <<: *url-test
+    filter: *filter-sg-host
+    exclude-filter: *exclude-chain
+    hidden: true
+
+# ==================== 06. Rule Provider Templates ====================
+x-rule-domain: &rule-domain
+  type: http
+  behavior: domain
+  format: mrs
+  interval: *rule-update-interval
+
+x-rule-ip: &rule-ip
+  type: http
+  behavior: ipcidr
+  format: mrs
+  interval: *rule-update-interval
+
+# ==================== 07. Rule Providers ====================
+rule-providers:
+  # ---------- Base / Direct / Blocking ----------
+  Tracking:
+    <<: *rule-domain
+    path: ./rules/Tracking.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Tracking.mrs"
+  Advertising:
+    <<: *rule-domain
+    path: ./rules/Advertising.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Advertising.mrs"
+  Private:
+    <<: *rule-domain
+    path: ./rules/Private.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Private.mrs"
+  Direct:
+    <<: *rule-domain
+    path: ./rules/Direct.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Direct.mrs"
+  Download:
+    <<: *rule-domain
+    path: ./rules/Download.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Download.mrs"
+  XPTV:
+    <<: *rule-domain
+    path: ./rules/XPTV.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/XPTV.mrs"
+
+  # ---------- Apple Direct-safe ----------
+  AppleUpdate:
+    <<: *rule-domain
+    path: ./rules/Meta-AppleUpdate.mrs
+    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/apple-update.mrs"
+  AppleCNMeta:
+    <<: *rule-domain
+    path: ./rules/Meta-AppleCN.mrs
+    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/apple-cn.mrs"
+  AppleCN:
+    <<: *rule-domain
+    path: ./rules/AppleCN.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/AppleCN.mrs"
+
+  # ---------- AI / Google ----------
+  # Precise service MRS first: cheap matches and stable service boundaries.
+  MetaOpenAI:
+    <<: *rule-domain
+    path: ./rules/Meta-OpenAI.mrs
+    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/openai.mrs"
+  MetaAnthropic:
+    <<: *rule-domain
+    path: ./rules/Meta-Anthropic.mrs
+    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/anthropic.mrs"
+  MetaGemini:
+    <<: *rule-domain
+    path: ./rules/Meta-Gemini.mrs
+    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/google-gemini.mrs"
+  MetaXAI:
+    <<: *rule-domain
+    path: ./rules/Meta-xAI.mrs
+    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/xai.mrs"
+
+  # Keviin560 builds MRS from maintained upstream rules with Mihomo's converter.
+  # AI_Rules is the broad high-coverage supplement; Copilot IP remains as IP-only repair.
+  KeviinCopilotIP:
+    <<: *rule-ip
+    path: ./rules/Keviin-Copilot-IP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/Keviin560/Shunt_Rules@main/rule/Mihomo/Copilot_IP.mrs"
+  KeviinAI:
+    <<: *rule-domain
+    path: ./rules/Keviin-AI-Rules.mrs
+    url: "https://testingcf.jsdelivr.net/gh/Keviin560/Shunt_Rules@main/rule/Mihomo/AI_Rules.mrs"
+
+  # Broad AI fallbacks intentionally overlap for coverage.
+  MetaAI:
+    <<: *rule-domain
+    path: ./rules/Meta-AI-NonCN.mrs
+    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/category-ai-!cn.mrs"
+  AI666:
+    <<: *rule-domain
+    path: ./rules/AI-666OS.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/AI.mrs"
+  Google:
+    <<: *rule-domain
+    path: ./rules/Google.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Google.mrs"
+
+  # ---------- Messaging / Social ----------
+  Telegram:
+    <<: *rule-domain
+    path: ./rules/Telegram.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Telegram.mrs"
+  MetaSocial:
+    <<: *rule-domain
+    path: ./rules/Meta-SocialMedia-NonCN.mrs
+    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/category-social-media-!cn.mrs"
+  SocialMedia:
+    <<: *rule-domain
+    path: ./rules/SocialMedia.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/SocialMedia.mrs"
+
+  # ---------- Streaming ----------
+  YouTube:
+    <<: *rule-domain
+    path: ./rules/YouTube.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/YouTube.mrs"
+  Emby:
+    <<: *rule-domain
+    path: ./rules/Emby.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Emby.mrs"
+  KeviinGlobalMedia:
+    <<: *rule-domain
+    path: ./rules/Keviin-GlobalMedia.mrs
+    url: "https://testingcf.jsdelivr.net/gh/Keviin560/Shunt_Rules@main/rule/Mihomo/GlobalMedia.mrs"
+  Streaming:
+    <<: *rule-domain
+    path: ./rules/Streaming.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Streaming.mrs"
+
+  # ---------- Developer ----------
+  # category-dev already includes GitHub, GitLab, JetBrains and the broader dev ecosystem.
+  DevMeta:
+    <<: *rule-domain
+    path: ./rules/Meta-CategoryDev.mrs
+    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/category-dev.mrs"
+
+  # ---------- Games / Crypto ----------
+  KeviinGameDownloadCN:
+    <<: *rule-domain
+    path: ./rules/Keviin-GameDownloadCN.mrs
+    url: "https://testingcf.jsdelivr.net/gh/Keviin560/Shunt_Rules@main/rule/Mihomo/GameDownloadCN.mrs"
+  KeviinGameCN:
+    <<: *rule-domain
+    path: ./rules/Keviin-Game-CN.mrs
+    url: "https://testingcf.jsdelivr.net/gh/Keviin560/Shunt_Rules@main/rule/Mihomo/Game_CN.mrs"
+  KeviinGameProxy:
+    <<: *rule-domain
+    path: ./rules/Keviin-Game-Proxy.mrs
+    url: "https://testingcf.jsdelivr.net/gh/Keviin560/Shunt_Rules@main/rule/Mihomo/Game_Proxy.mrs"
+  Games:
+    <<: *rule-domain
+    path: ./rules/Games.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Games.mrs"
+  Crypto:
+    <<: *rule-domain
+    path: ./rules/Crypto.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Crypto.mrs"
+
+  # ---------- Apple / Microsoft ----------
+  Apple:
+    <<: *rule-domain
+    path: ./rules/Apple.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Apple.mrs"
+  OneDrive:
+    <<: *rule-domain
+    path: ./rules/Meta-OneDrive.mrs
+    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/onedrive.mrs"
+  Microsoft:
+    <<: *rule-domain
+    path: ./rules/Microsoft.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Microsoft.mrs"
+
+  # ---------- Generic / Speedtest ----------
+  Speedtest:
+    <<: *rule-domain
+    path: ./rules/Speedtest.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Speedtest.mrs"
+  Proxy:
+    <<: *rule-domain
+    path: ./rules/Proxy.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Proxy.mrs"
+
+  # ---------- Geographic MRS fallback ----------
+  # Keviin cleaned domestic sets run first; MetaCubeX MRS and GEOSITE remain broad safety nets.
+  KeviinGlobalCN:
+    <<: *rule-domain
+    path: ./rules/Keviin-Global-CN.mrs
+    url: "https://testingcf.jsdelivr.net/gh/Keviin560/Shunt_Rules@main/rule/Mihomo/Global_CN.mrs"
+  KeviinGeoSiteCN:
+    <<: *rule-domain
+    path: ./rules/Keviin-GeoSite-CN.mrs
+    url: "https://testingcf.jsdelivr.net/gh/Keviin560/Shunt_Rules@main/rule/Mihomo/GeoSite_CN.mrs"
+  # MetaCubeX mirrors the same broad GeoSite/GeoIP taxonomy used by Mihomo.
+  # Keep these MRS in addition to GEOSITE/GEOIP below: the goal is resilient
+  # domestic/overseas recovery, not replacing the broad Geo data layer.
+  MetaCN:
+    <<: *rule-domain
+    path: ./rules/Meta-CN.mrs
+    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/cn.mrs"
+  MetaNonCN:
+    <<: *rule-domain
+    path: ./rules/Meta-Geolocation-NonCN.mrs
+    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/geolocation-!cn.mrs"
+  MetaCNIP:
+    <<: *rule-ip
+    path: ./rules/Meta-CN-IP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geoip/cn.mrs"
+
+  # ---------- IP rules ----------
+  AdvertisingIP:
+    <<: *rule-ip
+    path: ./rules/Advertising-IP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/ip/Advertising.mrs"
+  PrivateIP:
+    <<: *rule-ip
+    path: ./rules/Private-IP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/ip/Private.mrs"
+  AppleCNIP:
+    <<: *rule-ip
+    path: ./rules/AppleCN-IP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/ip/AppleCN.mrs"
+  AIIP:
+    <<: *rule-ip
+    path: ./rules/AI-IP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/ip/AI.mrs"
+  GoogleIP:
+    <<: *rule-ip
+    path: ./rules/Google-IP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/ip/Google.mrs"
+  TelegramIP:
+    <<: *rule-ip
+    path: ./rules/Telegram-IP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/ip/Telegram.mrs"
+  SocialMediaIP:
+    <<: *rule-ip
+    path: ./rules/SocialMedia-IP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/ip/SocialMedia.mrs"
+  XPTVIP:
+    <<: *rule-ip
+    path: ./rules/XPTV-IP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/ip/XPTV.mrs"
+  EmbyIP:
+    <<: *rule-ip
+    path: ./rules/Emby-IP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/ip/Emby.mrs"
+  KeviinGlobalMediaIP:
+    <<: *rule-ip
+    path: ./rules/Keviin-GlobalMedia-IP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/Keviin560/Shunt_Rules@main/rule/Mihomo/GlobalMedia_IP.mrs"
+  StreamingIP:
+    <<: *rule-ip
+    path: ./rules/Streaming-IP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/ip/Streaming.mrs"
+  KeviinGeoIPCN:
+    <<: *rule-ip
+    path: ./rules/Keviin-GeoIP-CN.mrs
+    url: "https://testingcf.jsdelivr.net/gh/Keviin560/Shunt_Rules@main/rule/Mihomo/GeoIP_CN.mrs"
+  ProxyIP:
+    <<: *rule-ip
+    path: ./rules/Proxy-IP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/ip/Proxy.mrs"
+
+  # ---------- Inline RedPocket ----------
+  # Small user-maintained rules stay inline; behavior is specialized to avoid classical parsing.
+  RedPocket:
+    type: inline
+    behavior: domain
+    payload:
+      - '+.redpocket.com'
+      - '+.redpocketmobile.com'
+      - api.redpocket.com
+      - my.redpocketmobile.com
+      - wireless.redpocket.com
+      - help.redpocket.com
+      - privacy.redpocket.com
+      - rsp-4002.idemia.io
+      - cust-005-v4-prod-atl2.gdsb.net
+      - rpt.vzw.otgeuicc.com
+      - mmsc.mobile.att.net
+      - proxy.mobile.att.net
+      - '+.rpmobileweb.com'
+      - proxy.mvno.rpmobileweb.com
+      - mmsc.cingular.com
+      - wholesale.mmsmvno.com
+      - '+.wholesale.mmsmvno.com'
+      - epdg.epc.att.net
+      - '+.epdg.epc.att.net'
+      - sentitlement2.mobile.att.net
+      - vvm.mobile.att.net
+      - epdg.epc.att-idns.net
+      - epdg.epc.mnc410.mcc310.pub.3gppnetwork.org
+      - epdg.epc.mnc150.mcc310.pub.3gppnetwork.org
+      - epdg.epc.mnc280.mcc310.pub.3gppnetwork.org
+      - epdg.epc.mnc950.mcc310.pub.3gppnetwork.org
+      - epdg.epc.mnc180.mcc311.pub.3gppnetwork.org
+      - epdg.epc.mnc100.mcc313.pub.3gppnetwork.org
+      - epdg.epc.mnc260.mcc310.pub.3gppnetwork.org
+      - ss.epdg.epc.mnc260.mcc310.pub.3gppnetwork.org
+      - ss.epdg.epc.geo.mnc260.mcc310.pub.3gppnetwork.org
+      - '+.mnc260.mcc310.pub.3gppnetwork.org'
+      - crl.t-mobile.com
+      - wo.vzwwo.com
+      - sg.vzwfemto.com
+      - spg.vzw.com
+      - epdg.epc.mnc480.mcc311.pub.3gppnetwork.org
+      - '+.mnc480.mcc311.pub.3gppnetwork.org'
+
+  RedPocketIP:
+    type: inline
+    behavior: ipcidr
+    payload:
+      - 66.209.11.33/32
+      - 208.54.0.0/16
+      - 66.94.0.0/19
+      - 206.29.177.36/32
+
+# ==================== 08. Rules ====================
+rules:
+  # ---------- Local override ----------
+  - DOMAIN-SUFFIX,glkvm.cn,DIRECT
+
+  # ---------- Blocking ----------
+  - RULE-SET,Tracking,REJECT
+  - RULE-SET,Advertising,REJECT
+
+  # ---------- Local / Direct ----------
+  - RULE-SET,Private,Direct
+  - RULE-SET,Direct,Direct
+  - RULE-SET,XPTV,Direct
+  - RULE-SET,Download,Direct
+
+  # Apple direct-safe rules must precede broad Apple.
+  - RULE-SET,AppleUpdate,Direct
+  - RULE-SET,AppleCNMeta,Direct
+  - RULE-SET,AppleCN,Direct
+
+  # ---------- RedPocket ----------
+  - RULE-SET,RedPocket,RedPocket
+
+  # ---------- YouTube ----------
+  # Must precede broad Google because Google collections can include YouTube assets.
+  - RULE-SET,YouTube,YouTube
+
+  # ---------- AI exact ----------
+  # Four core services keep precise MRS before broad AI aggregation.
+  - RULE-SET,MetaOpenAI,AI
+  - RULE-SET,MetaAnthropic,AI
+  - RULE-SET,MetaGemini,AI
+  - RULE-SET,MetaXAI,AI
+
+  # ---------- AI broad / Google ----------
+  - RULE-SET,KeviinAI,AI
+  - RULE-SET,MetaAI,AI
+  - RULE-SET,AI666,AI
+  # Google + Gemini share AI egress to keep login/OAuth/IP behavior consistent.
+  - RULE-SET,Google,AI
+
+  # ---------- Streaming ----------
+  # YouTube already matched above. Streaming must precede Social so TikTok/media
+  # domains from GlobalMedia are deterministically classified as Streaming.
+  - RULE-SET,Emby,Streaming
+  - RULE-SET,KeviinGlobalMedia,Streaming
+  - RULE-SET,Streaming,Streaming
+
+  # ---------- Messaging / Social ----------
+  - RULE-SET,Telegram,Telegram
+  - RULE-SET,MetaSocial,Social
+  - RULE-SET,SocialMedia,Social
+
+  # ---------- Developer ----------
+  - RULE-SET,DevMeta,Dev
+
+  # ---------- Games / Crypto ----------
+  - RULE-SET,KeviinGameDownloadCN,Direct
+  - RULE-SET,KeviinGameCN,Direct
+  - RULE-SET,KeviinGameProxy,Games
+  - RULE-SET,Games,Games
+  - RULE-SET,Crypto,Crypto
+
+  # ---------- Apple / Microsoft ----------
+  - RULE-SET,Apple,Apple
+  # Copilot already matched AI above; remaining OneDrive/Microsoft traffic stays here.
+  - RULE-SET,OneDrive,Microsoft
+  - RULE-SET,Microsoft,Microsoft
+
+  # ---------- Speedtest ----------
+  - DOMAIN-KEYWORD,speedtest,Speedtest
+  - RULE-SET,Speedtest,Speedtest
+
+  # ---------- Domestic domain recovery ----------
+  # Business-specific rules above always win; these are late direct-recovery layers.
+  - RULE-SET,KeviinGlobalCN,Direct
+  - RULE-SET,KeviinGeoSiteCN,Direct
+  - RULE-SET,MetaCN,Direct
+  - GEOSITE,cn,Direct
+
+  # ---------- Explicit overseas domains ----------
+  - RULE-SET,Proxy,Proxy
+  - RULE-SET,MetaNonCN,Proxy
+  - GEOSITE,geolocation-!cn,Proxy
+
+  # ---------- IP rules ----------
+  - RULE-SET,AdvertisingIP,REJECT,no-resolve
+  - RULE-SET,PrivateIP,Direct,no-resolve
+  - RULE-SET,AppleCNIP,Direct,no-resolve
+  - RULE-SET,XPTVIP,Direct,no-resolve
+  - RULE-SET,RedPocketIP,RedPocket,no-resolve
+  - RULE-SET,KeviinCopilotIP,AI,no-resolve
+  - RULE-SET,AIIP,AI,no-resolve
+  - RULE-SET,GoogleIP,AI,no-resolve
+  - RULE-SET,TelegramIP,Telegram,no-resolve
+  - RULE-SET,SocialMediaIP,Social,no-resolve
+  - RULE-SET,EmbyIP,Streaming,no-resolve
+  - RULE-SET,KeviinGlobalMediaIP,Streaming,no-resolve
+  - RULE-SET,StreamingIP,Streaming,no-resolve
+
+  # ---------- China IP privacy switch ----------
+  - RULE-SET,KeviinGeoIPCN,Direct,no-resolve
+  - RULE-SET,MetaCNIP,Direct,no-resolve
+  - GEOIP,CN,Direct,no-resolve
+
+  # ---------- Generic proxy IP fallback ----------
+  - RULE-SET,ProxyIP,Proxy,no-resolve
+
+  # ---------- Catch-all ----------
+  - MATCH,Proxy
+
+# ==================== EOF ====================
