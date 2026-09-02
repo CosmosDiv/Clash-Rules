@@ -1,6 +1,19 @@
 // ============================================================================
-// Node Standardizer V2.1.3 for Sub-Store
+// Node Standardizer V2.1.5 for Sub-Store
 // ============================================================================
+//
+// V2.1.5 修订：
+//   - 地区识别引入“常见 ISO-2 强证据 / 非常见 ISO-2 弱证据”分层；AI / NF 不再作为裸地区代码识别。
+//   - 强地区证据平票时，允许城市/机场等弱证据仅用于破平票；非常见 ISO-2 单独出现不再直接决定地区。
+//   - 修复人工映射、忽略关键词、排除关键词三套匹配逻辑不一致：统一安全边界与英文多词短语处理。
+//   - 收紧英文自动关键词边界，避免 Automobile -> Mobile、NonResidential -> Residential 等子串误判。
+//   - 删除低置信度自动语义：不限速 / Download Optimized -> HighBW、Global Pool -> Multi、裸 Transit -> Relay。
+//   - 保留 ISP -> ISP、Speed Priority -> Fast、Availability Priority -> Stable、NF / Netflix -> Stream。
+//   - 参数输入容错：关键词分隔符同时接受 | / ｜；标准列表同时接受 , / ，。
+//
+// V2.1.4 修订：
+//   - 修复人工属性映射对英文/代码型关键词的边界匹配：不再先删除节点名空格，避免“DMIT Xray”被压成“DMITXray”后导致“美国 = DMIT”失效。
+//   - 删除全局“Balancer -> Stable”自动推断；Balancer 属于机场/产品私有语义，如明确代表稳定线路请使用“稳定 = Balancer”人工映射。
 //
 // V2.1.3 修订：
 //   - 修正“代理服务商节点位置简称”与 ISO 国家代码的语义层级：
@@ -37,9 +50,9 @@
 //   无额外属性时：Region @Source｜Tail
 //
 // 示例：
-//   US @DN Bulk·1x｜US-LA-01
-//   JP @DN Bulk·BGP·Relay·1x｜JP-日本BGP-[美西转]-1x
-//   US @RG ResIP·StaticIP·Stream·1x｜US-F1
+//   US @Dounai Bulk·1x｜US-LA-01
+//   JP @Dounai Bulk·BGP·Relay·1x｜JP-日本BGP-[美西转]-1x
+//   US @Railgun ResIP·StaticIP·Stream·1x｜US-F1
 //
 // 其中：
 //   @  = 来源机场
@@ -69,7 +82,7 @@
 //
 // 机场
 //   手动指定来源名称。不填时自动读取当前 Sub-Store 订阅名称。
-//   机场 = DN
+//   机场 = Dounai
 //
 // 默认标签
 //   给本订阅所有节点增加相同的标准属性。
@@ -167,16 +180,16 @@
 // 五、分隔符
 // ============================================================================
 //
-// 标准配置值之间：英文逗号 ,
+// 标准配置值之间：英文逗号 , 或中文逗号 ，
 //   默认标签 = 大流量,稳定
-//   关闭自动识别 = 地区,线路
+//   关闭自动识别 = 地区，线路
 //
-// 原始关键词之间：|
+// 原始关键词之间：| 或 ｜
 //   家宽 = aa|home|dd
-//   排除 = 官网|公告|过期
+//   排除 = 官网｜公告｜过期
 //   忽略关键词 = 香港入口|实验线路
 //
-// 不使用 + / ; / 中文逗号代替以上分隔符。
+// 不使用 + / ; 代替以上分隔符。
 //
 // ============================================================================
 // 六、常用配置示例
@@ -188,7 +201,7 @@
 //   默认标签 = 大流量
 //
 // C. 机场自己的节点代码：
-//   机场 = DN
+//   机场 = Dounai
 //   默认标签 = 大流量
 //   家宽 = aa|dd
 //   固定IP = cc|dd
@@ -201,14 +214,14 @@
 //
 // E. 机场有私有入口词，不希望它参与自动识别：
 //   忽略关键词 = 香港入口
-//   // “美西转 / 日本转 / Transit / Relay”等常见中转语义已自动识别，无需再手工配置。
+//   // “美西转 / 日本转 / Relay / 中转”等明确中转语义已自动识别；裸 Transit 如有私有含义请人工映射。
 //
 // F. 删除公告类伪节点：
 //   排除 = 官网|公告|过期|剩余流量
 //
 // G. 不显示机场原始名称：
 //   保留原名 = 0
-//   输出示例：US @DN Bulk·1x｜#19ECAD
+//   输出示例：US @Dounai Bulk·1x｜#19ECAD
 //
 // ============================================================================
 // 七、使用原则
@@ -240,7 +253,7 @@
 
 const NS_ARGS = (typeof $arguments === 'object' && $arguments) ? $arguments : {};
 
-const NS_VERSION = '2.1.3';
+const NS_VERSION = '2.1.5';
 
 const RESERVED_KEYS = new Set([
   '机场',
@@ -1170,6 +1183,19 @@ const REGION_LOCATION_ALIAS_KEYS = new Set(
 // landing-location shorthands used by proxy providers. A lone token is genuinely ambiguous.
 // We keep both interpretations as fallback votes, so an isolated token ties -> Unknown;
 // explicit country/region evidence elsewhere wins before fallback evidence is considered.
+// Common proxy-market ISO-2 codes are strong evidence when written as standalone uppercase tokens.
+// Less-common ISO-2 codes remain available, but are treated as weak evidence and require
+// corroboration. AI / NF are reserved proxy-domain tokens (AI service / Netflix shorthand),
+// so bare AI / NF never participate in region inference.
+const REGION_ALPHA2_RESERVED_PROXY_TOKENS = new Set(['AI', 'NF']);
+const REGION_ALPHA2_COMMON_STRONG = new Set([
+  'CN', 'HK', 'MO', 'TW', 'SG', 'JP', 'KR', 'US', 'CA', 'MX', 'BR', 'AR', 'CL',
+  'GB', 'UK', 'IE', 'FR', 'DE', 'NL', 'BE', 'CH', 'AT', 'ES', 'PT', 'IT',
+  'SE', 'NO', 'FI', 'DK', 'PL', 'CZ', 'RO', 'BG', 'GR', 'HU', 'UA', 'RU', 'TR',
+  'IL', 'AE', 'SA', 'ZA', 'EG', 'IN', 'PK', 'BD', 'LK', 'NP', 'MY', 'TH', 'VN',
+  'PH', 'ID', 'AU', 'NZ',
+]);
+
 const AMBIGUOUS_ALPHA3_LOCATION = Object.freeze({
   FRA: 'DE', // France ISO-3 / Frankfurt shorthand
   HND: 'JP', // Honduras ISO-3 / Tokyo Haneda shorthand
@@ -1333,8 +1359,8 @@ function parseConfig(args) {
   const keepOriginal = parse01(args['保留原名'], true, '保留原名');
   const sourceOverride = cleanSource(args['机场']);
   const defaultParsed = parseTagList(args['默认标签'], '默认标签', debug);
-  const excludeKeywords = unique(splitStrict(args['排除'], '|'));
-  const ignoreKeywords = unique(splitStrict(args['忽略关键词'], '|'));
+  const excludeKeywords = unique(splitKeywordList(args['排除']));
+  const ignoreKeywords = unique(splitKeywordList(args['忽略关键词']));
   const disabledAuto = parseDisabledAuto(args['关闭自动识别'], debug);
 
   const manualMappings = [];
@@ -1357,7 +1383,7 @@ function parseConfig(args) {
       }
     }
 
-    const keywords = unique(splitStrict(rawValue, '|'));
+    const keywords = unique(splitKeywordList(rawValue));
     if (keywords.length === 0) continue;
 
     manualMappings.push({
@@ -1505,7 +1531,7 @@ function detectAuto(name, disabledAuto) {
 
 function detectRegions(name) {
   const text = String(name || '');
-  if (/(?:cross[-\s]?region|multi[-\s]?region|global\s*pool|跨地区|跨區域|跨区域)/i.test(text)) {
+  if (/(?:cross[-\s]?region|multi[-\s]?region|跨地区|跨區域|跨区域)/i.test(text)) {
     return ['MultiRegion'];
   }
 
@@ -1521,14 +1547,52 @@ function detectRegions(name) {
   const relayFiltered = nonRelayEvidence.length ? nonRelayEvidence : allEvidence;
 
   const strongEvidence = relayFiltered.filter(item => item.strength === 'strong');
-  const effectiveEvidence = strongEvidence.length ? strongEvidence : relayFiltered;
+  const fallbackEvidence = relayFiltered.filter(item => item.strength !== 'strong');
 
-  const votes = new Map();
-  for (const item of effectiveEvidence) {
-    votes.set(item.region, (votes.get(item.region) || 0) + 1);
+  // Strong evidence decides first. Weak location/code evidence cannot overrule a unique
+  // country/region decision, but may break an exact strong-evidence tie.
+  if (strongEvidence.length) {
+    const strongVotes = countRegionVotes(strongEvidence);
+    const topStrong = topVotedRegions(strongVotes);
+    if (topStrong.length === 1) return topStrong;
+
+    const tied = new Set(topStrong);
+    const tieBreakVotes = countRegionVotes(fallbackEvidence.filter(item => tied.has(item.region)));
+    if (tieBreakVotes.size) {
+      const maxTie = Math.max(...tieBreakVotes.values());
+      const best = topStrong.filter(region => (tieBreakVotes.get(region) || 0) === maxTie);
+      if (best.length === 1) return best;
+    }
+    return topStrong.sort();
   }
-  if (!votes.size) return [];
 
+  // No strong evidence: location aliases and ambiguous location codes may still be useful
+  // fallbacks. A less-common ISO-2 token alone is deliberately insufficient; it must be
+  // corroborated by another independent piece of evidence for the same region.
+  const byRegion = new Map();
+  for (const item of fallbackEvidence) {
+    if (!byRegion.has(item.region)) byRegion.set(item.region, []);
+    byRegion.get(item.region).push(item);
+  }
+
+  const eligible = [];
+  for (const [region, items] of byRegion) {
+    const nonWeakCode = items.filter(item => item.kind !== 'alpha2-uncommon');
+    const weakCodes = items.filter(item => item.kind === 'alpha2-uncommon');
+    if (nonWeakCode.length || weakCodes.length >= 2) eligible.push(...items);
+  }
+  if (!eligible.length) return [];
+  return topVotedRegions(countRegionVotes(eligible));
+}
+
+function countRegionVotes(items) {
+  const votes = new Map();
+  for (const item of items || []) votes.set(item.region, (votes.get(item.region) || 0) + 1);
+  return votes;
+}
+
+function topVotedRegions(votes) {
+  if (!votes || !votes.size) return [];
   const maxVotes = Math.max(...votes.values());
   return [...votes.entries()]
     .filter(([, count]) => count === maxVotes)
@@ -1573,12 +1637,20 @@ function collectRegionEvidence(name) {
   let m2;
   while ((m2 = code2Re.exec(text)) !== null) {
     const token = m2[2];
+    if (REGION_ALPHA2_RESERVED_PROXY_TOKENS.has(token)) continue;
     const region = REGION_ALPHA2_TO_CANONICAL[token];
     if (!region) continue;
     const start = m2.index + m2[1].length;
     const end = start + token.length;
     if (isLikelyNonRegionCodeContext(text, start, end, token)) continue;
-    evidence.push({ region, start, end, kind: 'alpha2', strength: 'strong' });
+    const isCommon = REGION_ALPHA2_COMMON_STRONG.has(token);
+    evidence.push({
+      region,
+      start,
+      end,
+      kind: isCommon ? 'alpha2' : 'alpha2-uncommon',
+      strength: isCommon ? 'strong' : 'fallback',
+    });
   }
 
   // 4) Human-readable aliases. Country/territory names are strong; cities and landing-location
@@ -1670,11 +1742,11 @@ function isRegionEvidenceInRelayContext(name, evidence) {
   const text = String(name || '');
   const after = text.slice(evidence.end, evidence.end + 24);
 
-  // “日本转 / 美国-Transit / 香港 Relay / 美西轉”等明确结构。
-  if (/^[\s\-_/.:|]*?(?:中转|中轉|转发|轉發|Transit|Relay)(?=$|[\s\-_/.:|\[\](){}0-9])/i.test(after)) return true;
+  // “日本转 / 香港 Relay / 美西轉”等明确结构。
+  if (/^[\s\-_/.:|]*?(?:中转|中轉|转发|轉發|Relay)(?=$|[\s\-_/.:|\[\](){}0-9])/i.test(after)) return true;
   if (/^[\s\-_/.:|]*?[转轉](?=$|[\s\-_/.:|\[\](){}0-9])/i.test(after)) return true;
 
-  // Bracketed route labels are common: [美西转] / [日本 Transit].
+  // Bracketed route labels are common: [美西转] / [日本 Relay].
   const bracketPairs = [['[', ']'], ['【', '】'], ['(', ')'], ['（', '）']];
   for (const [leftChar, rightChar] of bracketPairs) {
     const left = text.lastIndexOf(leftChar, evidence.start);
@@ -1684,7 +1756,7 @@ function isRegionEvidenceInRelayContext(name, evidence) {
     const right = text.indexOf(rightChar, evidence.end);
     if (right < 0) continue;
     const segment = text.slice(left, right + rightChar.length);
-    if (/(?:中转|中轉|转发|轉發|Transit|Relay|[转轉](?=[\]】)）\s\-_/.:|0-9]|$))/i.test(segment)) return true;
+    if (/(?:中转|中轉|转发|轉發|Relay|[转轉](?=[\]】)）\s\-_/.:|0-9]|$))/i.test(segment)) return true;
   }
   return false;
 }
@@ -1698,29 +1770,29 @@ function flagEmojiToAlpha2(flag) {
 
 function detectNetworkTags(name) {
   const rules = [
-    ['Residential', /(家宽|家寬|住宅|Residential)/i],
-    ['StaticIP', /(Static\s*IP|Fixed\s*IP|固定\s*IP|静态\s*IP|靜態\s*IP)/i],
-    ['DynamicIP', /(Dynamic\s*IP|动态\s*IP|動態\s*IP)/i],
-    ['DedicatedIP', /(Dedicated\s*IP|独享\s*IP|獨享\s*IP)/i],
-    ['NativeIP', /(Native\s*IP|原生\s*IP)/i],
-    ['ISP', /(?:^|[^A-Za-z])ISP(?:[^A-Za-z]|$)|运营商\s*IP|運營商\s*IP/i],
-    ['Mobile', /(蜂窝(?:网络|網絡|5G|4G)?|蜂窩(?:网络|網絡|5G|4G)?|Cellular(?:\s*(?:Network|5G|4G))?|5G网络|5G網絡|4G网络|4G網絡|(?:^|[^A-Za-z])LTE(?:[^A-Za-z]|$)|Mobile\s*(?:Network|IP)?)/i],
-    ['Satellite', /(Starlink|星链|星鏈|卫星网络|衛星網絡)/i],
-    ['IPv6', /IPv6/i],
-    ['DedicatedServer', /(Bare\s*Metal|Baremetal|Dedicated\s*Server|独立服务器|獨立服務器|独服|獨服)/i],
+    ['Residential', /家宽|家寬|住宅|(?:^|[^A-Za-z0-9])Residential(?=$|[^A-Za-z0-9])/i],
+    ['StaticIP', /(?:^|[^A-Za-z0-9])(?:Static\s*IP|Fixed\s*IP)(?=$|[^A-Za-z0-9])|固定\s*IP|静态\s*IP|靜態\s*IP/i],
+    ['DynamicIP', /(?:^|[^A-Za-z0-9])Dynamic\s*IP(?=$|[^A-Za-z0-9])|动态\s*IP|動態\s*IP/i],
+    ['DedicatedIP', /(?:^|[^A-Za-z0-9])Dedicated\s*IP(?=$|[^A-Za-z0-9])|独享\s*IP|獨享\s*IP/i],
+    ['NativeIP', /(?:^|[^A-Za-z0-9])Native\s*IP(?=$|[^A-Za-z0-9])|原生\s*IP/i],
+    ['ISP', /(?:^|[^A-Za-z0-9])ISP(?=$|[^A-Za-z0-9])|运营商\s*IP|運營商\s*IP/i],
+    ['Mobile', /蜂窝(?:网络|網絡|5G|4G)?|蜂窩(?:网络|網絡|5G|4G)?|(?:^|[^A-Za-z0-9])Cellular(?:\s*(?:Network|5G|4G))?(?=$|[^A-Za-z0-9])|5G网络|5G網絡|4G网络|4G網絡|(?:^|[^A-Za-z0-9])LTE(?=$|[^A-Za-z0-9])|(?:^|[^A-Za-z0-9])Mobile(?:\s*(?:Network|IP))?(?=$|[^A-Za-z0-9])/i],
+    ['Satellite', /(?:^|[^A-Za-z0-9])Starlink(?=$|[^A-Za-z0-9])|星链|星鏈|卫星网络|衛星網絡/i],
+    ['IPv6', /(?:^|[^A-Za-z0-9])IPv6(?=$|[^A-Za-z0-9])/i],
+    ['DedicatedServer', /(?:^|[^A-Za-z0-9])(?:Bare\s*Metal|Baremetal|Dedicated\s*Server)(?=$|[^A-Za-z0-9])|独立服务器|獨立服務器|独服|獨服/i],
   ];
   return matchTagRules(name, rules);
 }
 
 function detectRouteTags(name) {
   const rules = [
-    ['IEPL', /(?:^|[^A-Za-z])IEPL(?:[^A-Za-z]|$)/i],
-    ['IPLC', /(?:^|[^A-Za-z])IPLC(?:[^A-Za-z]|$)/i],
-    ['CN2', /(?:^|[^A-Za-z0-9])CN2(?:[^A-Za-z0-9]|$)/i],
-    ['GIA', /(?:^|[^A-Za-z])GIA(?:[^A-Za-z]|$)/i],
-    ['BGP', /(?:^|[^A-Za-z])BGP(?:[^A-Za-z]|$)/i],
-    ['Anycast', /Anycast/i],
-    ['DirectRoute', /(直连线路|直連線路|Direct\s*Route|DirectRoute)/i],
+    ['IEPL', /(?:^|[^A-Za-z0-9])IEPL(?=$|[^A-Za-z0-9])/i],
+    ['IPLC', /(?:^|[^A-Za-z0-9])IPLC(?=$|[^A-Za-z0-9])/i],
+    ['CN2', /(?:^|[^A-Za-z0-9])CN2(?=$|[^A-Za-z0-9])/i],
+    ['GIA', /(?:^|[^A-Za-z0-9])GIA(?=$|[^A-Za-z0-9])/i],
+    ['BGP', /(?:^|[^A-Za-z0-9])BGP(?=$|[^A-Za-z0-9])/i],
+    ['Anycast', /(?:^|[^A-Za-z0-9])Anycast(?=$|[^A-Za-z0-9])/i],
+    ['DirectRoute', /直连线路|直連線路|(?:^|[^A-Za-z0-9])(?:Direct\s*Route|DirectRoute)(?=$|[^A-Za-z0-9])/i],
   ];
   const out = matchTagRules(name, rules);
   if (containsRelaySignal(name)) out.push('Relay');
@@ -1729,7 +1801,7 @@ function detectRouteTags(name) {
 
 function containsRelaySignal(name) {
   const text = String(name || '');
-  if (/(?:中转|中轉|转发|轉發|(?:^|[^A-Za-z])Relay(?:[^A-Za-z]|$)|(?:^|[^A-Za-z])Transit(?:[^A-Za-z]|$))/i.test(text)) return true;
+  if (/(?:中转|中轉|转发|轉發|(?:^|[^A-Za-z0-9])Relay(?:[^A-Za-z0-9]|$))/i.test(text)) return true;
 
   // Region + bare “转/轉” is accepted only when the region evidence is explicit.
   // This avoids treating an arbitrary standalone “转” as Relay and avoids a second
@@ -1744,13 +1816,13 @@ function containsRelaySignal(name) {
 
 function detectCapabilityTags(name) {
   const rules = [
-    ['Fast', /(?:^|[^A-Za-z])Fast(?:[^A-Za-z]|$)|Speed\s*Priority|速度优先|速度優先/i],
-    ['Stable', /(?:^|[^A-Za-z])Stable(?:[^A-Za-z]|$)|Availability\s*Priority|稳定优先|穩定優先|(?:^|[^A-Za-z])Balancer(?:[^A-Za-z]|$)/i],
-    ['HighBandwidth', /(High\s*Bandwidth|HighBandwidth|高带宽|高帶寬|不限速|Download\s*Optimized)/i],
-    ['BulkTraffic', /(BulkTraffic|Bulk\s*Traffic|大流量)/i],
+    ['Fast', /(?:^|[^A-Za-z0-9])Fast(?=$|[^A-Za-z0-9])|(?:^|[^A-Za-z0-9])Speed\s*Priority(?=$|[^A-Za-z0-9])|速度优先|速度優先/i],
+    ['Stable', /(?:^|[^A-Za-z0-9])Stable(?=$|[^A-Za-z0-9])|(?:^|[^A-Za-z0-9])Availability\s*Priority(?=$|[^A-Za-z0-9])|稳定优先|穩定優先/i],
+    ['HighBandwidth', /(?:^|[^A-Za-z0-9])(?:High\s*Bandwidth|HighBandwidth)(?=$|[^A-Za-z0-9])|高带宽|高帶寬/i],
+    ['BulkTraffic', /(?:^|[^A-Za-z0-9])(?:BulkTraffic|Bulk\s*Traffic)(?=$|[^A-Za-z0-9])|大流量/i],
     // Netflix / NF / 奈飞 are intentionally normalized into Streaming in V2.
-    ['Streaming', /(Streaming|流媒体|流媒體|Netflix|奈飞|奈飛|(?:^|[^A-Za-z0-9])NF(?:[^A-Za-z0-9]|$))/i],
-    ['Gaming', /Gaming|Game\s*Optimized|游戏(?:优化|優化)?|遊戲(?:优化|優化)?/i],
+    ['Streaming', /(?:^|[^A-Za-z0-9])(?:Streaming|Netflix|NF)(?=$|[^A-Za-z0-9])|流媒体|流媒體|奈飞|奈飛/i],
+    ['Gaming', /(?:^|[^A-Za-z0-9])(?:Gaming|Game\s*Optimized)(?=$|[^A-Za-z0-9])|游戏(?:优化|優化)?|遊戲(?:优化|優化)?/i],
   ];
   return matchTagRules(name, rules);
 }
@@ -1894,7 +1966,7 @@ function parseTagList(value, context, debug) {
   const multipliers = [];
   if (value == null || value === '' || value === false) return { tags, multiplier: null };
 
-  const rawItems = String(value).split(',').map(v => v.trim()).filter(Boolean);
+  const rawItems = splitStandardList(value);
   for (const item of rawItems) {
     if (Object.prototype.hasOwnProperty.call(TAG_DICTIONARY, item)) {
       tags.push(TAG_DICTIONARY[item]);
@@ -1937,7 +2009,7 @@ function parseDisabledAuto(value, debug) {
   const set = new Set();
   if (value == null || value === '') return set;
 
-  for (const item of String(value).split(',').map(v => v.trim()).filter(Boolean)) {
+  for (const item of splitStandardList(value)) {
     if (AUTO_DISABLE_VALUES.has(item)) set.add(item);
     else warn(`关闭自动识别 中存在未知值“${item}”，已忽略。允许：地区,网络,线路,能力,倍率,全部。`);
   }
@@ -1961,54 +2033,26 @@ function escapeRegExp(value) {
   return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function splitStrict(value, separator) {
-  if (value == null || value === '') return [];
-  return String(value).split(separator).map(v => v.trim()).filter(Boolean);
-}
 
 function applyIgnoreKeywords(name, keywords) {
   let text = String(name || '');
   if (!Array.isArray(keywords) || keywords.length === 0) return text;
 
-  // Replace matched fragments with a space instead of deleting them outright.
-  // This preserves token boundaries so “JP美西转US” will not accidentally become “JPUS”.
-  for (const keyword of keywords) {
-    const rawKeyword = String(keyword || '').trim();
-    if (!rawKeyword) continue;
-
-    const compactKeyword = rawKeyword.replace(/\s+/g, '');
-    if (!compactKeyword) continue;
-
-    // Code-like keywords use alphanumeric boundaries, consistent with manual matching.
-    // Example: 忽略关键词=US will match “JP-US-01” but not “BUS-01”.
-    if (/^[A-Za-z0-9._-]+$/.test(compactKeyword)) {
-      const escaped = compactKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const re = new RegExp(`(^|[^A-Za-z0-9])(${escaped})(?=$|[^A-Za-z0-9])`, 'gi');
-      text = text.replace(re, (match, prefix) => `${prefix || ''} `);
-      continue;
-    }
-
-    // Chinese / mixed human-readable phrases use literal substring replacement.
-    // Regex meta characters are escaped; user-supplied regular expressions are not supported.
-    const escaped = rawKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const re = new RegExp(escaped, 'gi');
-    text = text.replace(re, ' ');
-  }
-
+  // Use the same user-keyword semantics as manual mapping and exclusion. Matched fragments
+  // become a space so removing one token never glues neighboring tokens together.
+  for (const keyword of keywords) text = replaceUserKeyword(text, keyword, ' ');
   return text.replace(/\s+/g, ' ').trim();
 }
 
 function applyExclude(proxies, keywords) {
   if (!keywords.length) return { kept: proxies.slice(), excludedNames: new Set() };
-  const normalizedKeywords = keywords.map(normalizeMatchText).filter(Boolean);
   const kept = [];
   const excludedNames = new Set();
 
   for (const proxy of proxies) {
     const currentName = String(proxy?.name || '');
     const restored = restoreOriginalName(proxy, currentName);
-    const normalizedName = normalizeMatchText(restored.originalName);
-    const excluded = normalizedKeywords.some(k => normalizedName.includes(k));
+    const excluded = keywords.some(keyword => userKeywordMatches(restored.originalName, keyword));
     if (excluded) excludedNames.add(currentName);
     else kept.push(proxy);
   }
@@ -2366,24 +2410,58 @@ function matchTagRules(name, rules) {
 }
 
 function manualKeywordMatches(name, keyword) {
-  const rawKeyword = String(keyword || '').trim();
-  if (!rawKeyword) return false;
+  return userKeywordMatches(name, keyword);
+}
 
-  const compactName = String(name || '').replace(/\s+/g, '');
-  const compactKeyword = rawKeyword.replace(/\s+/g, '');
+function userKeywordMatches(name, keyword) {
+  const re = buildUserKeywordRegex(keyword, false);
+  return re ? re.test(String(name || '')) : false;
+}
 
-  // Provider codes and code-like literals (aa, B1, US-P, premium-us...) use
-  // alphanumeric boundaries. This avoids X matching 1x and US-P matching BUS-P.
-  if (/^[A-Za-z0-9._-]+$/.test(compactKeyword)) {
-    const escaped = compactKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const re = new RegExp(`(^|[^A-Za-z0-9])${escaped}([^A-Za-z0-9]|$)`, 'i');
-    return re.test(compactName);
+function replaceUserKeyword(name, keyword, replacement = ' ') {
+  const re = buildUserKeywordRegex(keyword, true);
+  if (!re) return String(name || '');
+  return String(name || '').replace(re, (match, prefix = '') => `${prefix || ''}${replacement}`);
+}
+
+function buildUserKeywordRegex(keyword, global) {
+  let raw = String(keyword == null ? '' : keyword).trim();
+  if (!raw) return null;
+  raw = raw.normalize ? raw.normalize('NFKC') : raw;
+  const flags = global ? 'gi' : 'i';
+
+  // ASCII/code-like single token: exact literal with alphanumeric boundaries.
+  // DMIT matches "DMIT Xray" / "DMIT-Xray" but not "DMITPro" or "XDMIT".
+  if (/^[A-Za-z0-9._-]+$/.test(raw)) {
+    const escaped = escapeRegExp(raw);
+    return new RegExp(`(^|[^A-Za-z0-9])(?:${escaped})(?=$|[^A-Za-z0-9])`, flags);
   }
 
-  return normalizeMatchText(name).includes(normalizeMatchText(rawKeyword));
+  // Pure ASCII multi-word phrase: keep word separation instead of compacting words.
+  // User-entered repeated whitespace is tolerated; separators are not invented silently.
+  if (/^[A-Za-z0-9._-]+(?:\s+[A-Za-z0-9._-]+)+$/.test(raw)) {
+    const parts = raw.split(/\s+/).map(escapeRegExp);
+    const phrase = parts.join('\\s+');
+    return new RegExp(`(^|[^A-Za-z0-9])(?:${phrase})(?=$|[^A-Za-z0-9])`, flags);
+  }
+
+  // CJK / mixed human-readable phrase: literal substring, whitespace-flexible only where
+  // the user actually typed whitespace. This avoids turning arbitrary separated ASCII codes
+  // into a glued token while still tolerating normal human spacing.
+  const chunks = raw.split(/\s+/).filter(Boolean).map(escapeRegExp);
+  const phrase = chunks.join('\\s*');
+  return new RegExp(`()(${phrase})`, flags);
 }
-function normalizeMatchText(value) {
-  return String(value || '').toLowerCase().replace(/\s+/g, '');
+
+
+function splitKeywordList(value) {
+  if (value == null || value === '') return [];
+  return String(value).split(/[|｜]/).map(v => v.trim()).filter(Boolean);
+}
+
+function splitStandardList(value) {
+  if (value == null || value === '') return [];
+  return String(value).split(/[,，]/).map(v => v.trim()).filter(Boolean);
 }
 
 function cleanSource(value) {
