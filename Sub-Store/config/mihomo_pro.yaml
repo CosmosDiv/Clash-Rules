@@ -1,9 +1,9 @@
 # ============================================================================
-# Mihomo Bare-Core Quality / Identity Routing V4.0.0
+# Mihomo Bare-Core Quality / Identity Routing V4.0.1
 # Target: Mihomo v1.19.30+
 #
-# Ordinary nodes: Node Standardizer V2.1.3 -> IPQuality V1.1.1 -> Mihomo
-# Chain nodes:    Node Standardizer V2.1.3 -> Mihomo (skip IPQuality)
+# Ordinary nodes: Node Standardizer V2.1.5 -> IPQuality V1.1.1 -> Mihomo
+# Chain nodes:    Node Standardizer V2.1.5 -> IPQuality V1.1.1 (auto bypass) -> Mihomo
 #
 # Node source modes (normally use one at a time):
 #   1. Static nodes written to top-level `proxies:` by Sub-Store
@@ -145,7 +145,7 @@ geox-url:
 geo-auto-update: true
 geo-update-interval: 24
 geodata-mode: true
-geodata-loader: memconservative
+geodata-loader: standard
 
 mode: rule
 port: 7890
@@ -159,7 +159,7 @@ unified-delay: true
 tcp-concurrent: true
 log-level: warning
 bind-address: '*'
-find-process-mode: 'always'
+find-process-mode: 'off'
 keep-alive-interval: 15
 keep-alive-idle: 600
 
