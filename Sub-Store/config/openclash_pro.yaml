@@ -161,7 +161,6 @@ tcp-concurrent: true
 log-level: warning
 bind-address: '*'
 # No PROCESS-* rules are used; OpenClash also recommends off on routers.
-find-process-mode: 'off'
 keep-alive-interval: 15
 keep-alive-idle: 600
 
