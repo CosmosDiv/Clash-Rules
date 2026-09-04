@@ -990,7 +990,7 @@ rule-providers:
   KeviinGeoIPCN:
     <<: *rule-ip
     path: ./rules/Keviin-GeoIP-CN.mrs
-    url: "https://testingcf.jsdelivr.net/gh/Keviin560/Shunt_Rules@main/rule/Mihomo/GeoIP_CN.mrs"
+    url: "https://testingcf.jsdelivr.net/gh/Keviin560/Shunt_Rules@main/rule/Mihomo/GeoIP_CN_IP.mrs"
   ProxyIP:
     <<: *rule-ip
     path: ./rules/Proxy-IP.mrs
