@@ -1,7 +1,16 @@
 /**
- * Sub-Store IPQuality Quality + Network Identity v1.1.1
+ * Sub-Store IPQuality Quality + Network Identity v1.2.0
  * ------------------------------------------------------------
  * Adapted from xykt/IPQuality v2026-08-09 (AGPL-3.0)
+ *
+ * v1.2.0 性能与可观测性版：
+ *   - Quality / Network Identity / Risk 过滤算法保持 v1.1.1 完全不变；
+ *   - 新增节点配置指纹 -> EIP 短缓存：默认成功 30 分钟、失败 2 分钟；
+ *   - EIP 缓存命中时不再为该节点启动 HTTP META；仅对缓存 MISS 节点实时探测；
+ *   - Provider 缓存缺失而 EIP 已缓存时，仅补启动每个相关 EIP 的一个代表节点；
+ *   - 新增 Run ID、阶段进度、EIP/Provider 缓存命中率、结果统计与总耗时日志；
+ *   - 新增同批次运行重叠提醒，只告警、不阻断；
+ *   - EIP 缓存采用独立 namespace，不影响 v1.0.1 Provider 缓存 namespace。
  *
  * v1.1.1 正式版：
  *   - 仅优化 Network Identity 最终显示标签：ConsIP / BusiIP / HostIP / UnkIP；
@@ -110,7 +119,14 @@
  *   检测Chain = 0       // 0=默认跳过 @Chain-*；1=检测但 Chain 永不因 Risk 删除
  *   成功缓存小时 = 20
  *   失败缓存小时 = 2
- *   强制刷新 = 0
+ *   强制刷新 = 0       // 1=Provider + EIP 全部强制刷新
+ *
+ *   出口缓存分钟 = 30  // 节点配置未变时复用 EIP；0=关闭
+ *   出口失败缓存分钟 = 2
+ *   出口强制刷新 = 0   // 只强制刷新 EIP，不影响 Provider 数据缓存
+ *
+ *   日志 = 1          // 1=输出阶段日志；需 Sub-Store 开启日志保存后在 /logs 查看
+ *   日志详情 = 0      // 1=额外输出各 Provider HIT/MISS
  *
  *   出口并发 = 4
  *   数据并发 = 2
@@ -129,6 +145,8 @@
 async function operator(proxies = [], targetPlatform, env = {}) {
   const $ = $substore
   const args = typeof $arguments === 'object' && $arguments ? $arguments : {}
+  const startedAt = Date.now()
+  const runId = createRunId()
 
   const exitConcurrency = Math.max(1, Math.min(12, parseInt(args['出口并发'] || 4)))
   const dataConcurrency = Math.max(1, Math.min(6, parseInt(args['数据并发'] || 2)))
@@ -138,11 +156,17 @@ async function operator(proxies = [], targetPlatform, env = {}) {
   const successCacheHours = Math.max(0, Number(args['成功缓存小时'] || 20))
   const failCacheHours = Math.max(0, Number(args['失败缓存小时'] || 2))
   const forceRefresh = isTruthy(args['强制刷新'])
+  const exitCacheMinutes = Math.max(0, Number(args['出口缓存分钟'] ?? 30))
+  const exitFailCacheMinutes = Math.max(0, Number(args['出口失败缓存分钟'] ?? 2))
+  const exitForceRefresh = forceRefresh || isTruthy(args['出口强制刷新'])
   const diagnostic = isTruthy(args['诊断'])
   const detectChain = isTruthy(args['检测Chain'])
   const hasFilterRiskArg = Object.prototype.hasOwnProperty.call(args, '过滤Risk')
   const filterRisk = hasFilterRiskArg ? isTruthy(args['过滤Risk']) : !diagnostic
+  const logEnabled = Object.prototype.hasOwnProperty.call(args, '日志') ? isTruthy(args['日志']) : true
+  const logDetails = isTruthy(args['日志详情'])
   const cache = typeof scriptResourceCache !== 'undefined' ? scriptResourceCache : null
+  const cacheAvailable = !!(cache && typeof cache.get === 'function' && typeof cache.set === 'function')
   const host = String(args.http_meta_host || '127.0.0.1')
   const port = String(args.http_meta_port || '9876')
   const protocol = String(args.http_meta_protocol || 'http')
@@ -150,10 +174,32 @@ async function operator(proxies = [], targetPlatform, env = {}) {
   const startDelay = Math.max(0, parseInt(args.http_meta_start_delay || 1800))
   const perProxyTimeout = Math.max(6000, parseInt(args.http_meta_proxy_timeout || 15000))
   const api = `${protocol}://${host}:${port}`
+  const log = createRunLogger($, runId, logEnabled)
 
   const output = proxies.map(p => ({ ...p }))
   const internal = []
   const riskIndices = new Set()
+  let chainBypass = 0
+  let unsupported = 0
+  let stage = 'prepare'
+  let runMarker = null
+  const sessions = []
+  const eipStats = {
+    cacheSuccessHit: 0,
+    cacheFailHit: 0,
+    cacheMiss: 0,
+    cacheReadError: 0,
+    cacheWriteError: 0,
+    probeSuccess: 0,
+    probeFail: 0,
+  }
+  const providerStats = {
+    hit: 0,
+    miss: 0,
+    readError: 0,
+    writeError: 0,
+    byProvider: {},
+  }
 
   for (let i = 0; i < proxies.length; i++) {
     const proxy = proxies[i]
@@ -161,78 +207,207 @@ async function operator(proxies = [], targetPlatform, env = {}) {
 
     // Production default: Chain landing nodes are manually authorized policy assets.
     // They share the same merged subscription, but bypass IPQuality unless explicitly requested.
-    if (isChain && !detectChain) continue
+    if (isChain && !detectChain) {
+      chainBypass++
+      continue
+    }
 
     try {
       const node = ProxyUtils.produce([{ ...proxy }], 'ClashMeta', 'internal', {
         'include-unsupported-proxy': true,
       })?.[0]
       if (!node) {
+        unsupported++
         output[i].name = addTempTags(proxy.name, diagnostic ? ['Unrated', 'UnkIP', 'IPProbeUnsup'] : ['Unrated', 'UnkIP'])
         continue
       }
       for (const key in proxy) {
         if (/^_/i.test(key)) node[key] = proxy[key]
       }
-      internal.push({ index: i, node, originalName: String(proxy.name || ''), ip: '', isChain })
+      internal.push({
+        index: i,
+        node,
+        originalName: String(proxy.name || ''),
+        ip: '',
+        isChain,
+        fingerprint: nodeFingerprint(node),
+        localProxy: '',
+      })
     } catch (_) {
+      unsupported++
       output[i].name = addTempTags(proxy.name, diagnostic ? ['Unrated', 'UnkIP', 'IPProbeUnsup'] : ['Unrated', 'UnkIP'])
     }
   }
 
-  if (!internal.length) return output
+  log.info(
+    `START | input=${proxies.length} detect=${internal.length} chain-bypass=${chainBypass} unsupported=${unsupported} ` +
+    `cache=${cacheAvailable ? 'available' : 'unavailable'} eip-ttl=${exitCacheMinutes}m provider-ttl=${successCacheHours}h`
+  )
 
-  let pid = null
-  let ports = []
+  if (!internal.length) {
+    log.info(`DONE | output=${output.length} duration=${formatDuration(Date.now() - startedAt)}`)
+    return output
+  }
+
+  const runScope = hashString(internal.map(x => x.fingerprint).sort().join('|'))
+  runMarker = markRunStarted(cache, runScope, runId, startedAt)
+  if (runMarker?.previous?.active) {
+    log.warn(
+      `OVERLAP | previous=${runMarker.previous.id || 'unknown'} ` +
+      `age=${formatDuration(Date.now() - Number(runMarker.previous.ts || Date.now()))}; current run continues`
+    )
+  }
+
+  const exitCache = loadExitCache(cache, eipStats)
+  let exitCacheDirty = false
 
   try {
-    const totalTimeout = startDelay + internal.length * perProxyTimeout
-    const startRes = await request($, {
-      method: 'post',
-      url: `${api}/start`,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: authorization,
-      },
-      body: JSON.stringify({ proxies: internal.map(x => x.node), timeout: totalTimeout }),
-      timeout: 30000,
-    })
+    stage = 'eip-cache'
+    const probeItems = []
 
-    const startBody = json(startRes.body)
-    if (!startBody?.pid || !Array.isArray(startBody?.ports) || startBody.ports.length !== internal.length) {
-      throw new Error('HTTP META start invalid')
-    }
+    for (const item of internal) {
+      const cached = getExitCacheEntry(
+        exitCache,
+        item.fingerprint,
+        exitCacheMinutes,
+        exitFailCacheMinutes,
+        exitForceRefresh
+      )
 
-    pid = startBody.pid
-    ports = startBody.ports
-    if (startDelay) await $.wait(startDelay)
+      if (cached.hit && cached.ok && cached.ip) {
+        item.ip = cached.ip
+        eipStats.cacheSuccessHit++
+        continue
+      }
 
-    // 第一步：只通过每个节点获取真实出口 IP。
-    const probeTasks = internal.map((item, pos) => async () => {
-      const localProxy = `http://${host}:${ports[pos]}`
-      try {
-        item.ip = await detectExitIp($, localProxy, exitTimeout)
-      } catch (_) {
+      if (cached.hit && !cached.ok) {
+        eipStats.cacheFailHit++
         output[item.index].name = addTempTags(
           item.originalName,
           diagnostic ? ['Unrated', 'UnkIP', 'IPProbeExitErr'] : ['Unrated', 'UnkIP']
         )
+        continue
       }
-    })
-    await runConcurrent(probeTasks, exitConcurrency)
 
-    // 第二步：按真实出口 IP 去重，每个 EIP 只选一个代表节点。
-    const representatives = new Map()
-    for (let pos = 0; pos < internal.length; pos++) {
-      const item = internal[pos]
-      if (!item.ip || representatives.has(item.ip)) continue
-      representatives.set(item.ip, `http://${host}:${ports[pos]}`)
+      eipStats.cacheMiss++
+      probeItems.push(item)
     }
 
-    // 第三步：单 EIP 严格串行。
+    log.info(
+      `EIP CACHE | hit=${eipStats.cacheSuccessHit} fail-hit=${eipStats.cacheFailHit} ` +
+      `miss=${eipStats.cacheMiss} force=${exitForceRefresh ? 'on' : 'off'}`
+    )
+
+    stage = 'eip-probe'
+    if (probeItems.length) {
+      log.info(`HTTP META | start EIP probe nodes=${probeItems.length}`)
+      const session = await startHttpMetaSession(
+        $, api, authorization, probeItems, startDelay, perProxyTimeout
+      )
+      sessions.push(session)
+      for (let i = 0; i < probeItems.length; i++) {
+        probeItems[i].localProxy = `http://${host}:${session.ports[i]}`
+      }
+
+      let done = 0
+      const reportProgress = createProgressReporter(probeItems.length, n => {
+        log.info(`EIP PROBE | ${n}/${probeItems.length}`)
+      })
+
+      const probeTasks = probeItems.map(item => async () => {
+        try {
+          item.ip = await detectExitIp($, item.localProxy, exitTimeout)
+          eipStats.probeSuccess++
+          if (exitCacheMinutes > 0) {
+            setExitCacheEntry(exitCache, item.fingerprint, true, item.ip)
+            exitCacheDirty = true
+          }
+        } catch (_) {
+          eipStats.probeFail++
+          output[item.index].name = addTempTags(
+            item.originalName,
+            diagnostic ? ['Unrated', 'UnkIP', 'IPProbeExitErr'] : ['Unrated', 'UnkIP']
+          )
+          if (exitFailCacheMinutes > 0) {
+            setExitCacheEntry(exitCache, item.fingerprint, false, '')
+            exitCacheDirty = true
+          }
+        } finally {
+          done++
+          reportProgress(done)
+        }
+      })
+      await runConcurrent(probeTasks, exitConcurrency)
+      log.info(
+        `EIP PROBE DONE | success=${eipStats.probeSuccess} fail=${eipStats.probeFail}`
+      )
+    } else {
+      log.info('HTTP META | skip EIP probe; all eligible nodes resolved from cache')
+    }
+
+    if (exitCacheDirty) {
+      persistExitCache(
+        cache,
+        exitCache,
+        Math.max(exitCacheMinutes, exitFailCacheMinutes),
+        exitCacheMinutes,
+        exitFailCacheMinutes,
+        eipStats
+      )
+    }
+    if (eipStats.cacheReadError || eipStats.cacheWriteError) {
+      log.warn(
+        `EIP CACHE ERROR | read=${eipStats.cacheReadError} write=${eipStats.cacheWriteError}`
+      )
+    }
+
+    // 按真实出口 IP 去重；优先保留已有 localProxy 的代表节点。
+    const representatives = new Map()
+    for (const item of internal) {
+      if (!item.ip) continue
+      const current = representatives.get(item.ip)
+      if (!current || (!current.localProxy && item.localProxy)) {
+        representatives.set(item.ip, item)
+      }
+    }
+
+    // 若 EIP 来自短缓存，但 Provider 数据已经过期/缺失，则只补启动每个 EIP 的一个代表节点。
+    stage = 'provider-preflight'
+    const providerProxyItems = []
+    for (const [ip, item] of representatives.entries()) {
+      if (item.localProxy) continue
+      if (providerNeedsLocalProxy(cache, ip, successCacheHours, failCacheHours, forceRefresh)) {
+        providerProxyItems.push(item)
+      }
+    }
+
+    if (providerProxyItems.length) {
+      log.info(
+        `HTTP META | provider refresh needs representative nodes=${providerProxyItems.length}`
+      )
+      const session = await startHttpMetaSession(
+        $, api, authorization, providerProxyItems, startDelay, perProxyTimeout
+      )
+      sessions.push(session)
+      for (let i = 0; i < providerProxyItems.length; i++) {
+        providerProxyItems[i].localProxy = `http://${host}:${session.ports[i]}`
+      }
+    }
+
+    // 单 EIP 严格串行；不同 EIP 之间按数据并发执行。
     // 先完整保持 upstream 的数据库顺序；最后再追加我们自己的 ProxyCheck 冗余。
+    stage = 'provider-check'
     const checkMap = new Map()
-    const checkTasks = [...representatives.entries()].map(([ip, localProxy]) => async () => {
+    const repEntries = [...representatives.entries()]
+    let providerDone = 0
+    const reportProviderProgress = createProgressReporter(repEntries.length, n => {
+      log.info(`PROVIDER CHECK | ${n}/${repEntries.length} EIP`)
+    })
+
+    log.info(`PROVIDER CHECK | unique-eip=${repEntries.length} concurrency=${dataConcurrency}`)
+
+    const checkTasks = repEntries.map(([ip, item]) => async () => {
+      const localProxy = item.localProxy || ''
       const r = {}
 
       // upstream 1: db_maxmind()
@@ -313,14 +488,27 @@ async function operator(proxies = [], targetPlatform, env = {}) {
       )
 
       r._fullMode = fullMode
+      recordProviderCacheStats(r, providerStats)
       checkMap.set(ip, r)
+      providerDone++
+      reportProviderProgress(providerDone)
     })
 
     await runConcurrent(checkTasks, dataConcurrency)
 
-    // 第四步：分别计算两张独立成绩单，再组合输出。
+    log.info(
+      `PROVIDER CACHE | hit=${providerStats.hit} miss=${providerStats.miss} ` +
+      `read-error=${providerStats.readError} write-error=${providerStats.writeError}`
+    )
+    if (logDetails) {
+      const detail = formatProviderCacheDetail(providerStats.byProvider)
+      if (detail) log.info(`PROVIDER CACHE DETAIL | ${detail}`)
+    }
+
+    // 分别计算两张独立成绩单，再组合输出。
     // Quality 只回答信誉/风险；Network Identity 只回答网络身份。
     // 相同 EIP 可以共享 r（自动数据库结果），但 Identity 必须逐节点叠加各自 Manual Source。
+    stage = 'verdict'
     for (const item of internal) {
       if (!item.ip) continue
       const r = checkMap.get(item.ip) || {}
@@ -366,7 +554,8 @@ async function operator(proxies = [], targetPlatform, env = {}) {
       output[item.index].name = addTempTags(item.originalName, tags.filter(Boolean))
       if (c.verdict === 'Risk' && !item.isChain) riskIndices.add(item.index)
     }
-  } catch (_) {
+  } catch (err) {
+    log.error(`FAIL | stage=${stage} reason=${errorMessage(err)}`)
     for (const item of internal) {
       output[item.index].name = addTempTags(
         item.originalName,
@@ -374,23 +563,323 @@ async function operator(proxies = [], targetPlatform, env = {}) {
       )
     }
   } finally {
-    if (pid) {
-      try {
-        await request($, {
-          method: 'post',
-          url: `${api}/stop`,
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: authorization,
-          },
-          body: JSON.stringify({ pid: [pid] }),
-          timeout: 5000,
-        })
-      } catch (_) {}
+    for (const session of sessions) {
+      await stopHttpMetaSession($, api, authorization, session)
     }
+    markRunFinished(cache, runMarker, runId)
   }
 
-  return filterRisk ? output.filter((_, i) => !riskIndices.has(i)) : output
+  const counts = countFinalClassifications(output)
+  const finalOutput = filterRisk ? output.filter((_, i) => !riskIndices.has(i)) : output
+  log.info(
+    `RESULT | Trust=${counts.quality.Trust} Normal=${counts.quality.Normal} ` +
+    `Risk=${counts.quality.Risk} Unrated=${counts.quality.Unrated} ` +
+    `ConsIP=${counts.identity.ConsIP} BusiIP=${counts.identity.BusiIP} ` +
+    `HostIP=${counts.identity.HostIP} UnkIP=${counts.identity.UnkIP}`
+  )
+  log.info(
+    `DONE | output=${finalOutput.length} risk-removed=${filterRisk ? riskIndices.size : 0} ` +
+    `duration=${formatDuration(Date.now() - startedAt)}`
+  )
+  return finalOutput
+}
+
+const EXIT_CACHE_KEY = 'ipqlite:eip:v1'
+const RUN_MARKER_PREFIX = 'ipqlite:run:v1:'
+
+function createRunId() {
+  return `${Date.now().toString(36).slice(-4)}${Math.random().toString(36).slice(2, 4)}`.toUpperCase()
+}
+
+function createRunLogger($, runId, enabled) {
+  const emit = (level, message) => {
+    if (!enabled) return
+    const line = `[IPQuality#${runId}] ${message}`
+    try {
+      if ($ && typeof $[level] === 'function') {
+        $[level](line)
+        return
+      }
+      if ($ && typeof $.log === 'function') {
+        $.log(line)
+        return
+      }
+      if (typeof console !== 'undefined') {
+        const fn = typeof console[level] === 'function' ? console[level] : console.log
+        fn.call(console, line)
+      }
+    } catch (_) {}
+  }
+  return {
+    info: message => emit('info', message),
+    warn: message => emit('warn', message),
+    error: message => emit('error', message),
+  }
+}
+
+function createProgressReporter(total, callback) {
+  if (!total || typeof callback !== 'function') return () => {}
+  const marks = new Set([
+    Math.max(1, Math.ceil(total * 0.25)),
+    Math.max(1, Math.ceil(total * 0.50)),
+    Math.max(1, Math.ceil(total * 0.75)),
+    total,
+  ])
+  return done => {
+    if (!marks.has(done)) return
+    marks.delete(done)
+    callback(done)
+  }
+}
+
+async function startHttpMetaSession($, api, authorization, items, startDelay, perProxyTimeout) {
+  const totalTimeout = startDelay + items.length * perProxyTimeout
+  const startRes = await request($, {
+    method: 'post',
+    url: `${api}/start`,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: authorization,
+    },
+    body: JSON.stringify({ proxies: items.map(x => x.node), timeout: totalTimeout }),
+    timeout: 30000,
+  })
+  const startBody = json(startRes.body)
+  if (!startBody?.pid || !Array.isArray(startBody?.ports) || startBody.ports.length !== items.length) {
+    throw new Error('HTTP META start invalid')
+  }
+  if (startDelay) await $.wait(startDelay)
+  return { pid: startBody.pid, ports: startBody.ports }
+}
+
+async function stopHttpMetaSession($, api, authorization, session) {
+  if (!session?.pid) return
+  try {
+    await request($, {
+      method: 'post',
+      url: `${api}/stop`,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: authorization,
+      },
+      body: JSON.stringify({ pid: [session.pid] }),
+      timeout: 5000,
+    })
+  } catch (_) {}
+}
+
+function loadExitCache(cache, stats) {
+  const empty = { version: 1, entries: {} }
+  if (!cache || typeof cache.get !== 'function') return empty
+  try {
+    const raw = cache.get(EXIT_CACHE_KEY)
+    if (!raw || typeof raw !== 'object' || !raw.entries || typeof raw.entries !== 'object') {
+      return empty
+    }
+    return { version: 1, entries: { ...raw.entries } }
+  } catch (_) {
+    if (stats) stats.cacheReadError++
+    return empty
+  }
+}
+
+function getExitCacheEntry(store, fingerprint, successMinutes, failMinutes, force) {
+  if (force || !store?.entries || !fingerprint) return { hit: false }
+  const entry = store.entries[fingerprint]
+  if (!entry || !entry.ts) return { hit: false }
+  const ttlMinutes = entry.ok ? successMinutes : failMinutes
+  if (!(ttlMinutes > 0)) return { hit: false }
+  const age = Date.now() - Number(entry.ts)
+  if (age < 0 || age >= ttlMinutes * 60 * 1000) return { hit: false }
+  if (entry.ok) {
+    const ip = normalizeIp(entry.ip)
+    if (!ip) return { hit: false }
+    return { hit: true, ok: true, ip }
+  }
+  return { hit: true, ok: false, ip: '' }
+}
+
+function setExitCacheEntry(store, fingerprint, ok, ip) {
+  if (!store?.entries || !fingerprint) return
+  store.entries[fingerprint] = {
+    ts: Date.now(),
+    ok: !!ok,
+    ip: ok ? normalizeIp(ip) : '',
+  }
+}
+
+function persistExitCache(cache, store, ttlMinutes, successMinutes, failMinutes, stats) {
+  if (!cache || typeof cache.set !== 'function' || !(ttlMinutes > 0)) return
+  try {
+    const now = Date.now()
+    const latest = (() => {
+      try {
+        const raw = cache.get(EXIT_CACHE_KEY)
+        return raw && typeof raw === 'object' && raw.entries && typeof raw.entries === 'object'
+          ? raw.entries
+          : {}
+      } catch (_) {
+        if (stats) stats.cacheReadError++
+        return {}
+      }
+    })()
+
+    const merged = { ...latest }
+    for (const [key, value] of Object.entries(store.entries || {})) {
+      if (!merged[key] || Number(value?.ts || 0) >= Number(merged[key]?.ts || 0)) {
+        merged[key] = value
+      }
+    }
+
+    for (const [key, value] of Object.entries(merged)) {
+      const ttl = value?.ok ? successMinutes : failMinutes
+      const age = now - Number(value?.ts || 0)
+      if (!(ttl > 0) || !value?.ts || age < 0 || age >= ttl * 60 * 1000) {
+        delete merged[key]
+      }
+    }
+
+    cache.set(
+      EXIT_CACHE_KEY,
+      { version: 1, entries: merged },
+      Math.max(1000, ttlMinutes * 60 * 1000)
+    )
+  } catch (_) {
+    if (stats) stats.cacheWriteError++
+  }
+}
+
+function nodeFingerprint(node) {
+  const clean = {}
+  for (const key of Object.keys(node || {}).sort()) {
+    if (key === 'name' || /^_/i.test(key)) continue
+    clean[key] = node[key]
+  }
+  return hashString(stableSerialize(clean))
+}
+
+function stableSerialize(value) {
+  if (value === null || value === undefined) return String(value)
+  if (typeof value !== 'object') return JSON.stringify(value)
+  if (Array.isArray(value)) return `[${value.map(stableSerialize).join(',')}]`
+  return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableSerialize(value[key])}`).join(',')}}`
+}
+
+function hashString(value) {
+  const s = String(value || '')
+  let h1 = 0x811c9dc5
+  let h2 = 0x9e3779b9
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i)
+    h1 = Math.imul(h1 ^ c, 0x01000193)
+    h2 = Math.imul(h2 ^ c, 0x85ebca6b)
+    h2 ^= h2 >>> 13
+  }
+  return `${(h1 >>> 0).toString(16).padStart(8, '0')}${(h2 >>> 0).toString(16).padStart(8, '0')}`
+}
+
+function readProviderCacheSnapshot(cache, provider, ip, okHours, failHours, force) {
+  if (force || !cache || typeof cache.get !== 'function') return { hit: false }
+  try {
+    const hit = cache.get(`ipqlite:v101:${provider}:${ip}`)
+    if (!hit || !hit.ts || !hit.result) return { hit: false }
+    const ttl = hit.ok ? okHours : failHours
+    if (!(ttl > 0) || Date.now() - Number(hit.ts) >= ttl * 3600 * 1000) {
+      return { hit: false }
+    }
+    return { hit: true, result: hit.result }
+  } catch (_) {
+    return { hit: false }
+  }
+}
+
+function providerNeedsLocalProxy(cache, ip, okHours, failHours, force) {
+  const mm = readProviderCacheSnapshot(cache, 'mm', ip, okHours, failHours, force)
+  if (!mm.hit) return true
+  const fullMode = maxmindBaseUsable(mm.result)
+  const keys = fullMode
+    ? ['ii', 'sc', 'ir', 'ia', 'ab', 'i2', 'db', 'id', 'iq', 'pc']
+    : ['ii', 'ir', 'ia', 'db', 'pc']
+  for (const key of keys) {
+    if (key === 'db' && String(ip).includes(':')) continue
+    if (!readProviderCacheSnapshot(cache, key, ip, okHours, failHours, force).hit) {
+      return true
+    }
+  }
+  return false
+}
+
+function recordProviderCacheStats(r, stats) {
+  if (!stats || !r) return
+  for (const [provider, result] of Object.entries(r)) {
+    if (provider.startsWith('_') || !result || typeof result._cached !== 'boolean') continue
+    const bucket = stats.byProvider[provider] || { hit: 0, miss: 0 }
+    if (result._cached) {
+      stats.hit++
+      bucket.hit++
+    } else {
+      stats.miss++
+      bucket.miss++
+    }
+    if (result._cacheReadError) stats.readError++
+    if (result._cacheWriteError) stats.writeError++
+    stats.byProvider[provider] = bucket
+  }
+}
+
+function formatProviderCacheDetail(byProvider) {
+  const order = ['mm', 'ii', 'sc', 'ir', 'ia', 'ab', 'i2', 'db', 'id', 'iq', 'pc']
+  return order
+    .filter(key => byProvider?.[key])
+    .map(key => `${key.toUpperCase()} H${byProvider[key].hit}/M${byProvider[key].miss}`)
+    .join(' | ')
+}
+
+function markRunStarted(cache, scope, runId, ts) {
+  if (!cache || typeof cache.get !== 'function' || typeof cache.set !== 'function') return null
+  const key = `${RUN_MARKER_PREFIX}${scope}`
+  let previous = null
+  try {
+    previous = cache.get(key)
+  } catch (_) {}
+  try {
+    cache.set(key, { active: true, id: runId, ts }, 30 * 60 * 1000)
+  } catch (_) {}
+  return { key, previous }
+}
+
+function markRunFinished(cache, marker, runId) {
+  if (!marker?.key || !cache || typeof cache.get !== 'function' || typeof cache.set !== 'function') return
+  try {
+    const current = cache.get(marker.key)
+    if (current?.active && current.id === runId) {
+      cache.set(marker.key, { active: false, id: runId, ts: Date.now() }, 1000)
+    }
+  } catch (_) {}
+}
+
+function countFinalClassifications(output) {
+  const quality = { Trust: 0, Normal: 0, Risk: 0, Unrated: 0 }
+  const identity = { ConsIP: 0, BusiIP: 0, HostIP: 0, UnkIP: 0 }
+  for (const proxy of output || []) {
+    const parsed = parseV21Name(proxy?.name)
+    if (!parsed) continue
+    for (const tag of parsed.tags) {
+      if (Object.prototype.hasOwnProperty.call(quality, tag)) quality[tag]++
+      if (Object.prototype.hasOwnProperty.call(identity, tag)) identity[tag]++
+    }
+  }
+  return { quality, identity }
+}
+
+function formatDuration(ms) {
+  const n = Math.max(0, Number(ms) || 0)
+  if (n < 1000) return `${Math.round(n)}ms`
+  return `${(n / 1000).toFixed(n < 10000 ? 2 : 1)}s`
+}
+
+function errorMessage(err) {
+  return String(err?.message || err || 'unknown error').replace(/\s+/g, ' ').slice(0, 240)
 }
 
 async function detectExitIp($, localProxy, timeout) {
@@ -487,6 +976,8 @@ async function safeProvider(fn) {
 async function cachedProvider(cache, provider, ip, okHours, failHours, force, fetcher) {
   const key = `ipqlite:v101:${provider}:${ip}`
   const now = Date.now()
+  let cacheReadError = false
+  let cacheWriteError = false
 
   if (!force && cache && typeof cache.get === 'function') {
     try {
@@ -494,10 +985,17 @@ async function cachedProvider(cache, provider, ip, okHours, failHours, force, fe
       if (hit && hit.ts && hit.result) {
         const ttl = hit.ok ? okHours : failHours
         if (ttl > 0 && now - Number(hit.ts) < ttl * 3600 * 1000) {
-          return { ...hit.result, _cached: true }
+          return {
+            ...hit.result,
+            _cached: true,
+            _cacheReadError: false,
+            _cacheWriteError: false,
+          }
         }
       }
-    } catch (_) {}
+    } catch (_) {
+      cacheReadError = true
+    }
   }
 
   let result
@@ -514,9 +1012,16 @@ async function cachedProvider(cache, provider, ip, okHours, failHours, force, fe
   if (cache && typeof cache.set === 'function') {
     try {
       cache.set(key, { ts: now, ok, result })
-    } catch (_) {}
+    } catch (_) {
+      cacheWriteError = true
+    }
   }
-  return { ...result, _cached: false }
+  return {
+    ...result,
+    _cached: false,
+    _cacheReadError: cacheReadError,
+    _cacheWriteError: cacheWriteError,
+  }
 }
 
 function providerHasUsableEvidence(key, r) {
