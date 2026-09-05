@@ -1,5 +1,5 @@
 /**
- * Sub-Store IPQuality Quality + Network Identity v1.4.0 Stable
+ * Sub-Store IPQuality Quality + Network Identity v1.4.1 Stable
  * ------------------------------------------------------------
  * Upstream detection semantics baseline:
  *   xykt/IPQuality v2026-09-04
@@ -8,8 +8,12 @@
  *
  * Pipeline contract:
  *   Node Standardizer V2.1.5
- *     -> IPQuality V1.4.0
+ *     -> IPQuality V1.4.1
  *     -> Mihomo / OpenClash / Surfing V4.0.1 policy layer
+ *
+ * v1.4.1 Stable:
+ *   - 修复“零参数生产默认”遗漏：过滤失效未填写时，正式模式(诊断=0)默认开启，诊断模式(诊断=1)默认关闭；
+ *   - 仅修正默认开关与说明，不改变 DeadCandidate/DeadConfirmed 判定、Provider、Quality、Identity、Cache、Chain 等核心算法。
  *
  * v1.4.0 Stable:
  *   - 新增高置信度“失效节点复检/过滤”：一次 Full/EIP 任务内先完成正常 EIP 探测，
@@ -17,7 +21,7 @@
  *   - DeadCandidate 不会直接删除。先用本轮其他 Live Route 评估环境，再启动独立 Fresh HTTP META Session，
  *     以最多 3 个已知 EIP 成功 route 作为 Control；至少 2 个 Control 现场复测成功后，才复检 Candidate；
  *   - Candidate 在 Fresh META 下再次完整 Transport Failure 才标记 DeadConfirmed；任一复检恢复则 DeadRecovered；
- *   - 过滤失效=1 时只过滤 DeadConfirmed；默认关闭。Chain 默认旁路，Unsupported/Provider/HTTP 状态响应均不会判 Dead；
+ *   - 过滤失效=1 时只过滤 DeadConfirmed；未填写时正式模式默认1、诊断模式默认0。Chain 默认旁路，Unsupported/Provider/HTTP 状态响应均不会判 Dead；
  *   - Dead 健康门仅使用“本轮真实 Live Probe”，缓存命中不冒充实时健康证据；小样本时由 Fresh Control 兜底；
  *   - 保留 v1.3.2 的 upstream-style HTTP Recovery 与逐 Endpoint EIP DETAIL；不纳入 v1.3.3 实验 Rescue Endpoint。
  *   - RESULT 现在统计最终保留节点；诊断模式且启用过滤时额外输出 RESULT RAW，避免 Dead/Risk 已删除但 RESULT 仍计入的歧义。
@@ -70,7 +74,7 @@
  *   诊断 = 0
  *   过滤Risk =              // 未填写：正式模式默认1，诊断模式默认0
  *   检测Chain = 0
- *   过滤失效 = 0          // 仅过滤 Fresh META 二次确认的 DeadConfirmed；默认关闭
+ *   过滤失效 =            // 未填写：正式模式默认1，诊断模式默认0；仅过滤 DeadConfirmed
  *   失效复检 = 1          // DeadCandidate 使用 Fresh META + Control Node 二次确认
  *
  *   阶段 = Full             // Full / EIP / Provider
@@ -105,7 +109,7 @@
  *   http_meta_proxy_timeout = 15000
  */
 
-const IPQUALITY_VERSION = '1.4.0'
+const IPQUALITY_VERSION = '1.4.1'
 const UPSTREAM_VERSION = 'v2026-09-04'
 const UPSTREAM_COMMIT = '3c0eb8856c67ad351020d1edd1bfd4e2515d32fe'
 
@@ -198,7 +202,8 @@ async function operator(proxies = [], targetPlatform, env = {}) {
 
   const diagnostic = isTruthy(args['诊断'])
   const detectChain = isTruthy(args['检测Chain'])
-  const filterDead = isTruthy(args['过滤失效'])
+  const hasFilterDeadArg = Object.prototype.hasOwnProperty.call(args, '过滤失效')
+  const filterDead = hasFilterDeadArg ? isTruthy(args['过滤失效']) : !diagnostic
   const deadRecheck = Object.prototype.hasOwnProperty.call(args, '失效复检')
     ? isTruthy(args['失效复检'])
     : true
