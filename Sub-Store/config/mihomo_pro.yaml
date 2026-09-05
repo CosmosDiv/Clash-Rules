@@ -156,7 +156,7 @@ tproxy-port: 7895
 ipv6: true
 allow-lan: true
 unified-delay: true
-tcp-concurrent: true
+tcp-concurrent: false
 log-level: warning
 bind-address: '*'
 find-process-mode: 'off'
