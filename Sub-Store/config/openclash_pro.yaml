@@ -20,7 +20,7 @@ x-user-config:
   provider-update-interval: &provider-update-interval 86400
 
   test-url: &test-url https://www.gstatic.com/generate_204
-  test-interval: &test-interval 600
+  test-interval: &test-interval 300
   test-timeout: &test-timeout 3000
   test-tolerance: &test-tolerance 80
 
@@ -31,6 +31,7 @@ x-user-config:
 x-fallback: &fallback
   type: fallback
   interval: *test-interval
+  max-failed-times: 5
   lazy: true
   url: *test-url
   timeout: *test-timeout
@@ -42,6 +43,7 @@ x-url-test: &url-test
   include-all: true
   interval: *test-interval
   tolerance: *test-tolerance
+  max-failed-times: 5
   lazy: true
   url: *test-url
   timeout: *test-timeout
@@ -132,9 +134,14 @@ proxy-providers:
         - "ClashforWindows/0.19.23"
         - "clash.meta"
         - "mihomo"
-    # Real-node url-test groups perform the policy health checks.
+    # Provider health-check keeps provider-node liveness fresh.
     health-check:
-      enable: false
+      enable: true
+      url: *test-url
+      interval: *test-interval
+      timeout: *test-timeout
+      lazy: true
+      expected-status: 204
 
 # ==================== 04. OpenClash Runtime ====================
 geox-url:
