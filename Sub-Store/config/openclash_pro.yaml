@@ -157,7 +157,7 @@ tproxy-port: 7895
 ipv6: true
 allow-lan: true
 unified-delay: true
-tcp-concurrent: true
+tcp-concurrent: false
 log-level: warning
 bind-address: '*'
 # No PROCESS-* rules are used; OpenClash also recommends off on routers.
