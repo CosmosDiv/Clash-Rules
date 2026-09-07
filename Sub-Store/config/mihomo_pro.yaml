@@ -247,7 +247,7 @@ proxy-groups:
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"
   - name: Fallback
     <<: *fallback
-    proxies: [HK Trust Auto, TW Trust Auto, SG Trust Auto, JP Trust Auto, KR Trust Auto, US Trust Auto, CA Trust Auto, AU Trust Auto, UK Trust Auto, EU Trust Auto, HK Normal Auto, TW Normal Auto, SG Normal Auto, JP Normal Auto, KR Normal Auto, US Normal Auto, CA Normal Auto, AU Normal Auto, UK Normal Auto, EU Normal Auto]
+    proxies: [HK Auto, TW Auto, SG Auto, JP Auto, KR Auto, US Auto, CA Auto, AU Auto, UK Auto, EU Auto]
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Available.png"
   - name: Direct
     type: select
@@ -268,17 +268,20 @@ proxy-groups:
 
   # ---------- Front / Chain ----------
   - name: Front Proxy
-    <<: *select-nodes
-    proxies: [Front Auto, Direct]
-    filter: *filter-all-ordinary
-    exclude-filter: *exclude-chain
+    type: select
+    proxies: [Front Auto, Front Manual, Direct]
     default-selected: Front Auto
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"
   - name: Front Auto
     <<: *fallback
-    proxies: [US Trust Auto, HK Trust Auto, JP Trust Auto, TW Trust Auto, SG Trust Auto, US Normal Auto, HK Normal Auto, JP Normal Auto, TW Normal Auto, SG Normal Auto]
+    proxies: [US Auto, HK Auto, JP Auto, TW Auto, SG Auto]
     hidden: true
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
+  - name: Front Manual
+    <<: *select-nodes
+    filter: *filter-all-ordinary
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"
   # Chain landing nodes should already carry `dialer-proxy: Front Proxy` from Sub-Store.
   - name: Chain
     <<: *select-nodes
@@ -324,10 +327,8 @@ proxy-groups:
     default-selected: Microsoft Auto
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Microsoft.png"
   - name: YouTube
-    <<: *select-nodes
-    proxies: [YouTube Auto, YouTube Bulk, Proxy]
-    filter: *filter-youtube-bulk
-    exclude-filter: *exclude-chain
+    type: select
+    proxies: [YouTube Auto, YouTube Bulk, YouTube Manual, Proxy]
     default-selected: YouTube Auto
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/YouTube.png"
   - name: AI
@@ -346,114 +347,94 @@ proxy-groups:
     default-selected: Apple Auto
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Apple.png"
 
-  # ---------- Region Selectors: Auto + Direct Nodes ----------
+  # ---------- Region Selectors ----------
   - name: HK
-    <<: *select-nodes
-    proxies: [HK Auto]
-    filter: *filter-hk-manual
-    exclude-filter: *exclude-chain
+    type: select
+    proxies: [HK Auto, HK Manual]
     default-selected: HK Auto
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Hong_Kong.png"
   - name: TW
-    <<: *select-nodes
-    proxies: [TW Auto]
-    filter: *filter-tw-manual
-    exclude-filter: *exclude-chain
+    type: select
+    proxies: [TW Auto, TW Manual]
     default-selected: TW Auto
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/TW.png"
   - name: SG
-    <<: *select-nodes
-    proxies: [SG Auto]
-    filter: *filter-sg-manual
-    exclude-filter: *exclude-chain
+    type: select
+    proxies: [SG Auto, SG Manual]
     default-selected: SG Auto
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/SG.png"
   - name: JP
-    <<: *select-nodes
-    proxies: [JP Auto]
-    filter: *filter-jp-manual
-    exclude-filter: *exclude-chain
+    type: select
+    proxies: [JP Auto, JP Manual]
     default-selected: JP Auto
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/JP.png"
   - name: KR
-    <<: *select-nodes
-    proxies: [KR Auto]
-    filter: *filter-kr-manual
-    exclude-filter: *exclude-chain
+    type: select
+    proxies: [KR Auto, KR Manual]
     default-selected: KR Auto
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/KR.png"
   - name: US
-    <<: *select-nodes
-    proxies: [US Auto]
-    filter: *filter-us-manual
-    exclude-filter: *exclude-chain
+    type: select
+    proxies: [US Auto, US Manual]
     default-selected: US Auto
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"
   - name: CA
-    <<: *select-nodes
-    proxies: [CA Auto]
-    filter: *filter-ca-manual
-    exclude-filter: *exclude-chain
+    type: select
+    proxies: [CA Auto, CA Manual]
     default-selected: CA Auto
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Canada.png"
   - name: AU
-    <<: *select-nodes
-    proxies: [AU Auto]
-    filter: *filter-au-manual
-    exclude-filter: *exclude-chain
+    type: select
+    proxies: [AU Auto, AU Manual]
     default-selected: AU Auto
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Australia.png"
   - name: UK
-    <<: *select-nodes
-    proxies: [UK Auto]
-    filter: *filter-uk-manual
-    exclude-filter: *exclude-chain
+    type: select
+    proxies: [UK Auto, UK Manual]
     default-selected: UK Auto
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_Kingdom.png"
   - name: EU
-    <<: *select-nodes
-    proxies: [EU Auto]
-    filter: *filter-eu-manual
-    exclude-filter: *exclude-chain
+    type: select
+    proxies: [EU Auto, EU Manual]
     default-selected: EU Auto
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/EU.png"
 
-  # ---------- Service Auto (hidden; Quality Tier -> Region) ----------
+  # ---------- Service Auto (hidden) ----------
   - name: Streaming Auto
     <<: *fallback
-    proxies: [SG Trust Auto, TW Trust Auto, HK Trust Auto, JP Trust Auto, US Trust Auto, SG Normal Auto, TW Normal Auto, HK Normal Auto, JP Normal Auto, US Normal Auto]
+    proxies: [SG Auto, TW Auto, HK Auto, JP Auto, US Auto]
     hidden: true
   - name: Telegram Auto
     <<: *fallback
-    proxies: [HK Trust Auto, SG Trust Auto, JP Trust Auto, TW Trust Auto, US Trust Auto, HK Normal Auto, SG Normal Auto, JP Normal Auto, TW Normal Auto, US Normal Auto]
+    proxies: [HK Auto, SG Auto, JP Auto, TW Auto, US Auto]
     hidden: true
   - name: Social Auto
     <<: *fallback
-    proxies: [US Trust Auto, SG Trust Auto, TW Trust Auto, HK Trust Auto, JP Trust Auto, US Normal Auto, SG Normal Auto, TW Normal Auto, HK Normal Auto, JP Normal Auto]
+    proxies: [US Auto, SG Auto, TW Auto, HK Auto, JP Auto]
     hidden: true
   - name: Dev Auto
     <<: *fallback
-    proxies: [US Trust Auto, JP Trust Auto, TW Trust Auto, SG Trust Auto, HK Trust Auto, US Normal Auto, JP Normal Auto, TW Normal Auto, SG Normal Auto, HK Normal Auto]
+    proxies: [US Auto, JP Auto, TW Auto, SG Auto, HK Auto]
     hidden: true
   - name: Crypto Auto
     <<: *fallback
-    proxies: [SG Trust Auto, TW Trust Auto, JP Trust Auto, HK Trust Auto, US Trust Auto, SG Normal Auto, TW Normal Auto, JP Normal Auto, HK Normal Auto, US Normal Auto]
+    proxies: [SG Auto, TW Auto, JP Auto, HK Auto, US Auto]
     hidden: true
   - name: Games Auto
     <<: *fallback
-    proxies: [HK Trust Auto, TW Trust Auto, JP Trust Auto, SG Trust Auto, US Trust Auto, HK Normal Auto, TW Normal Auto, JP Normal Auto, SG Normal Auto, US Normal Auto]
+    proxies: [HK Auto, TW Auto, JP Auto, SG Auto, US Auto]
     hidden: true
   - name: Microsoft Auto
     <<: *fallback
-    proxies: [US Trust Auto, JP Trust Auto, TW Trust Auto, SG Trust Auto, HK Trust Auto, US Normal Auto, JP Normal Auto, TW Normal Auto, SG Normal Auto, HK Normal Auto]
+    proxies: [US Auto, JP Auto, TW Auto, SG Auto, HK Auto]
     hidden: true
   - name: Apple Auto
     <<: *fallback
-    proxies: [US Trust Auto, JP Trust Auto, TW Trust Auto, SG Trust Auto, HK Trust Auto, US Normal Auto, JP Normal Auto, TW Normal Auto, SG Normal Auto, HK Normal Auto]
+    proxies: [US Auto, JP Auto, TW Auto, SG Auto, HK Auto]
     hidden: true
   - name: AI Auto
     <<: *fallback
-    proxies: [US Trust ConsIP, JP Trust ConsIP, TW Trust ConsIP, SG Trust ConsIP, US Trust BusiIP, JP Trust BusiIP, TW Trust BusiIP, SG Trust BusiIP, US Trust HostIP, JP Trust HostIP, TW Trust HostIP, SG Trust HostIP]
+    proxies: [US AI, JP AI, TW AI, SG AI]
     hidden: true
   - name: RedPocket Auto
     <<: *fallback
@@ -471,6 +452,11 @@ proxy-groups:
     filter: *filter-youtube-bulk
     exclude-filter: *exclude-chain
     hidden: true
+  - name: YouTube Manual
+    <<: *select-nodes
+    filter: *filter-youtube-bulk
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/YouTube.png"
 
   # ---------- Region Auto: Trust -> Normal ----------
   - name: HK Auto
@@ -616,6 +602,57 @@ proxy-groups:
     exclude-filter: *exclude-chain
     hidden: true
 
+  # ---------- Region Manual ----------
+  - name: HK Manual
+    <<: *select-nodes
+    filter: *filter-hk-manual
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Hong_Kong.png"
+  - name: TW Manual
+    <<: *select-nodes
+    filter: *filter-tw-manual
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/TW.png"
+  - name: SG Manual
+    <<: *select-nodes
+    filter: *filter-sg-manual
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/SG.png"
+  - name: JP Manual
+    <<: *select-nodes
+    filter: *filter-jp-manual
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/JP.png"
+  - name: KR Manual
+    <<: *select-nodes
+    filter: *filter-kr-manual
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/KR.png"
+  - name: US Manual
+    <<: *select-nodes
+    filter: *filter-us-manual
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"
+  - name: CA Manual
+    <<: *select-nodes
+    filter: *filter-ca-manual
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Canada.png"
+  - name: AU Manual
+    <<: *select-nodes
+    filter: *filter-au-manual
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Australia.png"
+  - name: UK Manual
+    <<: *select-nodes
+    filter: *filter-uk-manual
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_Kingdom.png"
+  - name: EU Manual
+    <<: *select-nodes
+    filter: *filter-eu-manual
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/EU.png"
 
   # ---------- AI Identity Pools ----------
   - name: US AI
