@@ -13,7 +13,7 @@
 #
 # IMPORTANT:
 #   Ordered fallback groups below use `use: [proxy1]`, so this test expects provider mode.
-#   This test expects the OpenClash provider path: Sub-Store OnlyNode -> GitHub -> proxy1.
+#   Ordered fallback groups support both Sub-Store static-node injection and proxy-provider mode.
 # ============================================================================
 
 # ==================== 00. User Configuration ====================
@@ -145,15 +145,19 @@ x-filter-order-jp-ai: &filter-order-jp-ai '(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜
 x-filter-order-tw-ai: &filter-order-tw-ai '(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ConsIP(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]BusiIP(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
 x-filter-order-sg-ai: &filter-order-sg-ai '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ConsIP(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]BusiIP(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
 
-# Every automatic fallback in this test consumes real nodes from proxy1 directly.
-x-provider-fallback: &provider-fallback
+# Every automatic fallback consumes real nodes directly.
+# `include-all: true` keeps both supported source modes:
+#   1) static nodes injected into top-level `proxies:` by Sub-Store
+#   2) nodes loaded from `proxy-providers`
+# Ordered backtick-separated filters still determine the fallback priority.
+x-node-fallback: &node-fallback
   <<: *fallback
-  use: [proxy1]
+  include-all: true
   exclude-filter: *exclude-chain
 
 # ==================== 03. Proxy Sources ====================
-# Ordered fallback groups in this test consume `proxy1` directly.
-# If provider mode is used, top-level static `proxies:` remains empty.
+# OpenClash keeps both node-source modes. Sub-Store may inject static nodes here;
+# alternatively `proxy1` may load the OnlyNode source.
 proxies: []
 
 proxy-providers:
@@ -282,7 +286,7 @@ proxy-groups:
     default-selected: Fallback
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"
   - name: Fallback
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-main
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Available.png"
   - name: Direct
@@ -309,7 +313,7 @@ proxy-groups:
     default-selected: Front Auto
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"
   - name: Front Auto
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-front
     hidden: true
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
@@ -434,43 +438,43 @@ proxy-groups:
 
   # ---------- Service Auto: direct provider nodes ----------
   - name: Streaming Auto
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-streaming
     hidden: true
   - name: Telegram Auto
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-telegram
     hidden: true
   - name: Social Auto
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-social
     hidden: true
   - name: Dev Auto
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-dev
     hidden: true
   - name: Crypto Auto
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-crypto
     hidden: true
   - name: Games Auto
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-games
     hidden: true
   - name: Microsoft Auto
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-microsoft
     hidden: true
   - name: Apple Auto
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-apple
     hidden: true
   - name: AI Auto
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-ai
     hidden: true
   - name: RedPocket Auto
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-us-ai
     hidden: true
 
@@ -493,43 +497,43 @@ proxy-groups:
 
   # ---------- Region Auto: Trust -> Normal, direct provider nodes ----------
   - name: HK Auto
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-hk
     hidden: true
   - name: TW Auto
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-tw
     hidden: true
   - name: SG Auto
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-sg
     hidden: true
   - name: JP Auto
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-jp
     hidden: true
   - name: KR Auto
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-kr
     hidden: true
   - name: US Auto
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-us
     hidden: true
   - name: CA Auto
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-ca
     hidden: true
   - name: AU Auto
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-au
     hidden: true
   - name: UK Auto
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-uk
     hidden: true
   - name: EU Auto
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-eu
     hidden: true
 
@@ -587,7 +591,7 @@ proxy-groups:
 
   # ---------- AI Identity Pools ----------
   - name: US AI
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-us-ai
     hidden: true
   - name: US Trust ConsIP
@@ -606,7 +610,7 @@ proxy-groups:
     exclude-filter: *exclude-chain
     hidden: true
   - name: JP AI
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-jp-ai
     hidden: true
   - name: JP Trust ConsIP
@@ -625,7 +629,7 @@ proxy-groups:
     exclude-filter: *exclude-chain
     hidden: true
   - name: TW AI
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-tw-ai
     hidden: true
   - name: TW Trust ConsIP
@@ -644,7 +648,7 @@ proxy-groups:
     exclude-filter: *exclude-chain
     hidden: true
   - name: SG AI
-    <<: *provider-fallback
+    <<: *node-fallback
     filter: *filter-order-sg-ai
     hidden: true
   - name: SG Trust ConsIP
