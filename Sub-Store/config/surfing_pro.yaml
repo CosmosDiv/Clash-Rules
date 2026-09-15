@@ -1,5 +1,5 @@
 # ============================================================================
-# Surfing / Android Magisk Quality / Identity Routing V4.1.1
+# Surfing / Android Magisk Quality / Identity Routing V4.1.2
 # Target: Surfing + Mihomo v1.19.30+
 #
 # Ordinary nodes: Node Standardizer V2.1.5 -> IPQuality V1.4.1 -> Mihomo
@@ -10,6 +10,8 @@
 #   Backtick-separated multiple filters define quality/region priority buckets.
 #   Fallback keeps `lazy: true` and selects the first alive node in the resulting order.
 #   Final catch-all remains proxy-first while exposing a manual Direct override.
+#   Fallback health checking uses Apple; url-test latency checking uses Cloudflare.
+#   Surfing keeps tcp-concurrent disabled for platform stability.
 #
 # Node source compatibility:
 #   Both Sub-Store static-node injection and proxy-provider mode are supported.
@@ -27,7 +29,9 @@ x-user-config:
   provider-path: &provider-path ./proxies/proxy1.yaml
   provider-update-interval: &provider-update-interval 86400
 
-  test-url: &test-url https://www.gstatic.com/generate_204
+  # Separate reachability checking from latency comparison.
+  health-url: &health-url https://www.apple.com/library/test/success.html
+  latency-url: &latency-url https://cp.cloudflare.com/generate_204
   test-interval: &test-interval 600
   test-timeout: &test-timeout 3000
   test-tolerance: &test-tolerance 80
@@ -40,9 +44,9 @@ x-fallback: &fallback
   type: fallback
   interval: *test-interval
   lazy: true
-  url: *test-url
+  url: *health-url
   timeout: *test-timeout
-  expected-status: 204
+  expected-status: 200
   empty-fallback: REJECT
 
 x-url-test: &url-test
@@ -51,7 +55,7 @@ x-url-test: &url-test
   interval: *test-interval
   tolerance: *test-tolerance
   lazy: true
-  url: *test-url
+  url: *latency-url
   timeout: *test-timeout
   expected-status: 204
   empty-fallback: REJECT
@@ -203,7 +207,7 @@ ipv6: true
 allow-lan: true
 disable-keep-alive: true
 unified-delay: true
-tcp-concurrent: true
+tcp-concurrent: false
 log-level: warning
 find-process-mode: 'off'
 bind-address: '*'
