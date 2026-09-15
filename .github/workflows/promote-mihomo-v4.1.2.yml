@@ -1,0 +1,133 @@
+name: Promote Mihomo V4.1.2
+
+on:
+  push:
+    branches:
+      - promote-mihomo-v4.1.2
+    paths:
+      - .github/workflows/promote-mihomo-v4.1.2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: promote-mihomo-v4.1.2
+          fetch-depth: 0
+
+      - name: Apply URL split to Mihomo and validate
+        shell: bash
+        run: |
+          python -m pip install --quiet pyyaml
+          python <<'PY'
+          from pathlib import Path
+          import yaml
+
+          p = Path('Sub-Store/config/mihomo_pro.yaml')
+          s = p.read_text(encoding='utf-8')
+
+          assert '# Mihomo Bare-Core Quality / Identity Routing V4.1.1' in s
+          assert '  test-url: &test-url https://www.gstatic.com/generate_204' in s
+          assert s.count('  url: *test-url') == 2
+          assert 'tcp-concurrent: true' in s
+
+          s = s.replace(
+              '# Mihomo Bare-Core Quality / Identity Routing V4.1.1',
+              '# Mihomo Bare-Core Quality / Identity Routing V4.1.2',
+              1,
+          )
+
+          header_anchor = '#   Final catch-all remains proxy-first while exposing a manual Direct override.\n'
+          assert header_anchor in s
+          s = s.replace(
+              header_anchor,
+              header_anchor + '#   Fallback health checking uses Apple; url-test latency checking uses Cloudflare.\n',
+              1,
+          )
+
+          old_user = '''  test-url: &test-url https://www.gstatic.com/generate_204\n  test-interval: &test-interval 600\n  test-timeout: &test-timeout 3000\n  test-tolerance: &test-tolerance 80\n'''
+          new_user = '''  # Separate reachability checking from latency comparison.\n  health-url: &health-url https://www.apple.com/library/test/success.html\n  latency-url: &latency-url https://cp.cloudflare.com/generate_204\n  test-interval: &test-interval 600\n  test-timeout: &test-timeout 3000\n  test-tolerance: &test-tolerance 80\n'''
+          assert old_user in s
+          s = s.replace(old_user, new_user, 1)
+
+          old_fallback = '''x-fallback: &fallback\n  type: fallback\n  interval: *test-interval\n  lazy: true\n  url: *test-url\n  timeout: *test-timeout\n  expected-status: 204\n  empty-fallback: REJECT\n'''
+          new_fallback = '''x-fallback: &fallback\n  type: fallback\n  interval: *test-interval\n  lazy: true\n  url: *health-url\n  timeout: *test-timeout\n  expected-status: 200\n  empty-fallback: REJECT\n'''
+          assert old_fallback in s
+          s = s.replace(old_fallback, new_fallback, 1)
+
+          old_urltest = '''x-url-test: &url-test\n  type: url-test\n  include-all: true\n  interval: *test-interval\n  tolerance: *test-tolerance\n  lazy: true\n  url: *test-url\n  timeout: *test-timeout\n  expected-status: 204\n  empty-fallback: REJECT\n'''
+          new_urltest = '''x-url-test: &url-test\n  type: url-test\n  include-all: true\n  interval: *test-interval\n  tolerance: *test-tolerance\n  lazy: true\n  url: *latency-url\n  timeout: *test-timeout\n  expected-status: 204\n  empty-fallback: REJECT\n'''
+          assert old_urltest in s
+          s = s.replace(old_urltest, new_urltest, 1)
+
+          p.write_text(s, encoding='utf-8')
+
+          data = yaml.safe_load(s)
+          assert isinstance(data, dict)
+
+          # New V4.1.2 URL behavior.
+          assert data['x-user-config']['health-url'] == 'https://www.apple.com/library/test/success.html'
+          assert data['x-user-config']['latency-url'] == 'https://cp.cloudflare.com/generate_204'
+          assert data['x-fallback']['url'] == 'https://www.apple.com/library/test/success.html'
+          assert data['x-fallback']['expected-status'] == 200
+          assert data['x-url-test']['url'] == 'https://cp.cloudflare.com/generate_204'
+          assert data['x-url-test']['expected-status'] == 204
+          assert data['x-user-config']['test-interval'] == 600
+          assert data['x-user-config']['test-timeout'] == 3000
+          assert data['x-user-config']['test-tolerance'] == 80
+
+          # Preserve existing Mihomo runtime/platform behavior.
+          assert data['tcp-concurrent'] is True
+          assert data['find-process-mode'] == 'off'
+          assert data['dns']['listen'] == '0.0.0.0:1053'
+          assert data['tun']['enable'] is False
+          assert data['tun']['stack'] == 'mixed'
+          assert data['external-controller'] == '127.0.0.1:9090'
+          assert data['proxy-providers']['proxy1']['path'] == './proxies/proxy1.yaml'
+          assert data['proxies'] == []
+
+          # Preserve V4.1 routing architecture.
+          assert data['rules'][-1] == 'MATCH,Final'
+          assert len(data['x-filter-order-main'].split('`')) == 20
+          groups = data['proxy-groups']
+          fallback_groups = [g for g in groups if g.get('type') == 'fallback']
+          assert len(fallback_groups) == 26
+          assert all('proxies' not in g for g in fallback_groups)
+          assert all(g.get('include-all') is True for g in fallback_groups)
+          assert all(g.get('lazy') is True for g in fallback_groups)
+          final = [g for g in groups if g.get('name') == 'Final']
+          assert len(final) == 1
+          assert final[0].get('type') == 'select'
+          assert final[0].get('proxies') == ['Proxy', 'Direct']
+          assert final[0].get('default-selected') == 'Proxy'
+
+          print('YAML OK')
+          print('health:', data['x-fallback']['url'], data['x-fallback']['expected-status'])
+          print('latency:', data['x-url-test']['url'], data['x-url-test']['expected-status'])
+          print('tcp-concurrent:', data['tcp-concurrent'])
+          print('fallback groups:', len(fallback_groups))
+          print('last rule:', data['rules'][-1])
+          PY
+
+      - name: Validate final diff
+        shell: bash
+        run: |
+          git diff --check
+          changed="$(git diff --name-only | sort)"
+          expected="Sub-Store/config/mihomo_pro.yaml"
+          test "$changed" = "$expected"
+          git diff --stat -- Sub-Store/config/mihomo_pro.yaml
+
+      - name: Commit formal V4.1.2
+        shell: bash
+        run: |
+          git config user.name "CosmosDiv"
+          git config user.email "69336262+CosmosDiv@users.noreply.github.com"
+          git rm .github/workflows/promote-mihomo-v4.1.2.yml
+          git add Sub-Store/config/mihomo_pro.yaml
+          git commit -m "Promote Mihomo V4.1.2"
+          git push origin HEAD:promote-mihomo-v4.1.2
