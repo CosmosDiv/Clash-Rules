@@ -1,0 +1,86 @@
+name: Promote OpenClash V4.1.0
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/promote-openclash-v4.1.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Promote tested config to stable
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE='Sub-Store/config/openclash_pro.yaml'
+          EXPECTED_BLOB='b5f5e34f1b4e02f5087267b5e455626a878a56ca'
+          ACTUAL_BLOB="$(git hash-object "$FILE")"
+          test "$ACTUAL_BLOB" = "$EXPECTED_BLOB" || {
+            echo "Refusing to edit unexpected file version: $ACTUAL_BLOB"
+            exit 1
+          }
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('Sub-Store/config/openclash_pro.yaml')
+          before = p.read_text(encoding='utf-8')
+          text = before
+
+          text = text.replace(
+              'OpenClash / OpenWrt Quality / Identity Routing V4.1.0-MF-Test',
+              'OpenClash / OpenWrt Quality / Identity Routing V4.1.0',
+              1,
+          )
+
+          start = text.index('# TEST PURPOSE:')
+          end = text.index('# ============================================================================', start)
+          formal_header = '''# Policy architecture:\n#   Automatic fallback groups consume real nodes directly instead of nesting dynamic groups.\n#   Backtick-separated multiple filters define quality/region priority buckets.\n#   Fallback keeps `lazy: true` and selects the first alive node in the resulting order.\n#\n# Node source compatibility:\n#   Both Sub-Store static-node injection and proxy-provider mode are supported.\n#   `include-all: true` allows the same policy layer to consume either source mode.\n'''
+          text = text[:start] + formal_header + text[end:]
+
+          text = text.replace(
+              '# ---------- Service Auto: direct provider nodes ----------',
+              '# ---------- Service Auto: direct real nodes ----------',
+          )
+          text = text.replace(
+              '# ---------- Region Auto: Trust -> Normal, direct provider nodes ----------',
+              '# ---------- Region Auto: Trust -> Normal, direct real nodes ----------',
+          )
+
+          # Promotion must not change any executable YAML line.
+          def executable_lines(s):
+              return [line.rstrip() for line in s.splitlines() if not line.lstrip().startswith('#')]
+
+          assert executable_lines(before) == executable_lines(text), 'Executable YAML changed during promotion'
+          assert 'V4.1.0-MF-Test' not in text
+          assert '# TEST PURPOSE:' not in text
+          assert 'Ordered fallback groups below use `use: [proxy1]`' not in text
+          assert text.count('<<: *node-fallback') == 26
+          assert 'x-node-fallback: &node-fallback' in text
+          assert '  include-all: true' in text
+          assert '    filter: *filter-order-main' in text
+          assert '  lazy: true' in text
+
+          p.write_text(text, encoding='utf-8')
+          PY
+
+          git diff --check -- "$FILE"
+
+          # Remove this one-shot workflow in the same promotion commit.
+          rm -f .github/workflows/promote-openclash-v4.1.yml
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$FILE" .github/workflows/promote-openclash-v4.1.yml
+          git commit -m 'Promote OpenClash V4.1.0 to stable'
+          git push origin HEAD:main
