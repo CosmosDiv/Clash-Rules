@@ -1,0 +1,147 @@
+name: Promote OpenClash Surfing V4.1.2
+
+on:
+  push:
+    branches:
+      - promote-openclash-surfing-v4.1.2
+    paths:
+      - .github/workflows/promote-openclash-surfing-v4.1.2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: promote-openclash-surfing-v4.1.2
+          fetch-depth: 0
+
+      - name: Import validated test configs and formalize
+        shell: bash
+        run: |
+          python -m pip install --quiet pyyaml
+          git fetch origin openclash-v4.1.2-url-test:refs/remotes/origin/openclash-v4.1.2-url-test
+          git fetch origin surfing-v4.1.2-url-tcp-test:refs/remotes/origin/surfing-v4.1.2-url-tcp-test
+
+          git show origin/openclash-v4.1.2-url-test:Sub-Store/config/openclash_pro.yaml > /tmp/openclash_test.yaml
+          git show origin/surfing-v4.1.2-url-tcp-test:Sub-Store/config/surfing_pro.yaml > /tmp/surfing_test.yaml
+
+          python <<'PY'
+          from pathlib import Path
+          import yaml
+
+          cases = [
+              {
+                  'src': Path('/tmp/openclash_test.yaml'),
+                  'dst': Path('Sub-Store/config/openclash_pro.yaml'),
+                  'old_header': '# OpenClash / OpenWrt Quality / Identity Routing V4.1.2-URL-Test',
+                  'new_header': '# OpenClash / OpenWrt Quality / Identity Routing V4.1.2',
+                  'repls': [
+                      ('#   TEST: fallback health checking uses Apple; url-test latency checking uses Cloudflare.',
+                       '#   Fallback health checking uses Apple; url-test latency checking uses Cloudflare.'),
+                      ('  # TEST: separate reachability checking from latency comparison.',
+                       '  # Separate reachability checking from latency comparison.'),
+                  ],
+                  'tcp': True,
+                  'dns_listen': '0.0.0.0:7874',
+                  'tun_enable': True,
+                  'tun_stack': 'system',
+              },
+              {
+                  'src': Path('/tmp/surfing_test.yaml'),
+                  'dst': Path('Sub-Store/config/surfing_pro.yaml'),
+                  'old_header': '# Surfing / Android Magisk Quality / Identity Routing V4.1.2-URL-TCP-Test',
+                  'new_header': '# Surfing / Android Magisk Quality / Identity Routing V4.1.2',
+                  'repls': [
+                      ('#   TEST: fallback health checking uses Apple; url-test latency checking uses Cloudflare.',
+                       '#   Fallback health checking uses Apple; url-test latency checking uses Cloudflare.'),
+                      ('#   TEST: Surfing tcp-concurrent is disabled for compatibility/stability observation.',
+                       '#   Surfing keeps tcp-concurrent disabled for platform stability.'),
+                      ('  # TEST: separate reachability checking from latency comparison.',
+                       '  # Separate reachability checking from latency comparison.'),
+                  ],
+                  'tcp': False,
+                  'dns_listen': '0.0.0.0:1053',
+                  'tun_enable': False,
+                  'tun_stack': 'gvisor',
+              },
+          ]
+
+          for c in cases:
+              s = c['src'].read_text(encoding='utf-8')
+              assert c['old_header'] in s, (c['dst'], 'unexpected test header')
+              s = s.replace(c['old_header'], c['new_header'], 1)
+              for old, new in c['repls']:
+                  assert old in s, (c['dst'], 'expected test comment missing', old)
+                  s = s.replace(old, new, 1)
+              c['dst'].write_text(s, encoding='utf-8')
+
+              data = yaml.safe_load(s)
+              assert isinstance(data, dict)
+              assert data['x-user-config']['health-url'] == 'https://www.apple.com/library/test/success.html'
+              assert data['x-user-config']['latency-url'] == 'https://cp.cloudflare.com/generate_204'
+              assert data['x-fallback']['url'] == 'https://www.apple.com/library/test/success.html'
+              assert data['x-fallback']['expected-status'] == 200
+              assert data['x-url-test']['url'] == 'https://cp.cloudflare.com/generate_204'
+              assert data['x-url-test']['expected-status'] == 204
+              assert data['x-user-config']['test-interval'] == 600
+              assert data['x-user-config']['test-timeout'] == 3000
+              assert data['x-user-config']['test-tolerance'] == 80
+              assert data['tcp-concurrent'] is c['tcp']
+              assert data['dns']['listen'] == c['dns_listen']
+              assert data['tun']['enable'] is c['tun_enable']
+              assert data['tun']['stack'] == c['tun_stack']
+              assert data['rules'][-1] == 'MATCH,Final'
+              assert len(data['x-filter-order-main'].split('`')) == 20
+
+              groups = data['proxy-groups']
+              fallback_groups = [g for g in groups if g.get('type') == 'fallback']
+              assert len(fallback_groups) == 26
+              assert all('proxies' not in g for g in fallback_groups)
+              assert all(g.get('include-all') is True for g in fallback_groups)
+              assert all(g.get('lazy') is True for g in fallback_groups)
+
+              final = [g for g in groups if g.get('name') == 'Final']
+              assert len(final) == 1
+              assert final[0].get('type') == 'select'
+              assert final[0].get('proxies') == ['Proxy', 'Direct']
+              assert final[0].get('default-selected') == 'Proxy'
+
+              if c['dst'].name == 'surfing_pro.yaml':
+                  assert data['mixed-port'] == 7890
+                  assert data['redir-port'] == 7891
+                  assert data['tproxy-port'] == 1536
+                  assert data['external-controller'] == '0.0.0.0:9090'
+                  assert data['proxies'] == [{'name': 'DNS Hijack', 'type': 'dns'}]
+                  assert data['rules'][0] == 'DST-PORT,53,DNS Hijack'
+              else:
+                  assert data['external-controller'] == '0.0.0.0:9090'
+
+              print(c['dst'])
+              print('  health:', data['x-fallback']['url'], data['x-fallback']['expected-status'])
+              print('  latency:', data['x-url-test']['url'], data['x-url-test']['expected-status'])
+              print('  tcp-concurrent:', data['tcp-concurrent'])
+              print('  fallback groups:', len(fallback_groups))
+          PY
+
+      - name: Validate final diff
+        shell: bash
+        run: |
+          git diff --check
+          changed="$(git diff --name-only | sort)"
+          expected="$(printf '%s\n' 'Sub-Store/config/openclash_pro.yaml' 'Sub-Store/config/surfing_pro.yaml' | sort)"
+          test "$changed" = "$expected"
+          git diff --stat -- Sub-Store/config/openclash_pro.yaml Sub-Store/config/surfing_pro.yaml
+
+      - name: Commit formal V4.1.2
+        shell: bash
+        run: |
+          git config user.name "CosmosDiv"
+          git config user.email "69336262+CosmosDiv@users.noreply.github.com"
+          git rm .github/workflows/promote-openclash-surfing-v4.1.2.yml
+          git add Sub-Store/config/openclash_pro.yaml Sub-Store/config/surfing_pro.yaml
+          git commit -m "Promote OpenClash and Surfing V4.1.2"
+          git push origin HEAD:promote-openclash-surfing-v4.1.2
