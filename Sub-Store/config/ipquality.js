@@ -1,15 +1,24 @@
 /**
- * Sub-Store IPQuality Quality + Network Identity v1.4.1 Stable
+ * Sub-Store IPQuality Quality + Network Identity v1.4.2 Stable
  * ------------------------------------------------------------
  * Upstream detection semantics baseline:
- *   xykt/IPQuality v2026-09-04
- *   commit 3c0eb8856c67ad351020d1edd1bfd4e2515d32fe
+ *   xykt/IPQuality v2026-09-16
+ *   commit 2384a67c756eb35231f5982b34731e522be3653e
  *   License: AGPL-3.0
  *
  * Pipeline contract:
  *   Node Standardizer V2.1.5
- *     -> IPQuality V1.4.1
+ *     -> IPQuality V1.4.2
  *     -> Mihomo / OpenClash / Surfing V4.0.1 policy layer
+ *
+ * v1.4.2 Stable:
+ *   - 上游语义基线审计更新至 xykt/IPQuality v2026-09-16；9/16 的 ipapi JSON 校验、
+ *     DB-IP CurlARG 等 Bash 修复在本 JS 架构中已由现有 JSON/路由安全逻辑覆盖，无需照搬实现；
+ *   - 修正 IPQS Quality 映射：Suspicious(75-84) 从 Risk 调整为 Caution，Risky(85-89)
+ *     与 HighRisk(90+) 继续判 Risk，避免过滤Risk默认开启时对“可疑但非明确高风险”节点误杀；
+ *   - 收紧 IPv6 EIP 语法校验，校验压缩符、分组数量与十六进制组长度；保持现有策略，不接收含点分十进制尾段的 mixed IPv4/IPv6 表示；
+ *   - 本版不调整 EIP Endpoint、Recovery 顺序、DeadCandidate/DeadConfirmed、Provider Cache、
+ *     Network Identity 与 Chain 语义，控制生产变更面。
  *
  * v1.4.1 Stable:
  *   - 修复“零参数生产默认”遗漏：过滤失效未填写时，正式模式(诊断=0)默认开启，诊断模式(诊断=1)默认关闭；
@@ -109,9 +118,9 @@
  *   http_meta_proxy_timeout = 15000
  */
 
-const IPQUALITY_VERSION = '1.4.1'
-const UPSTREAM_VERSION = 'v2026-09-04'
-const UPSTREAM_COMMIT = '3c0eb8856c67ad351020d1edd1bfd4e2515d32fe'
+const IPQUALITY_VERSION = '1.4.2'
+const UPSTREAM_VERSION = 'v2026-09-16'
+const UPSTREAM_COMMIT = '2384a67c756eb35231f5982b34731e522be3653e'
 
 const EXIT_CACHE_KEY = 'ipqlite:eip:v2'
 const LEGACY_EXIT_CACHE_KEY = 'ipqlite:eip:v1'
@@ -1643,7 +1652,27 @@ function isIPv4(ip) {
 
 function isIPv6(ip) {
   const s = normalizeIp(ip)
-  return !!s && s.includes(':') && !s.includes('.')
+  if (!s || s.includes('.') || !s.includes(':')) return false
+
+  // Keep the existing policy of rejecting dotted-quad mixed IPv4/IPv6 notation.
+  // Validate hex-only IPv6 syntax without Node-only APIs unavailable in some Sub-Store runtimes.
+  if (s.indexOf('::') !== s.lastIndexOf('::')) return false
+
+  const validPart = part => /^[0-9A-Fa-f]{1,4}$/.test(part)
+
+  if (s.includes('::')) {
+    const [left, right] = s.split('::')
+    const leftParts = left ? left.split(':') : []
+    const rightParts = right ? right.split(':') : []
+
+    // "::" must compress at least one 16-bit group.
+    return leftParts.length + rightParts.length < 8 &&
+      leftParts.every(validPart) &&
+      rightParts.every(validPart)
+  }
+
+  const parts = s.split(':')
+  return parts.length === 8 && parts.every(validPart)
 }
 
 function selectPrimaryEip(item, familyMode, preference) {
@@ -2235,6 +2264,7 @@ function classifyRatingSource(key, r) {
     if (score === null) return { level: 'None', reason: '' }
     const band = iqBand(score)
     if (band === 'Low') return { level: 'Clean', reason: 'IQ:Low' }
+    if (band === 'Suspicious') return { level: 'Caution', reason: 'IQ:Suspicious' }
     return { level: 'Risk', reason: `IQ:${band}` }
   }
 
