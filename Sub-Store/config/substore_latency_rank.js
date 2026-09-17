@@ -1,67 +1,82 @@
 /**
- * Sub-Store Latency Rank v2.0.0-rc1
- * HTTP META 稳健延迟排序 + 节点级增量缓存
+ * Sub-Store Latency Rank v2.1.0
+ * HTTP META 分轮延迟排序 + 节点级增量缓存 + Chain 依赖兼容
  *
  * 设计目标：
  * 1. 请求真实经过每个代理节点进行 HTTP 延迟测试。
- * 2. 不删除节点、不修改节点名称、不新增/删除/修改任何节点字段，只改变返回顺序。
- * 3. 缓存“原始测速证据（samples）”而不是最终排序结果：排序/可靠性逻辑变化可立即重算。
- * 4. 节点配置、测速协议参数变化自动 Cache MISS；节点仅改名不触发无意义重测。
- * 5. 只把 Cache MISS 的唯一节点配置交给 HTTP META，适合大订阅和 Git 上传失败后的快速重试。
- * 6. 完整成功（例如 3/3）使用较长缓存；有任意正式采样失败则只使用短缓存，尽快复测。
- * 7. HTTP META 全局启动/运行失败时，保持原数组、原顺序返回，避免“半套排序”。
+ * 2. 不删除节点、不修改节点名称、不新增/删除/修改任何原节点字段，只改变返回顺序。
+ * 3. 缓存“原始测速证据（samples）”而不是最终排序结果，排序/可靠性逻辑变化可直接重算。
+ * 4. 节点配置、测速协议参数变化自动 Cache MISS；仅节点改名不触发普通节点无意义重测。
+ * 5. 只把 Cache MISS 的唯一节点配置交给 HTTP META，重复配置共享同一份测速证据。
+ * 6. 保留 dialer-proxy / underlying-proxy / detour / prev_hop / chain 等依赖重写，兼容链式节点。
+ * 7. 全节点统一预热，再按轮次采样；默认 5 轮正式采样，至少成功 4/5 才进入正常排序。
+ * 8. 每轮确定性旋转测试顺序，降低大订阅固定先后顺序造成的时间位置偏差。
+ * 9. 正常节点默认严格按成功样本中位数升序；失败/不稳定/不兼容节点统一置底并保持原相对顺序。
+ * 10. HTTP META 全局启动/运行失败时，保持原数组、原顺序返回，避免半套排序。
  *
- * 推荐默认参数（约 200 节点）：
- *   samples=3
+ * 推荐默认参数：
+ *   url=https://cp.cloudflare.com/generate_204
+ *   method=get
+ *   status=^204$
+ *   samples=5
  *   warmup=1
- *   min_success=2
+ *   min_success=4
  *   timeout=5000
- *   sample_delay=150
+ *   round_delay=300
  *   concurrency=6
  *   retries=0
+ *   rotate_round_order=1
+ *   reliability_first=0
  *   cache=1
  *   cache_success_minutes=15
  *   cache_partial_minutes=2
- *   reliability_first=1
  *
  * 参数：
- *   url                        测试地址，默认 http://connectivitycheck.platform.hicloud.com/generate_204
+ *   url                        测试地址，默认 https://cp.cloudflare.com/generate_204
  *   status                     合法 HTTP 状态码正则，默认 ^204$
- *   method                     head / get，默认 head
+ *   method                     head / get，默认 get
  *   ua                         User-Agent
  *   timeout                    单次请求超时（毫秒），默认 5000
- *   samples                    正式采样次数，默认 3
- *   warmup                     预热次数，默认 1
- *   min_success                至少成功几次才进入正常排序，默认 2
- *   sample_delay               同一节点相邻请求间隔（毫秒），默认 150
- *   concurrency                同时测试的唯一节点配置数，默认 6
- *   retries                    每次请求失败后的额外重试次数，默认 0
+ *   samples                    正式采样轮数，默认 5
+ *   warmup                     全节点预热轮数，默认 1
+ *   min_success                至少成功几轮才进入正常排序，默认 4
+ *   round_delay                相邻完整轮次之间等待（毫秒），默认 300
+ *   sample_delay               round_delay 的兼容别名；仅在未提供 round_delay 时使用
+ *   concurrency                每轮同时测试的目标节点数，默认 6
+ *   retries                    单次请求失败后的额外重试次数，默认 0
  *   retry_delay                重试间隔（毫秒），默认 250
- *   reliability_first          1=优先成功样本更多的节点；0=所有可靠节点只按延迟，默认 1
+ *   rotate_round_order         1=每轮旋转节点测试起点，默认 1
+ *   reliability_first          1=可靠节点内优先成功次数；0=只按中位延迟，默认 0
  *   cache                      是否启用节点级缓存，默认 1
- *   cache_success_minutes      所有正式采样均成功时缓存多久，默认 15
+ *   cache_success_minutes      全部正式采样成功时缓存多久，默认 15
  *   cache_partial_minutes      正式采样存在失败时缓存多久，默认 2
  *   force_refresh              1=本轮忽略缓存并重测，默认 0
  *   cache_tag                  手工缓存代号；修改后可立即切换到新缓存空间，默认空
- *   log_details                1=输出逐节点/逐唯一配置详情，默认 0
+ *   log_details                1=输出逐节点详细采样信息，默认 0
  *   include_unsupported_proxy  是否让 ClashMeta 转换包含额外协议，默认 false
  *   http_meta_protocol         默认 http
  *   http_meta_host             默认 127.0.0.1
  *   http_meta_port             默认 9876
  *   http_meta_authorization    HTTP META Authorization，默认空
  *   http_meta_start_delay      HTTP META 启动后等待时间（毫秒），默认 3000
- *   http_meta_lifetime         HTTP META 最长存活时间（毫秒）；默认自动估算
+ *   http_meta_lifetime         HTTP META 最长存活时间（毫秒）；默认按轮次自动估算
+ *
+ * 与 mihomo_pro.yaml 的职责对应：
+ * - fallback 的 Apple success.html 用于运行时“能否使用”判断；
+ * - url-test 的 Cloudflare generate_204 用于运行时“谁更快”比较；
+ * - 本脚本采用 Cloudflare 204 做离线通用代理延迟排序，不混入 Apple 健康检查；
+ * - YAML tolerance=80 是运行时切换容差，本脚本不使用 tolerance，仍按中位延迟严格排序。
  *
  * 缓存失效规则：
  * - 节点真实配置变化 -> fingerprint 变化 -> 自动 MISS
- * - 仅节点名称/IPQuality 标签变化 -> fingerprint 不变 -> 可继续 HIT
- * - url/method/status/ua/timeout/samples/warmup/sample_delay/retries/retry_delay 改变 -> 自动 MISS
+ * - url/method/status/ua/timeout/samples/warmup/round_delay/retries/retry_delay/
+ *   rotate_round_order 改变 -> 自动 MISS
  * - 修改 reliability_first/min_success 只改变“如何解释证据”，无需重测
- * - 若未来修改了“采样过程本身”的代码，请提升 MEASURE_PROTOCOL_VERSION
+ * - v2.1.0 改为分轮采样，因此 MEASURE_PROTOCOL_VERSION 提升为 2，旧采样缓存自动失效
  */
 
-const LATENCY_RANK_VERSION = '2.0.0-rc1'
-const MEASURE_PROTOCOL_VERSION = '1'
+const LATENCY_RANK_VERSION = '2.1.0'
+const MEASURE_PROTOCOL_VERSION = '2'
 const CACHE_NAMESPACE = 'latrank'
 
 async function operator(proxies = [], targetPlatform, env = {}) {
@@ -89,7 +104,10 @@ async function operator(proxies = [], targetPlatform, env = {}) {
   const toBool = (value, fallback = false) => {
     if (value === undefined || value === null || value === '') return fallback
     if (typeof value === 'boolean') return value
-    return /^(1|true|yes|on)$/i.test(String(value).trim())
+    const text = String(value).trim().toLowerCase()
+    if (/^(1|true|yes|on)$/i.test(text)) return true
+    if (/^(0|false|no|off)$/i.test(text)) return false
+    return fallback
   }
 
   const safeDecode = value => {
@@ -100,10 +118,8 @@ async function operator(proxies = [], targetPlatform, env = {}) {
     }
   }
 
-  const url = safeDecode(
-    arg('url', 'http://connectivitycheck.platform.hicloud.com/generate_204')
-  )
-  const method = String(arg('method', 'head')).trim().toLowerCase()
+  const url = safeDecode(arg('url', 'https://cp.cloudflare.com/generate_204'))
+  const method = String(arg('method', 'get')).trim().toLowerCase()
   if (!['head', 'get'].includes(method)) {
     throw new Error(`[LatencyRank] method 仅支持 head/get，当前=${method}`)
   }
@@ -124,17 +140,23 @@ async function operator(proxies = [], targetPlatform, env = {}) {
   )
 
   const timeout = toInt(arg('timeout', 5000), 5000, 100, 60000)
-  const samples = toInt(arg('samples', 3), 3, 1, 20)
+  const samples = toInt(arg('samples', 5), 5, 1, 20)
   const warmup = toInt(arg('warmup', 1), 1, 0, 10)
   const minSuccess = Math.min(
     samples,
-    toInt(arg('min_success', Math.min(2, samples)), Math.min(2, samples), 1, samples)
+    toInt(arg('min_success', Math.min(4, samples)), Math.min(4, samples), 1, samples)
   )
-  const sampleDelay = toInt(arg('sample_delay', 150), 150, 0, 10000)
+  const roundDelay = toInt(
+    arg('round_delay', arg('sample_delay', 300)),
+    300,
+    0,
+    10000
+  )
   const concurrency = toInt(arg('concurrency', 6), 6, 1, 32)
   const retries = toInt(arg('retries', 0), 0, 0, 5)
   const retryDelay = toInt(arg('retry_delay', 250), 250, 0, 10000)
-  const reliabilityFirst = toBool(arg('reliability_first', true), true)
+  const rotateRoundOrder = toBool(arg('rotate_round_order', true), true)
+  const reliabilityFirst = toBool(arg('reliability_first', false), false)
 
   const cacheEnabledArg = toBool(arg('cache', true), true)
   const forceRefresh = toBool(arg('force_refresh', false), false)
@@ -163,8 +185,6 @@ async function operator(proxies = [], targetPlatform, env = {}) {
   )
   const cacheEnabled = cacheEnabledArg && cacheAvailable
 
-  // 只包含“会改变采样证据”的参数。
-  // min_success / reliability_first 只是解释证据，不应导致重测。
   const measureSignature = hashString(
     stableSerialize({
       protocol: MEASURE_PROTOCOL_VERSION,
@@ -176,9 +196,10 @@ async function operator(proxies = [], targetPlatform, env = {}) {
       timeout,
       samples,
       warmup,
-      sampleDelay,
+      roundDelay,
       retries,
       retryDelay,
+      rotateRoundOrder,
     })
   )
 
@@ -218,7 +239,6 @@ async function operator(proxies = [], targetPlatform, env = {}) {
 
   const groups = new Map()
 
-  // 转换测试副本 + 生成不受名称影响的节点指纹。
   for (const record of records) {
     try {
       const testCopy = deepClone(record.proxy)
@@ -230,6 +250,10 @@ async function operator(proxies = [], targetPlatform, env = {}) {
         record.reason = 'HTTP META / ClashMeta 不兼容'
         stats.unsupported++
         continue
+      }
+
+      for (const key in testCopy) {
+        if (/^_/i.test(key)) produced[key] = testCopy[key]
       }
 
       const fingerprint = nodeFingerprint(produced)
@@ -264,16 +288,16 @@ async function operator(proxies = [], targetPlatform, env = {}) {
 
   stats.unique = groups.size
   stats.duplicateNodes = Math.max(0, stats.testable - stats.unique)
-
-  // 当前名称 -> 唯一节点配置。若同名但配置不同，则引用关系本身具有歧义。
   const nameIndex = buildNameIndex(groups)
 
   $.info(
     `[LatencyRank] START version=${LATENCY_RANK_VERSION} protocol=${MEASURE_PROTOCOL_VERSION} ` +
       `nodes=${stats.total} testable=${stats.testable} unique=${stats.unique} ` +
       `duplicate-saved=${stats.duplicateNodes} samples=${samples} warmup=${warmup} ` +
-      `min-success=${minSuccess} concurrency=${concurrency} ` +
-      `cache=${cacheEnabled ? 'on' : cacheEnabledArg ? 'unavailable' : 'off'} ` +
+      `min-success=${minSuccess} round-delay=${roundDelay}ms concurrency=${concurrency} ` +
+      `rotate=${rotateRoundOrder ? 'on' : 'off'} reliability-first=${
+        reliabilityFirst ? 'on' : 'off'
+      } cache=${cacheEnabled ? 'on' : cacheEnabledArg ? 'unavailable' : 'off'} ` +
       `force=${forceRefresh ? 'on' : 'off'} signature=${measureSignature}`
   )
 
@@ -282,7 +306,6 @@ async function operator(proxies = [], targetPlatform, env = {}) {
     return proxies
   }
 
-  // 先读取每个唯一节点配置的证据缓存。
   const misses = []
   for (const group of groups.values()) {
     let evidence = null
@@ -314,9 +337,6 @@ async function operator(proxies = [], targetPlatform, env = {}) {
 
   let fatalError = null
 
-  // HTTP META 会把传入节点统一重命名为 proxy-0 / proxy-1 / ...。
-  // 对 dialer-proxy / underlying-proxy 等引用节点，必须把依赖一并加入 payload，
-  // 并在送入 HTTP META 前把引用改写成对应的 proxy-N，否则链式节点会产生假失败。
   const dependencyPlan = buildDependencyPlan(misses, groups, nameIndex)
   stats.dependencyBlockedGroups = dependencyPlan.blocked.length
   stats.dependencyPayloadGroups = dependencyPlan.payloadGroups.length
@@ -333,8 +353,9 @@ async function operator(proxies = [], targetPlatform, env = {}) {
     applyEvidenceToGroup(blocked.group, evidence, 'dependency-blocked')
     if (logDetails) {
       $.info(
-        `[LatencyRank] dependency blocked node=${blocked.group.records[0]?.proxy?.name || blocked.group.fingerprint} ` +
-          `reason=${blocked.reason}`
+        `[LatencyRank] dependency blocked node=${
+          blocked.group.records[0]?.proxy?.name || blocked.group.fingerprint
+        } reason=${blocked.reason}`
       )
     }
   }
@@ -353,11 +374,18 @@ async function operator(proxies = [], targetPlatform, env = {}) {
 
   if (dependencyPlan.targets.length) {
     const oneProbeWorst = (retries + 1) * timeout + retries * retryDelay
-    const oneNodeWorst =
-      (warmup + samples) * oneProbeWorst +
-      Math.max(0, warmup + samples - 1) * sampleDelay
-    const batches = Math.ceil(dependencyPlan.targets.length / concurrency)
-    const autoLifetime = httpMetaStartDelay + batches * oneNodeWorst + 15000
+    const batchesPerRound = Math.max(
+      1,
+      Math.ceil(dependencyPlan.targets.length / concurrency)
+    )
+    const oneRoundWorst = batchesPerRound * oneProbeWorst
+    const totalRounds = warmup + samples
+    const interRoundWaits = Math.max(0, totalRounds - 1)
+    const autoLifetime =
+      httpMetaStartDelay +
+      totalRounds * oneRoundWorst +
+      interRoundWaits * roundDelay +
+      20000
     const httpMetaLifetime = toInt(
       arg('http_meta_lifetime', autoLifetime),
       autoLifetime,
@@ -397,36 +425,123 @@ async function operator(proxies = [], targetPlatform, env = {}) {
         ports.some(port => !Number.isFinite(Number(port)) || Number(port) <= 0)
       ) {
         throw new Error(
-          `HTTP META 启动返回无效: ${typeof body === 'string' ? body : JSON.stringify(body)}`
+          `HTTP META 启动返回无效: ${
+            typeof body === 'string' ? body : JSON.stringify(body)
+          }`
         )
       }
 
       ports = ports.map(Number)
 
       $.info(
-        `[LatencyRank] HTTP META start pid=${pid} targets=${dependencyPlan.targets.length} payload=${dependencyPlan.payloadGroups.length} ` +
-          `lifetime=${Math.round(httpMetaLifetime / 1000)}s`
+        `[LatencyRank] HTTP META start pid=${pid} targets=${dependencyPlan.targets.length} ` +
+          `payload=${dependencyPlan.payloadGroups.length} lifetime=${Math.round(
+            httpMetaLifetime / 1000
+          )}s`
       )
 
       if (httpMetaStartDelay > 0) await $.wait(httpMetaStartDelay)
 
-      let done = 0
-      const progress = createProgressReporter(dependencyPlan.targets.length, current => {
-        $.info(`[LatencyRank] PROGRESS ${current}/${dependencyPlan.targets.length} target routes`)
-      })
+      const freshSamples = new Map(
+        dependencyPlan.targets.map(group => [group, []])
+      )
+      const lastErrors = new Map()
 
-      const tasks = dependencyPlan.targets.map(group => async () => {
-        let evidence
-        try {
-          evidence = await measureOneGroup(group, ports[dependencyPlan.indexByGroup.get(group)])
-        } catch (error) {
-          evidence = {
-            version: 1,
-            measuredAt: Date.now(),
-            expectedSamples: samples,
-            samples: [],
-            reason: `测速异常: ${error?.message || error}`,
+      const runMeasurementRound = async ({ phase, roundIndex, total, collect }) => {
+        const roundStartedAt = Date.now()
+        const ordered = getRoundOrder(
+          dependencyPlan.targets,
+          phase,
+          roundIndex,
+          total,
+          rotateRoundOrder
+        )
+        let success = 0
+
+        const tasks = ordered.map(group => async () => {
+          const port = ports[dependencyPlan.indexByGroup.get(group)]
+          try {
+            const latency = await probe(port)
+            success++
+            if (collect) freshSamples.get(group).push(latency)
+            if (logDetails) {
+              const label = group.records[0]?.proxy?.name || group.fingerprint
+              $.info(
+                `[LatencyRank] ${phase === 'warmup' ? 'Warmup' : 'Round'} ${
+                  roundIndex + 1
+                }/${total} ${label} ${latency}ms`
+              )
+            }
+          } catch (error) {
+            lastErrors.set(group, String(error?.message || error))
+            if (logDetails) {
+              const label = group.records[0]?.proxy?.name || group.fingerprint
+              $.info(
+                `[LatencyRank] ${phase === 'warmup' ? 'Warmup' : 'Round'} ${
+                  roundIndex + 1
+                }/${total} ${label} failed: ${error?.message || error}`
+              )
+            }
           }
+        })
+
+        await runLimited(tasks, concurrency)
+
+        return {
+          success,
+          elapsed: Date.now() - roundStartedAt,
+        }
+      }
+
+      for (let round = 0; round < warmup; round++) {
+        const result = await runMeasurementRound({
+          phase: 'warmup',
+          roundIndex: round,
+          total: warmup,
+          collect: false,
+        })
+
+        $.info(
+          `[LatencyRank] WARMUP ${round + 1}/${warmup} success=${result.success}/${
+            dependencyPlan.targets.length
+          } duration=${formatDuration(result.elapsed)}`
+        )
+
+        if (roundDelay > 0 && (round < warmup - 1 || samples > 0)) {
+          await $.wait(roundDelay)
+        }
+      }
+
+      for (let round = 0; round < samples; round++) {
+        const result = await runMeasurementRound({
+          phase: 'sample',
+          roundIndex: round,
+          total: samples,
+          collect: true,
+        })
+
+        $.info(
+          `[LatencyRank] ROUND ${round + 1}/${samples} success=${result.success}/${
+            dependencyPlan.targets.length
+          } duration=${formatDuration(result.elapsed)}`
+        )
+
+        if (roundDelay > 0 && round < samples - 1) {
+          await $.wait(roundDelay)
+        }
+      }
+
+      for (const group of dependencyPlan.targets) {
+        const latencies = freshSamples.get(group) || []
+        const evidence = {
+          version: 1,
+          measuredAt: Date.now(),
+          expectedSamples: samples,
+          samples: latencies,
+          reason:
+            latencies.length < samples
+              ? lastErrors.get(group) || '部分采样失败'
+              : '',
         }
 
         group.evidence = evidence
@@ -450,11 +565,17 @@ async function operator(proxies = [], targetPlatform, env = {}) {
           }
         }
 
-        done++
-        progress(done)
-      })
-
-      await runLimited(tasks, concurrency)
+        if (logDetails) {
+          const summary = summarizeEvidence(evidence)
+          const label = group.records[0]?.proxy?.name || group.fingerprint
+          $.info(
+            `[LatencyRank] ${label} fresh success=${summary.successCount}/${samples} ` +
+              `median=${Number.isFinite(summary.latency) ? `${summary.latency}ms` : '-'} ` +
+              `mad=${Number.isFinite(summary.mad) ? summary.mad : '-'} ` +
+              `samples=${summary.samples.join('/') || '-'}`
+          )
+        }
+      }
     } catch (error) {
       fatalError = error
       $.error(`[LatencyRank] FATAL ${error?.message || error}`)
@@ -476,7 +597,6 @@ async function operator(proxies = [], targetPlatform, env = {}) {
     }
   }
 
-  // 全局 HTTP META 失败时不输出“缓存命中 + 未测试新节点”的半套排序。
   if (fatalError) {
     $.info('[LatencyRank] 因 HTTP META 全局失败，保持原顺序返回；节点内容未修改')
     return proxies
@@ -508,62 +628,10 @@ async function operator(proxies = [], targetPlatform, env = {}) {
       `output=${sortedRecords.length}`
   )
 
-  // 关键保证：返回最初传入的原始节点对象，只改变数组顺序。
   return sortedRecords.map(record => record.proxy)
 
   function cacheKey(fingerprint) {
     return `${CACHE_NAMESPACE}:v1:${measureSignature}:${fingerprint}`
-  }
-
-  async function measureOneGroup(group, port) {
-    const label = group.records[0]?.proxy?.name || group.fingerprint
-
-    for (let i = 0; i < warmup; i++) {
-      try {
-        await probe(port)
-      } catch (_) {}
-      if (sampleDelay > 0 && (i < warmup - 1 || samples > 0)) {
-        await $.wait(sampleDelay)
-      }
-    }
-
-    const latencies = []
-    let lastError = ''
-
-    for (let i = 0; i < samples; i++) {
-      try {
-        latencies.push(await probe(port))
-      } catch (error) {
-        lastError = String(error?.message || error)
-        if (logDetails) {
-          $.info(
-            `[LatencyRank] ${label} sample ${i + 1}/${samples} failed: ${lastError}`
-          )
-        }
-      }
-
-      if (sampleDelay > 0 && i < samples - 1) await $.wait(sampleDelay)
-    }
-
-    const evidence = {
-      version: 1,
-      measuredAt: Date.now(),
-      expectedSamples: samples,
-      samples: latencies,
-      reason: latencies.length < samples ? lastError || '部分采样失败' : '',
-    }
-
-    if (logDetails) {
-      const summary = summarizeEvidence(evidence)
-      $.info(
-        `[LatencyRank] ${label} fresh success=${summary.successCount}/${samples} ` +
-          `median=${Number.isFinite(summary.latency) ? `${summary.latency}ms` : '-'} ` +
-          `mad=${Number.isFinite(summary.mad) ? summary.mad : '-'} ` +
-          `samples=${latencies.join('/') || '-'}`
-      )
-    }
-
-    return evidence
   }
 
   async function probe(port) {
@@ -630,18 +698,13 @@ async function operator(proxies = [], targetPlatform, env = {}) {
 
   function compareRecords(a, b) {
     if (a.reliable !== b.reliable) return a.reliable ? -1 : 1
-
-    // 不可靠/不兼容节点统一置底，并保持其原顺序。
     if (!a.reliable && !b.reliable) return a.index - b.index
 
-    // 默认优先成功样本更多的节点：3/3 在 2/3 前面。
     if (reliabilityFirst && a.successCount !== b.successCount) {
       return b.successCount - a.successCount
     }
 
     if (a.latency !== b.latency) return a.latency - b.latency
-    if (a.mad !== b.mad) return a.mad - b.mad
-    if (a.spread !== b.spread) return a.spread - b.spread
     return a.index - b.index
   }
 
@@ -658,6 +721,17 @@ async function operator(proxies = [], targetPlatform, env = {}) {
     }
     return $.http[requestMethod](options)
   }
+}
+
+function getRoundOrder(items, phase, roundIndex, total, rotate) {
+  if (!rotate || items.length <= 1 || phase === 'warmup' || total <= 1) {
+    return items
+  }
+
+  const step = Math.max(1, Math.floor(items.length / total))
+  const shift = (roundIndex * step) % items.length
+  if (shift === 0) return items
+  return items.slice(shift).concat(items.slice(0, shift))
 }
 
 function buildNameIndex(groups) {
@@ -685,7 +759,9 @@ function extractProxyReferences(proxy) {
     refs.push({ field: 'chain', name: proxy.chain.trim() })
   } else if (Array.isArray(proxy?.chain)) {
     for (const name of proxy.chain) {
-      if (typeof name === 'string' && name.trim()) refs.push({ field: 'chain', name: name.trim() })
+      if (typeof name === 'string' && name.trim()) {
+        refs.push({ field: 'chain', name: name.trim() })
+      }
     }
   }
   return refs
@@ -808,7 +884,9 @@ function writeEvidenceCache(cache, key, evidence, ttlMs, stats) {
 function isValidEvidence(value, expectedSamples) {
   if (!value || typeof value !== 'object') return false
   if (Number(value.version) !== 1) return false
-  if (!Number.isFinite(Number(value.measuredAt)) || Number(value.measuredAt) <= 0) return false
+  if (!Number.isFinite(Number(value.measuredAt)) || Number(value.measuredAt) <= 0) {
+    return false
+  }
   if (Number(value.expectedSamples) !== expectedSamples) return false
   if (!Array.isArray(value.samples)) return false
   if (value.samples.length > expectedSamples) return false
@@ -885,21 +963,6 @@ function hashString(value) {
   return `${(h1 >>> 0).toString(16).padStart(8, '0')}${(h2 >>> 0)
     .toString(16)
     .padStart(8, '0')}`
-}
-
-function createProgressReporter(total, callback) {
-  if (!total || typeof callback !== 'function') return () => {}
-  const marks = new Set([
-    Math.max(1, Math.ceil(total * 0.25)),
-    Math.max(1, Math.ceil(total * 0.5)),
-    Math.max(1, Math.ceil(total * 0.75)),
-    total,
-  ])
-  return done => {
-    if (!marks.has(done)) return
-    marks.delete(done)
-    callback(done)
-  }
 }
 
 async function runLimited(tasks, limit) {
