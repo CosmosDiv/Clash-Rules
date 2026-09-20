@@ -2,8 +2,8 @@
 # Surfing / Android Magisk Quality / Identity Routing V4.1.2
 # Target: Surfing + Mihomo v1.19.30+
 #
-# Ordinary nodes: Node Standardizer V2.1.5 -> IPQuality V1.4.1 -> Mihomo
-# Chain nodes:    Node Standardizer V2.1.5 -> IPQuality V1.4.1 (auto bypass) -> Mihomo
+# Ordinary nodes: Node Standardizer V2.1.5 -> IPQuality V1.4.2 -> Mihomo
+# Chain nodes:    Node Standardizer V2.1.5 -> IPQuality V1.4.2 (auto bypass) -> Mihomo
 #
 # Policy architecture:
 #   Automatic fallback groups consume real nodes directly instead of nesting dynamic groups.

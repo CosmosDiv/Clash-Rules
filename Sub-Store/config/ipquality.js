@@ -9,7 +9,7 @@
  * Pipeline contract:
  *   Node Standardizer V2.1.5
  *     -> IPQuality V1.4.2
- *     -> Mihomo / OpenClash / Surfing V4.0.1 policy layer
+ *     -> Mihomo / OpenClash / Surfing V4.1.2 policy layer
  *
  * v1.4.2 Stable:
  *   - 上游语义基线审计更新至 xykt/IPQuality v2026-09-16；9/16 的 ipapi JSON 校验、
