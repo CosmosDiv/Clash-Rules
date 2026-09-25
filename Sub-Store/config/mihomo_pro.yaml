@@ -75,22 +75,19 @@ x-filter-hk-manual: &filter-hk-manual '(?i)^HK (?=[^｜]*[ ·](?:Trust|Normal|Un
 x-filter-tw-trust: &filter-tw-trust '(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
 x-filter-tw-normal: &filter-tw-normal '(?i)^TW (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
 x-filter-tw-manual: &filter-tw-manual '(?i)^TW (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
-x-filter-tw-cons: &filter-tw-cons '(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ConsIP(?:[·｜]|$)).*$'
-x-filter-tw-busi: &filter-tw-busi '(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]BusiIP(?:[·｜]|$)).*$'
+x-filter-tw-isp: &filter-tw-isp '(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·](?:ISPIP|ConsIP|BusiIP)(?:[·｜]|$)).*$'
 x-filter-tw-host: &filter-tw-host '(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
 
 x-filter-sg-trust: &filter-sg-trust '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
 x-filter-sg-normal: &filter-sg-normal '(?i)^SG (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
 x-filter-sg-manual: &filter-sg-manual '(?i)^SG (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
-x-filter-sg-cons: &filter-sg-cons '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ConsIP(?:[·｜]|$)).*$'
-x-filter-sg-busi: &filter-sg-busi '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]BusiIP(?:[·｜]|$)).*$'
+x-filter-sg-isp: &filter-sg-isp '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·](?:ISPIP|ConsIP|BusiIP)(?:[·｜]|$)).*$'
 x-filter-sg-host: &filter-sg-host '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
 
 x-filter-jp-trust: &filter-jp-trust '(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
 x-filter-jp-normal: &filter-jp-normal '(?i)^JP (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
 x-filter-jp-manual: &filter-jp-manual '(?i)^JP (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
-x-filter-jp-cons: &filter-jp-cons '(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ConsIP(?:[·｜]|$)).*$'
-x-filter-jp-busi: &filter-jp-busi '(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]BusiIP(?:[·｜]|$)).*$'
+x-filter-jp-isp: &filter-jp-isp '(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·](?:ISPIP|ConsIP|BusiIP)(?:[·｜]|$)).*$'
 x-filter-jp-host: &filter-jp-host '(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
 
 x-filter-kr-trust: &filter-kr-trust '(?i)^KR (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
@@ -100,8 +97,7 @@ x-filter-kr-manual: &filter-kr-manual '(?i)^KR (?=[^｜]*[ ·](?:Trust|Normal|Un
 x-filter-us-trust: &filter-us-trust '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
 x-filter-us-normal: &filter-us-normal '(?i)^US (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
 x-filter-us-manual: &filter-us-manual '(?i)^US (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
-x-filter-us-cons: &filter-us-cons '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ConsIP(?:[·｜]|$)).*$'
-x-filter-us-busi: &filter-us-busi '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]BusiIP(?:[·｜]|$)).*$'
+x-filter-us-isp: &filter-us-isp '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·](?:ISPIP|ConsIP|BusiIP)(?:[·｜]|$)).*$'
 x-filter-us-host: &filter-us-host '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
 
 x-filter-ca-trust: &filter-ca-trust '(?i)^CA (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
@@ -146,11 +142,11 @@ x-filter-order-ca: &filter-order-ca '(?i)^CA (?=[^｜]*[ ·]Trust(?:[·｜]|$)).
 x-filter-order-au: &filter-order-au '(?i)^AU (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^AU (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
 x-filter-order-uk: &filter-order-uk '(?i)^UK (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^UK (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
 x-filter-order-eu: &filter-order-eu '(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
-x-filter-order-ai: &filter-order-ai '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ConsIP(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]BusiIP(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ConsIP(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]BusiIP(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ConsIP(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]BusiIP(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ConsIP(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]BusiIP(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
-x-filter-order-us-ai: &filter-order-us-ai '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ConsIP(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]BusiIP(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
-x-filter-order-jp-ai: &filter-order-jp-ai '(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ConsIP(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]BusiIP(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
-x-filter-order-tw-ai: &filter-order-tw-ai '(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ConsIP(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]BusiIP(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
-x-filter-order-sg-ai: &filter-order-sg-ai '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ConsIP(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]BusiIP(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
+x-filter-order-ai: &filter-order-ai '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·](?:ISPIP|ConsIP|BusiIP)(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·](?:ISPIP|ConsIP|BusiIP)(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·](?:ISPIP|ConsIP|BusiIP)(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·](?:ISPIP|ConsIP|BusiIP)(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
+x-filter-order-us-ai: &filter-order-us-ai '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·](?:ISPIP|ConsIP|BusiIP)(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
+x-filter-order-jp-ai: &filter-order-jp-ai '(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·](?:ISPIP|ConsIP|BusiIP)(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
+x-filter-order-tw-ai: &filter-order-tw-ai '(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·](?:ISPIP|ConsIP|BusiIP)(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
+x-filter-order-sg-ai: &filter-order-sg-ai '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·](?:ISPIP|ConsIP|BusiIP)(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
 
 # Every automatic fallback consumes real nodes directly.
 # `include-all: true` keeps both supported source modes:
@@ -387,7 +383,7 @@ proxy-groups:
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/ChatGPT.png"
   - name: RedPocket
     type: select
-    proxies: [RedPocket Auto, US Trust ConsIP, US Trust BusiIP, US Trust HostIP, Chain]
+    proxies: [RedPocket Auto, US Trust ISPIP, US Trust HostIP, Chain]
     default-selected: RedPocket Auto
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"
   - name: Apple
@@ -606,14 +602,9 @@ proxy-groups:
     <<: *node-fallback
     filter: *filter-order-us-ai
     hidden: true
-  - name: US Trust ConsIP
+  - name: US Trust ISPIP
     <<: *url-test
-    filter: *filter-us-cons
-    exclude-filter: *exclude-chain
-    hidden: true
-  - name: US Trust BusiIP
-    <<: *url-test
-    filter: *filter-us-busi
+    filter: *filter-us-isp
     exclude-filter: *exclude-chain
     hidden: true
   - name: US Trust HostIP
@@ -625,14 +616,9 @@ proxy-groups:
     <<: *node-fallback
     filter: *filter-order-jp-ai
     hidden: true
-  - name: JP Trust ConsIP
+  - name: JP Trust ISPIP
     <<: *url-test
-    filter: *filter-jp-cons
-    exclude-filter: *exclude-chain
-    hidden: true
-  - name: JP Trust BusiIP
-    <<: *url-test
-    filter: *filter-jp-busi
+    filter: *filter-jp-isp
     exclude-filter: *exclude-chain
     hidden: true
   - name: JP Trust HostIP
@@ -644,14 +630,9 @@ proxy-groups:
     <<: *node-fallback
     filter: *filter-order-tw-ai
     hidden: true
-  - name: TW Trust ConsIP
+  - name: TW Trust ISPIP
     <<: *url-test
-    filter: *filter-tw-cons
-    exclude-filter: *exclude-chain
-    hidden: true
-  - name: TW Trust BusiIP
-    <<: *url-test
-    filter: *filter-tw-busi
+    filter: *filter-tw-isp
     exclude-filter: *exclude-chain
     hidden: true
   - name: TW Trust HostIP
@@ -663,14 +644,9 @@ proxy-groups:
     <<: *node-fallback
     filter: *filter-order-sg-ai
     hidden: true
-  - name: SG Trust ConsIP
+  - name: SG Trust ISPIP
     <<: *url-test
-    filter: *filter-sg-cons
-    exclude-filter: *exclude-chain
-    hidden: true
-  - name: SG Trust BusiIP
-    <<: *url-test
-    filter: *filter-sg-busi
+    filter: *filter-sg-isp
     exclude-filter: *exclude-chain
     hidden: true
   - name: SG Trust HostIP
