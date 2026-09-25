@@ -1,5 +1,5 @@
 /**
- * Sub-Store IPQuality Quality + Network Identity v1.4.2 Stable
+ * Sub-Store IPQuality Quality + Network Identity v1.4.4 Stable
  * ------------------------------------------------------------
  * Upstream detection semantics baseline:
  *   xykt/IPQuality v2026-09-16
@@ -8,8 +8,13 @@
  *
  * Pipeline contract:
  *   Node Standardizer V2.1.5
- *     -> IPQuality V1.4.2
- *     -> Mihomo / OpenClash / Surfing V4.1.2 policy layer
+ *     -> IPQuality V1.4.4
+ *     -> Mihomo / OpenClash / Surfing V4.2.0 policy layer
+ *
+ * v1.4.4 Stable:
+ *   - Network Identity 完成 ISPIP / HostIP / UnkIP 三分类收口：C/L/I/B 统一作为 ISP-side 证据；
+ *   - ISP-side 至少 2 个独立来源才判 ISPIP；Hosting 与充分 ISP-side 证据冲突时判 UnkIP，避免旧四分类顺序造成 HostIP 偏置；
+ *   - 保持单一弱 ISP-side 证据为 UnkIP；Hosting 仍保留 H1/H2 现有置信门槛；Quality、Risk、Provider、EIP、Cache、Dead、Chain 均不调整。
  *
  * v1.4.3 Stable:
  *   - Network Identity 正式输出由 ConsIP/BusiIP/HostIP/UnkIP 收敛为 ISPIP/HostIP/UnkIP；
@@ -124,7 +129,7 @@
  *   http_meta_proxy_timeout = 15000
  */
 
-const IPQUALITY_VERSION = '1.4.3'
+const IPQUALITY_VERSION = '1.4.4'
 const UPSTREAM_VERSION = 'v2026-09-16'
 const UPSTREAM_COMMIT = '2384a67c756eb35231f5982b34731e522be3653e'
 
@@ -2424,7 +2429,7 @@ function buildSimpleVerdict(r) {
 
 
 // ---------------------------------------------------------------------------
-// Network Identity v1.2.0
+// Network Identity v1.3.0
 // ---------------------------------------------------------------------------
 // Provider verdicts are normalized to one direction per independent source:
 // C Consumer, L last-mile/fixed ISP, I generic ISP, B business, H hosting, X conflict.
@@ -2448,44 +2453,38 @@ function buildNetworkIdentity(r, originalStandardizedName) {
     if (Object.prototype.hasOwnProperty.call(counts, e.kind)) counts[e.kind] += 1
   }
 
-  const consumerCandidate =
-    counts.C >= 2 ||
-    (counts.C >= 1 && counts.L >= 1) ||
-    counts.L >= 2
+  // v1.4.4 final identity is intentionally three-way only.
+  // C/L/I/B all describe the ISP/access side; H describes hosting/datacenter.
+  // Require at least two independent ISP-side sources before calling ISPIP.
+  const ispVotes = counts.C + counts.L + counts.I + counts.B
+  const hostVotes = counts.H
 
   let verdict = 'UnkIP'
   let reason = 'LowEvidence'
 
-  // Strong Consumer consensus plus any Hosting evidence is treated as a conflict,
-  // not as a reason for one dimension to override the other.
-  if (consumerCandidate) {
-    if (counts.H >= 1) {
+  if (ispVotes >= 2) {
+    if (hostVotes >= 1) {
+      // Sufficient evidence exists on both sides: preserve uncertainty rather than
+      // letting the legacy four-class branch order bias the result toward HostIP.
       verdict = 'UnkIP'
-      reason = 'ConflictCH'
+      reason = 'ConflictIH'
     } else {
       verdict = 'ISPIP'
-      if (counts.C >= 2) reason = 'C2'
-      else if (counts.C >= 1 && counts.L >= 1) reason = 'C1L1'
-      else reason = 'L2'
+      reason = `ISP${ispVotes}`
     }
-  } else if (counts.H >= 2) {
-    // Two or more independent Hosting sources outweigh a lone, insufficient
-    // Consumer/last-mile hint. If Consumer itself reached threshold, the branch above wins.
+  } else if (hostVotes >= 2) {
+    // Strong Hosting consensus may outweigh one isolated ISP-side hint.
     verdict = 'HostIP'
     reason = 'H2'
-  } else if (counts.H === 1) {
-    // A single explicit Hosting source is enough only when there is no strong
-    // Consumer-side evidence at all. Otherwise preserve uncertainty.
-    if (counts.C + counts.L >= 1) {
+  } else if (hostVotes === 1) {
+    // A lone Hosting source is accepted only when there is no opposing ISP-side evidence.
+    if (ispVotes >= 1) {
       verdict = 'UnkIP'
-      reason = 'ConflictCH'
+      reason = 'ConflictIH'
     } else {
       verdict = 'HostIP'
       reason = 'H1'
     }
-  } else if (counts.I + counts.B >= 2) {
-    verdict = 'ISPIP'
-    reason = 'Biz2'
   }
 
   return { verdict, reason, counts, sources }
