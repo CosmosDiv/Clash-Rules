@@ -1,14 +1,14 @@
 # ============================================================================
-# Surfing / Android Magisk Quality / Identity Routing V4.1.2
+# Surfing / Android Magisk Quality / Identity Routing V4.2.0
 # Target: Surfing + Mihomo v1.19.30+
 #
-# Ordinary nodes: Node Standardizer V2.1.5 -> IPQuality V1.4.2 -> Mihomo
-# Chain nodes:    Node Standardizer V2.1.5 -> IPQuality V1.4.2 (auto bypass) -> Mihomo
+# Ordinary nodes: Node Standardizer V2.1.5 -> IPQuality V1.4.3 -> Mihomo
+# Chain nodes:    Node Standardizer V2.1.5 -> IPQuality V1.4.3 (auto bypass) -> Mihomo
 #
 # Policy architecture:
-#   Automatic fallback groups consume real nodes directly instead of nesting dynamic groups.
-#   Backtick-separated multiple filters define quality/region priority buckets.
-#   Fallback keeps `lazy: true` and selects the first alive node in the resulting order.
+#   Ordinary region Auto groups combine Trust + Normal and use URL-Test for in-region selection.
+#   Global / Front / ordinary service Auto groups use Fallback only for ordered region failover.
+#   AI / RedPocket remain Trust-only strict identity pools using ISPIP / HostIP.
 #   Final catch-all remains proxy-first while exposing a manual Direct override.
 #   Fallback health checking uses Apple; url-test latency checking uses Cloudflare.
 #   Surfing keeps tcp-concurrent disabled for platform stability.
@@ -66,95 +66,65 @@ x-select-nodes: &select-nodes
   empty-fallback: REJECT
 
 # ==================== 02. Node Filters ====================
-# Existing atomic filters are retained for Manual / YouTube / identity url-test groups.
+# IPQuality V1.4.3 contract:
+#   Auto   -> Trust | Normal
+#   Manual -> Trust | Normal | Unrated
+#   Risk   -> removed by IPQuality in normal production mode
+# Network identity (ISPIP / HostIP) is used only by strict AI / RedPocket pools.
 x-filter-chain: &filter-chain '(?i)^US @Chain-[^ ｜]+(?: |｜|$)`(?i)^JP @Chain-[^ ｜]+(?: |｜|$)`(?i)^SG @Chain-[^ ｜]+(?: |｜|$)`(?i)^(?!(?:US|JP|SG) )(?:[A-Z]{2}|Multi|Unknown) @Chain-[^ ｜]+(?: |｜|$)'
 x-exclude-chain: &exclude-chain '(?i)^(?:[A-Z]{2}|Multi|Unknown) @Chain-[^ ｜]+(?: |｜|$)'
 
-x-filter-hk-trust: &filter-hk-trust '(?i)^HK (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
-x-filter-hk-normal: &filter-hk-normal '(?i)^HK (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
+x-filter-hk-auto: &filter-hk-auto '(?i)^HK (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
 x-filter-hk-manual: &filter-hk-manual '(?i)^HK (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
 
-x-filter-tw-trust: &filter-tw-trust '(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
-x-filter-tw-normal: &filter-tw-normal '(?i)^TW (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
+x-filter-tw-auto: &filter-tw-auto '(?i)^TW (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
 x-filter-tw-manual: &filter-tw-manual '(?i)^TW (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
-x-filter-tw-isp: &filter-tw-isp '(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·](?:ISPIP|ConsIP|BusiIP)(?:[·｜]|$)).*$'
+x-filter-tw-isp: &filter-tw-isp '(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ISPIP(?:[·｜]|$)).*$'
 x-filter-tw-host: &filter-tw-host '(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
 
-x-filter-sg-trust: &filter-sg-trust '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
-x-filter-sg-normal: &filter-sg-normal '(?i)^SG (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
+x-filter-sg-auto: &filter-sg-auto '(?i)^SG (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
 x-filter-sg-manual: &filter-sg-manual '(?i)^SG (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
-x-filter-sg-isp: &filter-sg-isp '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·](?:ISPIP|ConsIP|BusiIP)(?:[·｜]|$)).*$'
+x-filter-sg-isp: &filter-sg-isp '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ISPIP(?:[·｜]|$)).*$'
 x-filter-sg-host: &filter-sg-host '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
 
-x-filter-jp-trust: &filter-jp-trust '(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
-x-filter-jp-normal: &filter-jp-normal '(?i)^JP (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
+x-filter-jp-auto: &filter-jp-auto '(?i)^JP (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
 x-filter-jp-manual: &filter-jp-manual '(?i)^JP (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
-x-filter-jp-isp: &filter-jp-isp '(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·](?:ISPIP|ConsIP|BusiIP)(?:[·｜]|$)).*$'
+x-filter-jp-isp: &filter-jp-isp '(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ISPIP(?:[·｜]|$)).*$'
 x-filter-jp-host: &filter-jp-host '(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
 
-x-filter-kr-trust: &filter-kr-trust '(?i)^KR (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
-x-filter-kr-normal: &filter-kr-normal '(?i)^KR (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
+x-filter-kr-auto: &filter-kr-auto '(?i)^KR (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
 x-filter-kr-manual: &filter-kr-manual '(?i)^KR (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
 
-x-filter-us-trust: &filter-us-trust '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
-x-filter-us-normal: &filter-us-normal '(?i)^US (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
+x-filter-us-auto: &filter-us-auto '(?i)^US (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
 x-filter-us-manual: &filter-us-manual '(?i)^US (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
-x-filter-us-isp: &filter-us-isp '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·](?:ISPIP|ConsIP|BusiIP)(?:[·｜]|$)).*$'
+x-filter-us-isp: &filter-us-isp '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ISPIP(?:[·｜]|$)).*$'
 x-filter-us-host: &filter-us-host '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
 
-x-filter-ca-trust: &filter-ca-trust '(?i)^CA (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
-x-filter-ca-normal: &filter-ca-normal '(?i)^CA (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
+x-filter-ca-auto: &filter-ca-auto '(?i)^CA (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
 x-filter-ca-manual: &filter-ca-manual '(?i)^CA (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
 
-x-filter-au-trust: &filter-au-trust '(?i)^AU (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
-x-filter-au-normal: &filter-au-normal '(?i)^AU (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
+x-filter-au-auto: &filter-au-auto '(?i)^AU (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
 x-filter-au-manual: &filter-au-manual '(?i)^AU (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
 
-x-filter-uk-trust: &filter-uk-trust '(?i)^UK (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
-x-filter-uk-normal: &filter-uk-normal '(?i)^UK (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
+x-filter-uk-auto: &filter-uk-auto '(?i)^UK (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
 x-filter-uk-manual: &filter-uk-manual '(?i)^UK (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
 
-x-filter-eu-trust: &filter-eu-trust '(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
-x-filter-eu-normal: &filter-eu-normal '(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
+x-filter-eu-auto: &filter-eu-auto '(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
 x-filter-eu-manual: &filter-eu-manual '(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
 
 x-filter-all-ordinary: &filter-all-ordinary '(?i)^(?:[A-Z]{2}|Multi|Unknown) @(?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
 x-filter-youtube-bulk: &filter-youtube-bulk '(?i)^(?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$))(?=[^｜]*[ ·]Bulk(?:[·｜]|$)).*$'
 x-filter-youtube-auto: &filter-youtube-auto '(?i)^(?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$))(?=[^｜]*[ ·]Bulk(?:[·｜]|$))(?=[^｜]*[ ·](?:0(?:\.\d+)?|1(?:\.0+)?)x(?:[·｜]|$)).*$'
 
-# ---------- Ordered multi-filter policy ----------
-# Mihomo processes backtick-separated filters in order; empty buckets are simply skipped.
-x-filter-order-main: &filter-order-main '(?i)^HK (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^KR (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^CA (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^AU (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^UK (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^HK (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^KR (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^CA (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^AU (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^UK (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
-x-filter-order-front: &filter-order-front '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^HK (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^HK (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
-x-filter-order-streaming: &filter-order-streaming '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^HK (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^HK (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
-x-filter-order-telegram: &filter-order-telegram '(?i)^HK (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^HK (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
-x-filter-order-social: &filter-order-social '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^HK (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^HK (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
-x-filter-order-dev: &filter-order-dev '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^HK (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^HK (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
-x-filter-order-crypto: &filter-order-crypto '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^HK (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^HK (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
-x-filter-order-games: &filter-order-games '(?i)^HK (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^HK (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
-x-filter-order-microsoft: &filter-order-microsoft '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^HK (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^HK (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
-x-filter-order-apple: &filter-order-apple '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^HK (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^HK (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
-x-filter-order-hk: &filter-order-hk '(?i)^HK (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^HK (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
-x-filter-order-tw: &filter-order-tw '(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
-x-filter-order-sg: &filter-order-sg '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
-x-filter-order-jp: &filter-order-jp '(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
-x-filter-order-kr: &filter-order-kr '(?i)^KR (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^KR (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
-x-filter-order-us: &filter-order-us '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
-x-filter-order-ca: &filter-order-ca '(?i)^CA (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^CA (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
-x-filter-order-au: &filter-order-au '(?i)^AU (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^AU (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
-x-filter-order-uk: &filter-order-uk '(?i)^UK (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^UK (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
-x-filter-order-eu: &filter-order-eu '(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
-x-filter-order-ai: &filter-order-ai '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·](?:ISPIP|ConsIP|BusiIP)(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·](?:ISPIP|ConsIP|BusiIP)(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·](?:ISPIP|ConsIP|BusiIP)(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·](?:ISPIP|ConsIP|BusiIP)(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
-x-filter-order-us-ai: &filter-order-us-ai '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·](?:ISPIP|ConsIP|BusiIP)(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
-x-filter-order-jp-ai: &filter-order-jp-ai '(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·](?:ISPIP|ConsIP|BusiIP)(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
-x-filter-order-tw-ai: &filter-order-tw-ai '(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·](?:ISPIP|ConsIP|BusiIP)(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
-x-filter-order-sg-ai: &filter-order-sg-ai '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·](?:ISPIP|ConsIP|BusiIP)(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
+# ---------- Strict identity fallback policy ----------
+# AI / RedPocket keep Trust-only identity ordering. Ordinary services do not use identity labels.
+x-filter-order-ai: &filter-order-ai '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ISPIP(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ISPIP(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ISPIP(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ISPIP(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
+x-filter-order-us-ai: &filter-order-us-ai '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ISPIP(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
+x-filter-order-jp-ai: &filter-order-jp-ai '(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ISPIP(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
+x-filter-order-tw-ai: &filter-order-tw-ai '(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ISPIP(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
+x-filter-order-sg-ai: &filter-order-sg-ai '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ISPIP(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
 
-# Every automatic fallback consumes real nodes directly.
-# `include-all: true` keeps both supported source modes:
-#   1) static nodes injected into top-level `proxies:` by Sub-Store
-#   2) nodes loaded from `proxy-providers`
-# Ordered backtick-separated filters still determine the fallback priority.
+# Only strict identity fallback groups consume real nodes directly.
 x-node-fallback: &node-fallback
   <<: *fallback
   include-all: true
@@ -286,8 +256,8 @@ proxy-groups:
     default-selected: Fallback
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"
   - name: Fallback
-    <<: *node-fallback
-    filter: *filter-order-main
+    <<: *fallback
+    proxies: [HK Auto, TW Auto, SG Auto, JP Auto, KR Auto, US Auto, CA Auto, AU Auto, UK Auto, EU Auto]
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Available.png"
   - name: Direct
     type: select
@@ -317,8 +287,8 @@ proxy-groups:
     default-selected: Front Auto
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"
   - name: Front Auto
-    <<: *node-fallback
-    filter: *filter-order-front
+    <<: *fallback
+    proxies: [US Auto, HK Auto, JP Auto, TW Auto, SG Auto]
     hidden: true
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: Front Manual
@@ -440,38 +410,38 @@ proxy-groups:
     default-selected: EU Auto
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/EU.png"
 
-  # ---------- Service Auto: direct real nodes ----------
+  # ---------- Service Auto: region fallback ----------
   - name: Streaming Auto
-    <<: *node-fallback
-    filter: *filter-order-streaming
+    <<: *fallback
+    proxies: [SG Auto, TW Auto, HK Auto, JP Auto, US Auto]
     hidden: true
   - name: Telegram Auto
-    <<: *node-fallback
-    filter: *filter-order-telegram
+    <<: *fallback
+    proxies: [HK Auto, SG Auto, JP Auto, TW Auto, US Auto]
     hidden: true
   - name: Social Auto
-    <<: *node-fallback
-    filter: *filter-order-social
+    <<: *fallback
+    proxies: [US Auto, SG Auto, TW Auto, HK Auto, JP Auto]
     hidden: true
   - name: Dev Auto
-    <<: *node-fallback
-    filter: *filter-order-dev
+    <<: *fallback
+    proxies: [US Auto, JP Auto, TW Auto, SG Auto, HK Auto]
     hidden: true
   - name: Crypto Auto
-    <<: *node-fallback
-    filter: *filter-order-crypto
+    <<: *fallback
+    proxies: [SG Auto, TW Auto, JP Auto, HK Auto, US Auto]
     hidden: true
   - name: Games Auto
-    <<: *node-fallback
-    filter: *filter-order-games
+    <<: *fallback
+    proxies: [HK Auto, TW Auto, JP Auto, SG Auto, US Auto]
     hidden: true
   - name: Microsoft Auto
-    <<: *node-fallback
-    filter: *filter-order-microsoft
+    <<: *fallback
+    proxies: [US Auto, JP Auto, TW Auto, SG Auto, HK Auto]
     hidden: true
   - name: Apple Auto
-    <<: *node-fallback
-    filter: *filter-order-apple
+    <<: *fallback
+    proxies: [US Auto, JP Auto, TW Auto, SG Auto, HK Auto]
     hidden: true
   - name: AI Auto
     <<: *node-fallback
@@ -499,46 +469,56 @@ proxy-groups:
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/YouTube.png"
 
-  # ---------- Region Auto: Trust -> Normal, direct real nodes ----------
+  # ---------- Region Auto: Trust + Normal URL-Test ----------
   - name: HK Auto
-    <<: *node-fallback
-    filter: *filter-order-hk
+    <<: *url-test
+    filter: *filter-hk-auto
+    exclude-filter: *exclude-chain
     hidden: true
   - name: TW Auto
-    <<: *node-fallback
-    filter: *filter-order-tw
+    <<: *url-test
+    filter: *filter-tw-auto
+    exclude-filter: *exclude-chain
     hidden: true
   - name: SG Auto
-    <<: *node-fallback
-    filter: *filter-order-sg
+    <<: *url-test
+    filter: *filter-sg-auto
+    exclude-filter: *exclude-chain
     hidden: true
   - name: JP Auto
-    <<: *node-fallback
-    filter: *filter-order-jp
+    <<: *url-test
+    filter: *filter-jp-auto
+    exclude-filter: *exclude-chain
     hidden: true
   - name: KR Auto
-    <<: *node-fallback
-    filter: *filter-order-kr
+    <<: *url-test
+    filter: *filter-kr-auto
+    exclude-filter: *exclude-chain
     hidden: true
   - name: US Auto
-    <<: *node-fallback
-    filter: *filter-order-us
+    <<: *url-test
+    filter: *filter-us-auto
+    exclude-filter: *exclude-chain
     hidden: true
   - name: CA Auto
-    <<: *node-fallback
-    filter: *filter-order-ca
+    <<: *url-test
+    filter: *filter-ca-auto
+    exclude-filter: *exclude-chain
     hidden: true
   - name: AU Auto
-    <<: *node-fallback
-    filter: *filter-order-au
+    <<: *url-test
+    filter: *filter-au-auto
+    exclude-filter: *exclude-chain
     hidden: true
   - name: UK Auto
-    <<: *node-fallback
-    filter: *filter-order-uk
+    <<: *url-test
+    filter: *filter-uk-auto
+    exclude-filter: *exclude-chain
     hidden: true
   - name: EU Auto
-    <<: *node-fallback
-    filter: *filter-order-eu
+    <<: *url-test
+    filter: *filter-eu-auto
+    exclude-filter: *exclude-chain
     hidden: true
 
   # ---------- Region Manual ----------
