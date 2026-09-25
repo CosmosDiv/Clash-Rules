@@ -11,6 +11,12 @@
  *     -> IPQuality V1.4.2
  *     -> Mihomo / OpenClash / Surfing V4.1.2 policy layer
  *
+ * v1.4.3 Stable:
+ *   - Network Identity 正式输出由 ConsIP/BusiIP/HostIP/UnkIP 收敛为 ISPIP/HostIP/UnkIP；
+ *   - Consumer / last-mile / ISP / Business 证据统一归入 ISPIP，Hosting/Datacenter 继续归入 HostIP，冲突或证据不足保持 UnkIP；
+ *   - 保留 Trust/Normal/Risk/Unrated 质量裁决与 Risk/Dead 过滤逻辑；保留旧身份标签清理兼容，避免重复运行残留旧标签；
+ *   - 本版不调整 EIP、Provider、Quality 阈值、Cache、Chain 与 Dead 判定算法。
+ *
  * v1.4.2 Stable:
  *   - 上游语义基线审计更新至 xykt/IPQuality v2026-09-16；9/16 的 ipapi JSON 校验、
  *     DB-IP CurlARG 等 Bash 修复在本 JS 架构中已由现有 JSON/路由安全逻辑覆盖，无需照搬实现；
@@ -70,7 +76,7 @@
  *   Unrated 无评分证据，或检测链路无法完成
  *
  * Network Identity:
- *   ConsIP / BusiIP / HostIP / UnkIP
+ *   ISPIP / HostIP / UnkIP
  *
  * Standardizer Manual Source:
  *   ResIP / Mobile / SatNet -> C
@@ -118,7 +124,7 @@
  *   http_meta_proxy_timeout = 15000
  */
 
-const IPQUALITY_VERSION = '1.4.2'
+const IPQUALITY_VERSION = '1.4.3'
 const UPSTREAM_VERSION = 'v2026-09-16'
 const UPSTREAM_COMMIT = '2384a67c756eb35231f5982b34731e522be3653e'
 
@@ -698,15 +704,15 @@ async function operator(proxies = [], targetPlatform, env = {}) {
     log.info(
       `RESULT RAW | Trust=${rawCounts.quality.Trust} Normal=${rawCounts.quality.Normal} ` +
       `Risk=${rawCounts.quality.Risk} Unrated=${rawCounts.quality.Unrated} ` +
-      `ConsIP=${rawCounts.identity.ConsIP} BusiIP=${rawCounts.identity.BusiIP} ` +
-      `HostIP=${rawCounts.identity.HostIP} UnkIP=${rawCounts.identity.UnkIP}`
+      `ISPIP=${rawCounts.identity.ISPIP} HostIP=${rawCounts.identity.HostIP} ` +
+      `UnkIP=${rawCounts.identity.UnkIP}`
     )
   }
   log.info(
     `RESULT | Trust=${counts.quality.Trust} Normal=${counts.quality.Normal} ` +
     `Risk=${counts.quality.Risk} Unrated=${counts.quality.Unrated} ` +
-    `ConsIP=${counts.identity.ConsIP} BusiIP=${counts.identity.BusiIP} ` +
-    `HostIP=${counts.identity.HostIP} UnkIP=${counts.identity.UnkIP}`
+    `ISPIP=${counts.identity.ISPIP} HostIP=${counts.identity.HostIP} ` +
+    `UnkIP=${counts.identity.UnkIP}`
   )
   log.info(
     `DEAD FILTER | enabled=${filterDead ? 'on' : 'off'} confirmed=${deadIndices.size} ` +
@@ -2127,7 +2133,7 @@ function markRunFinished(cache, marker, runId) {
 
 function countFinalClassifications(output) {
   const quality = { Trust: 0, Normal: 0, Risk: 0, Unrated: 0 }
-  const identity = { ConsIP: 0, BusiIP: 0, HostIP: 0, UnkIP: 0 }
+  const identity = { ISPIP: 0, HostIP: 0, UnkIP: 0 }
   for (const proxy of output || []) {
     const parsed = parseV21Name(proxy?.name)
     if (!parsed) continue
@@ -2418,7 +2424,7 @@ function buildSimpleVerdict(r) {
 
 
 // ---------------------------------------------------------------------------
-// Network Identity v1.1.1
+// Network Identity v1.2.0
 // ---------------------------------------------------------------------------
 // Provider verdicts are normalized to one direction per independent source:
 // C Consumer, L last-mile/fixed ISP, I generic ISP, B business, H hosting, X conflict.
@@ -2457,7 +2463,7 @@ function buildNetworkIdentity(r, originalStandardizedName) {
       verdict = 'UnkIP'
       reason = 'ConflictCH'
     } else {
-      verdict = 'ConsIP'
+      verdict = 'ISPIP'
       if (counts.C >= 2) reason = 'C2'
       else if (counts.C >= 1 && counts.L >= 1) reason = 'C1L1'
       else reason = 'L2'
@@ -2478,7 +2484,7 @@ function buildNetworkIdentity(r, originalStandardizedName) {
       reason = 'H1'
     }
   } else if (counts.I + counts.B >= 2) {
-    verdict = 'BusiIP'
+    verdict = 'ISPIP'
     reason = 'Biz2'
   }
 
@@ -3491,7 +3497,7 @@ function addTempTags(name, newTags) {
 }
 
 function isIpQualityManagedTag(t) {
-  return /^(?:EIP-|EIP4-|EIP6-|EIP4Fail-|EIP6Fail-|EIPDual$|EIP4Only$|EIP6Only$|EIPMissing$|Primary4$|Primary6$|DeadCandidate$|DeadConfirmed$|DeadRecovered$|IPQStageErr$|Trust$|Normal$|Risk$|Unrated$|ConsumerIP$|BusinessIP$|HostingIP$|NetUnrated$|ConsIP$|BusiIP$|HostIP$|UnkIP$|Net-C\d+-L\d+-I\d+-B\d+-H\d+-X\d+$|NetSrc(?:0|-.*)$|NetWhy(?:0|-.*)$|Q\d+\/7$|Clean\d+\/7$|Caution\d+$|RiskSrc\d+$|Score\d+\/7$|Core\d+\/(?:4|5)$|Valid\d+(?:\/10)?$|Full$|Lite$|MM-(?:Full|Lite|OK.*|H\d+.*|E.*|Skip.*)$|Hard(?:0|-.+)$|Strong(?:0|-.+)$|RiskReason(?:0|-.+)$|CautionReason(?:0|-.+)$|VPN\d+\/\d+$|Proxy\d+\/\d+$|PC-|II-|SC-|IR-|IA-|AB-|I2-|DB-|ID-|IQ-|TrustedIP$|RiskIP$|AbuseIP$|VPNIP$|ProxyIP$|TorIP$|DCIP$|ISPNet$|IPQS-R\d+$|VPN$|Proxy$|Tor$|Abuse$|CPBase|CPCurl|PCScoreErr$|IPProbe(?:MetaErr|ExitErr|Unsup)$|IPScoreErr$|IPQ(?:MetaErr|ApiErr|Unsup)$)/.test(String(t || ''))
+  return /^(?:EIP-|EIP4-|EIP6-|EIP4Fail-|EIP6Fail-|EIPDual$|EIP4Only$|EIP6Only$|EIPMissing$|Primary4$|Primary6$|DeadCandidate$|DeadConfirmed$|DeadRecovered$|IPQStageErr$|Trust$|Normal$|Risk$|Unrated$|ConsumerIP$|BusinessIP$|HostingIP$|NetUnrated$|ISPIP$|ConsIP$|BusiIP$|HostIP$|UnkIP$|Net-C\d+-L\d+-I\d+-B\d+-H\d+-X\d+$|NetSrc(?:0|-.*)$|NetWhy(?:0|-.*)$|Q\d+\/7$|Clean\d+\/7$|Caution\d+$|RiskSrc\d+$|Score\d+\/7$|Core\d+\/(?:4|5)$|Valid\d+(?:\/10)?$|Full$|Lite$|MM-(?:Full|Lite|OK.*|H\d+.*|E.*|Skip.*)$|Hard(?:0|-.+)$|Strong(?:0|-.+)$|RiskReason(?:0|-.+)$|CautionReason(?:0|-.+)$|VPN\d+\/\d+$|Proxy\d+\/\d+$|PC-|II-|SC-|IR-|IA-|AB-|I2-|DB-|ID-|IQ-|TrustedIP$|RiskIP$|AbuseIP$|VPNIP$|ProxyIP$|TorIP$|DCIP$|ISPNet$|IPQS-R\d+$|VPN$|Proxy$|Tor$|Abuse$|CPBase|CPCurl|PCScoreErr$|IPProbe(?:MetaErr|ExitErr|Unsup)$|IPScoreErr$|IPQ(?:MetaErr|ApiErr|Unsup)$)/.test(String(t || ''))
 }
 
 function isChainNodeName(name) {
