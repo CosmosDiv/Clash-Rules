@@ -1,16 +1,19 @@
 # ============================================================================
-# Mihomo Bare-Core Quality / Identity Routing V4.2.0
+# Mihomo Bare-Core Quality / Identity Routing V4.3.0
 # Target: Mihomo v1.19.30+
 #
-# Ordinary nodes: Node Standardizer V2.1.5 -> IPQuality V1.4.3 -> Mihomo
-# Chain nodes:    Node Standardizer V2.1.5 -> IPQuality V1.4.3 (auto bypass) -> Mihomo
+# Ordinary nodes: Node Standardizer V2.1.5 -> IPQuality V1.4.4 -> Mihomo
+# Chain nodes:    Node Standardizer V2.1.5 -> IPQuality V1.4.4 (auto bypass) -> Mihomo
 #
 # Policy architecture:
-#   Ordinary region Auto groups combine Trust + Normal and use URL-Test for in-region selection.
-#   Global / Front / ordinary service Auto groups use Fallback only for ordered region failover.
-#   AI / RedPocket remain Trust-only strict identity pools using ISPIP / HostIP.
-#   Final catch-all remains proxy-first while exposing a manual Direct override.
-#   Fallback health checking uses Apple; url-test latency checking uses Cloudflare.
+#   Ordinary region groups are Select -> Auto / Manual; Auto uses Trust + Normal URL-Test.
+#   A single global Fallback serves Proxy for ordered cross-region failover.
+#   Ordinary services use ordered Select groups and do not own Fallback groups.
+#   AI / RedPocket prefer Chain, then Trust-only sensitive region selectors.
+#   Front Proxy directly selects region Auto groups; no dedicated Front fallback remains.
+#   Direct can be manually switched between DIRECT and Proxy.
+#   Automated URL-Test / Fallback groups are hidden; manually controllable Select groups remain visible.
+#   Fallback and URL-Test share one gstatic generate_204 probe target.
 #
 # Node source compatibility:
 #   Both Sub-Store static-node injection and proxy-provider mode are supported.
@@ -27,12 +30,12 @@ x-user-config:
   provider-path: &provider-path ./proxies/proxy1.yaml
   provider-update-interval: &provider-update-interval 86400
 
-  # Separate reachability checking from latency comparison.
-  health-url: &health-url https://www.apple.com/library/test/success.html
-  latency-url: &latency-url https://cp.cloudflare.com/generate_204
-  test-interval: &test-interval 600
-  test-timeout: &test-timeout 3000
-  test-tolerance: &test-tolerance 80
+  # One stable probe target for both failover health and latency comparison.
+  health-url: &health-url https://www.gstatic.com/generate_204
+  latency-url: &latency-url https://www.gstatic.com/generate_204
+  test-interval: &test-interval 300
+  test-timeout: &test-timeout 5000
+  test-tolerance: &test-tolerance 50
 
   rule-update-interval: &rule-update-interval 86400
 
@@ -42,9 +45,10 @@ x-fallback: &fallback
   type: fallback
   interval: *test-interval
   lazy: true
+  hidden: true
   url: *health-url
   timeout: *test-timeout
-  expected-status: 200
+  expected-status: 204
   empty-fallback: REJECT
 
 x-url-test: &url-test
@@ -53,6 +57,7 @@ x-url-test: &url-test
   interval: *test-interval
   tolerance: *test-tolerance
   lazy: true
+  hidden: true
   url: *latency-url
   timeout: *test-timeout
   expected-status: 204
@@ -64,11 +69,12 @@ x-select-nodes: &select-nodes
   empty-fallback: REJECT
 
 # ==================== 02. Node Filters ====================
-# IPQuality V1.4.3 contract:
+# IPQuality V1.4.4 contract:
 #   Auto   -> Trust | Normal
 #   Manual -> Trust | Normal | Unrated
+#   Trust  -> multi-source clean reputation; independent from ISPIP / HostIP identity
 #   Risk   -> removed by IPQuality in normal production mode
-# Network identity (ISPIP / HostIP) is used only by strict AI / RedPocket pools.
+# Network identity (ISPIP / HostIP / UnkIP) remains node metadata and is not required by policy groups.
 x-filter-chain: &filter-chain '(?i)^US @Chain-[^ ｜]+(?: |｜|$)`(?i)^JP @Chain-[^ ｜]+(?: |｜|$)`(?i)^SG @Chain-[^ ｜]+(?: |｜|$)`(?i)^(?!(?:US|JP|SG) )(?:[A-Z]{2}|Multi|Unknown) @Chain-[^ ｜]+(?: |｜|$)'
 x-exclude-chain: &exclude-chain '(?i)^(?:[A-Z]{2}|Multi|Unknown) @Chain-[^ ｜]+(?: |｜|$)'
 
@@ -77,26 +83,22 @@ x-filter-hk-manual: &filter-hk-manual '(?i)^HK (?=[^｜]*[ ·](?:Trust|Normal|Un
 
 x-filter-tw-auto: &filter-tw-auto '(?i)^TW (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
 x-filter-tw-manual: &filter-tw-manual '(?i)^TW (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
-x-filter-tw-isp: &filter-tw-isp '(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ISPIP(?:[·｜]|$)).*$'
-x-filter-tw-host: &filter-tw-host '(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
+x-filter-tw-trust: &filter-tw-trust '(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
 
 x-filter-sg-auto: &filter-sg-auto '(?i)^SG (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
 x-filter-sg-manual: &filter-sg-manual '(?i)^SG (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
-x-filter-sg-isp: &filter-sg-isp '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ISPIP(?:[·｜]|$)).*$'
-x-filter-sg-host: &filter-sg-host '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
+x-filter-sg-trust: &filter-sg-trust '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
 
 x-filter-jp-auto: &filter-jp-auto '(?i)^JP (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
 x-filter-jp-manual: &filter-jp-manual '(?i)^JP (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
-x-filter-jp-isp: &filter-jp-isp '(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ISPIP(?:[·｜]|$)).*$'
-x-filter-jp-host: &filter-jp-host '(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
+x-filter-jp-trust: &filter-jp-trust '(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
 
 x-filter-kr-auto: &filter-kr-auto '(?i)^KR (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
 x-filter-kr-manual: &filter-kr-manual '(?i)^KR (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
 
 x-filter-us-auto: &filter-us-auto '(?i)^US (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
 x-filter-us-manual: &filter-us-manual '(?i)^US (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
-x-filter-us-isp: &filter-us-isp '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ISPIP(?:[·｜]|$)).*$'
-x-filter-us-host: &filter-us-host '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
+x-filter-us-trust: &filter-us-trust '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
 
 x-filter-ca-auto: &filter-ca-auto '(?i)^CA (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
 x-filter-ca-manual: &filter-ca-manual '(?i)^CA (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
@@ -113,20 +115,6 @@ x-filter-eu-manual: &filter-eu-manual '(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|
 x-filter-all-ordinary: &filter-all-ordinary '(?i)^(?:[A-Z]{2}|Multi|Unknown) @(?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
 x-filter-youtube-bulk: &filter-youtube-bulk '(?i)^(?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$))(?=[^｜]*[ ·]Bulk(?:[·｜]|$)).*$'
 x-filter-youtube-auto: &filter-youtube-auto '(?i)^(?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$))(?=[^｜]*[ ·]Bulk(?:[·｜]|$))(?=[^｜]*[ ·](?:0(?:\.\d+)?|1(?:\.0+)?)x(?:[·｜]|$)).*$'
-
-# ---------- Strict identity fallback policy ----------
-# AI / RedPocket keep Trust-only identity ordering. Ordinary services do not use identity labels.
-x-filter-order-ai: &filter-order-ai '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ISPIP(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ISPIP(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ISPIP(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ISPIP(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
-x-filter-order-us-ai: &filter-order-us-ai '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ISPIP(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
-x-filter-order-jp-ai: &filter-order-jp-ai '(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ISPIP(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
-x-filter-order-tw-ai: &filter-order-tw-ai '(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ISPIP(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
-x-filter-order-sg-ai: &filter-order-sg-ai '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]ISPIP(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$))(?=[^｜]*[ ·]HostIP(?:[·｜]|$)).*$'
-
-# Only strict identity fallback groups consume real nodes directly.
-x-node-fallback: &node-fallback
-  <<: *fallback
-  include-all: true
-  exclude-filter: *exclude-chain
 
 # ==================== 03. Proxy Sources ====================
 # Sub-Store may inject static nodes here. With provider mode, keep this list empty.
@@ -256,7 +244,7 @@ proxy-groups:
   # ---------- Core ----------
   - name: Proxy
     type: select
-    proxies: [Fallback, HK, TW, SG, JP, KR, US, CA, AU, UK, EU, All Nodes, Direct]
+    proxies: [Fallback, HK, TW, SG, JP, KR, US, CA, AU, UK, EU, All Nodes]
     default-selected: Fallback
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"
   - name: Fallback
@@ -265,9 +253,8 @@ proxy-groups:
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Available.png"
   - name: Direct
     type: select
-    proxies: [DIRECT]
+    proxies: [DIRECT, Proxy]
     default-selected: DIRECT
-    hidden: true
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Direct.png"
   - name: Final
     type: select
@@ -287,14 +274,9 @@ proxy-groups:
   # ---------- Front / Chain ----------
   - name: Front Proxy
     type: select
-    proxies: [Front Auto, Front Manual, Direct]
-    default-selected: Front Auto
+    proxies: [US Auto, HK Auto, JP Auto, TW Auto, SG Auto, Proxy, Front Manual, Direct]
+    default-selected: US Auto
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"
-  - name: Front Auto
-    <<: *fallback
-    proxies: [US Auto, HK Auto, JP Auto, TW Auto, SG Auto]
-    hidden: true
-    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: Front Manual
     <<: *select-nodes
     filter: *filter-all-ordinary
@@ -305,335 +287,286 @@ proxy-groups:
     filter: *filter-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Server.png"
 
-  # ---------- Services ----------
-  - name: Streaming
+  # ---------- Sensitive Services ----------
+  - name: AI
     type: select
-    proxies: [Streaming Auto, HK, JP, TW, SG, US, Proxy]
-    default-selected: Streaming Auto
-    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Streaming.png"
+    proxies: [Chain, US Sensitive, JP Sensitive, TW Sensitive, SG Sensitive, Proxy]
+    default-selected: Chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/ChatGPT.png"
+  - name: RedPocket
+    type: select
+    proxies: [Chain, US Sensitive, US, Proxy]
+    default-selected: Chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"
+
+  - name: US Sensitive
+    type: select
+    proxies: [US Trust, US Auto]
+    default-selected: US Trust
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"
+  - name: US Trust
+    <<: *url-test
+    filter: *filter-us-trust
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
+
+  - name: JP Sensitive
+    type: select
+    proxies: [JP Trust, JP Auto]
+    default-selected: JP Trust
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/JP.png"
+  - name: JP Trust
+    <<: *url-test
+    filter: *filter-jp-trust
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
+
+  - name: TW Sensitive
+    type: select
+    proxies: [TW Trust, TW Auto]
+    default-selected: TW Trust
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/TW.png"
+  - name: TW Trust
+    <<: *url-test
+    filter: *filter-tw-trust
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
+
+  - name: SG Sensitive
+    type: select
+    proxies: [SG Trust, SG Auto]
+    default-selected: SG Trust
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/SG.png"
+  - name: SG Trust
+    <<: *url-test
+    filter: *filter-sg-trust
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
+
+  # ---------- Ordinary Services ----------
+  - name: Dev
+    type: select
+    proxies: [US, JP, TW, SG, HK, Proxy]
+    default-selected: US
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/GitHub.png"
   - name: Telegram
     type: select
-    proxies: [Telegram Auto, HK, JP, TW, SG, US, Proxy]
-    default-selected: Telegram Auto
+    proxies: [HK, SG, JP, TW, US, Proxy]
+    default-selected: HK
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Telegram_X.png"
   - name: Social
     type: select
-    proxies: [Social Auto, HK, JP, TW, SG, US, Proxy]
-    default-selected: Social Auto
+    proxies: [US, SG, TW, HK, JP, Proxy]
+    default-selected: US
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Instagram.png"
-  - name: Dev
+  - name: Streaming
     type: select
-    proxies: [Dev Auto, HK, JP, TW, SG, US, Proxy]
-    default-selected: Dev Auto
-    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/GitHub.png"
-  - name: Crypto
-    type: select
-    proxies: [Crypto Auto, HK, JP, TW, SG, US, Proxy]
-    default-selected: Crypto Auto
-    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Cryptocurrency.png"
-  - name: Games
-    type: select
-    proxies: [Games Auto, HK, JP, TW, SG, US, Proxy]
-    default-selected: Games Auto
-    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Game.png"
-  - name: Microsoft
-    type: select
-    proxies: [Microsoft Auto, HK, JP, TW, SG, US, Proxy]
-    default-selected: Microsoft Auto
-    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Microsoft.png"
+    proxies: [SG, TW, HK, JP, US, Proxy]
+    default-selected: SG
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Streaming.png"
+
   - name: YouTube
     type: select
     proxies: [YouTube Auto, YouTube Bulk, YouTube Manual, Proxy]
     default-selected: YouTube Auto
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/YouTube.png"
-  - name: AI
-    type: select
-    proxies: [AI Auto, US AI, JP AI, TW AI, SG AI, Chain]
-    default-selected: AI Auto
-    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/ChatGPT.png"
-  - name: RedPocket
-    type: select
-    proxies: [RedPocket Auto, US Trust ISPIP, US Trust HostIP, Chain]
-    default-selected: RedPocket Auto
-    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"
-  - name: Apple
-    type: select
-    proxies: [Apple Auto, HK, JP, TW, SG, US, Proxy, Direct]
-    default-selected: Apple Auto
-    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Apple.png"
-
-  # ---------- Region Selectors ----------
-  - name: HK
-    type: select
-    proxies: [HK Auto, HK Manual]
-    default-selected: HK Auto
-    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Hong_Kong.png"
-  - name: TW
-    type: select
-    proxies: [TW Auto, TW Manual]
-    default-selected: TW Auto
-    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/TW.png"
-  - name: SG
-    type: select
-    proxies: [SG Auto, SG Manual]
-    default-selected: SG Auto
-    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/SG.png"
-  - name: JP
-    type: select
-    proxies: [JP Auto, JP Manual]
-    default-selected: JP Auto
-    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/JP.png"
-  - name: KR
-    type: select
-    proxies: [KR Auto, KR Manual]
-    default-selected: KR Auto
-    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/KR.png"
-  - name: US
-    type: select
-    proxies: [US Auto, US Manual]
-    default-selected: US Auto
-    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"
-  - name: CA
-    type: select
-    proxies: [CA Auto, CA Manual]
-    default-selected: CA Auto
-    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Canada.png"
-  - name: AU
-    type: select
-    proxies: [AU Auto, AU Manual]
-    default-selected: AU Auto
-    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Australia.png"
-  - name: UK
-    type: select
-    proxies: [UK Auto, UK Manual]
-    default-selected: UK Auto
-    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_Kingdom.png"
-  - name: EU
-    type: select
-    proxies: [EU Auto, EU Manual]
-    default-selected: EU Auto
-    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/EU.png"
-
-  # ---------- Service Auto: region fallback ----------
-  - name: Streaming Auto
-    <<: *fallback
-    proxies: [SG Auto, TW Auto, HK Auto, JP Auto, US Auto]
-    hidden: true
-  - name: Telegram Auto
-    <<: *fallback
-    proxies: [HK Auto, SG Auto, JP Auto, TW Auto, US Auto]
-    hidden: true
-  - name: Social Auto
-    <<: *fallback
-    proxies: [US Auto, SG Auto, TW Auto, HK Auto, JP Auto]
-    hidden: true
-  - name: Dev Auto
-    <<: *fallback
-    proxies: [US Auto, JP Auto, TW Auto, SG Auto, HK Auto]
-    hidden: true
-  - name: Crypto Auto
-    <<: *fallback
-    proxies: [SG Auto, TW Auto, JP Auto, HK Auto, US Auto]
-    hidden: true
-  - name: Games Auto
-    <<: *fallback
-    proxies: [HK Auto, TW Auto, JP Auto, SG Auto, US Auto]
-    hidden: true
-  - name: Microsoft Auto
-    <<: *fallback
-    proxies: [US Auto, JP Auto, TW Auto, SG Auto, HK Auto]
-    hidden: true
-  - name: Apple Auto
-    <<: *fallback
-    proxies: [US Auto, JP Auto, TW Auto, SG Auto, HK Auto]
-    hidden: true
-  - name: AI Auto
-    <<: *node-fallback
-    filter: *filter-order-ai
-    hidden: true
-  - name: RedPocket Auto
-    <<: *node-fallback
-    filter: *filter-order-us-ai
-    hidden: true
-
-  # ---------- YouTube Pools ----------
   - name: YouTube Auto
     <<: *url-test
     filter: *filter-youtube-auto
     exclude-filter: *exclude-chain
-    hidden: true
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: YouTube Bulk
     <<: *url-test
     filter: *filter-youtube-bulk
     exclude-filter: *exclude-chain
-    hidden: true
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: YouTube Manual
     <<: *select-nodes
     filter: *filter-youtube-bulk
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/YouTube.png"
 
-  # ---------- Region Auto: Trust + Normal URL-Test ----------
+  - name: Crypto
+    type: select
+    proxies: [SG, TW, JP, HK, US, Proxy]
+    default-selected: SG
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Cryptocurrency.png"
+  - name: Games
+    type: select
+    proxies: [HK, TW, JP, SG, US, Proxy]
+    default-selected: HK
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Game.png"
+  - name: Microsoft
+    type: select
+    proxies: [US, JP, TW, SG, HK, Proxy]
+    default-selected: US
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Microsoft.png"
+  - name: Apple
+    type: select
+    proxies: [Direct, US, JP, TW, SG, HK, Proxy]
+    default-selected: Direct
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Apple.png"
+
+  # ---------- Regions ----------
+  - name: HK
+    type: select
+    proxies: [HK Auto, HK Manual]
+    default-selected: HK Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Hong_Kong.png"
   - name: HK Auto
     <<: *url-test
     filter: *filter-hk-auto
     exclude-filter: *exclude-chain
-    hidden: true
-  - name: TW Auto
-    <<: *url-test
-    filter: *filter-tw-auto
-    exclude-filter: *exclude-chain
-    hidden: true
-  - name: SG Auto
-    <<: *url-test
-    filter: *filter-sg-auto
-    exclude-filter: *exclude-chain
-    hidden: true
-  - name: JP Auto
-    <<: *url-test
-    filter: *filter-jp-auto
-    exclude-filter: *exclude-chain
-    hidden: true
-  - name: KR Auto
-    <<: *url-test
-    filter: *filter-kr-auto
-    exclude-filter: *exclude-chain
-    hidden: true
-  - name: US Auto
-    <<: *url-test
-    filter: *filter-us-auto
-    exclude-filter: *exclude-chain
-    hidden: true
-  - name: CA Auto
-    <<: *url-test
-    filter: *filter-ca-auto
-    exclude-filter: *exclude-chain
-    hidden: true
-  - name: AU Auto
-    <<: *url-test
-    filter: *filter-au-auto
-    exclude-filter: *exclude-chain
-    hidden: true
-  - name: UK Auto
-    <<: *url-test
-    filter: *filter-uk-auto
-    exclude-filter: *exclude-chain
-    hidden: true
-  - name: EU Auto
-    <<: *url-test
-    filter: *filter-eu-auto
-    exclude-filter: *exclude-chain
-    hidden: true
-
-  # ---------- Region Manual ----------
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: HK Manual
     <<: *select-nodes
     filter: *filter-hk-manual
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Hong_Kong.png"
+
+  - name: TW
+    type: select
+    proxies: [TW Auto, TW Manual]
+    default-selected: TW Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/TW.png"
+  - name: TW Auto
+    <<: *url-test
+    filter: *filter-tw-auto
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: TW Manual
     <<: *select-nodes
     filter: *filter-tw-manual
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/TW.png"
+
+  - name: SG
+    type: select
+    proxies: [SG Auto, SG Manual]
+    default-selected: SG Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/SG.png"
+  - name: SG Auto
+    <<: *url-test
+    filter: *filter-sg-auto
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: SG Manual
     <<: *select-nodes
     filter: *filter-sg-manual
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/SG.png"
+
+  - name: JP
+    type: select
+    proxies: [JP Auto, JP Manual]
+    default-selected: JP Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/JP.png"
+  - name: JP Auto
+    <<: *url-test
+    filter: *filter-jp-auto
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: JP Manual
     <<: *select-nodes
     filter: *filter-jp-manual
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/JP.png"
+
+  - name: KR
+    type: select
+    proxies: [KR Auto, KR Manual]
+    default-selected: KR Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/KR.png"
+  - name: KR Auto
+    <<: *url-test
+    filter: *filter-kr-auto
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: KR Manual
     <<: *select-nodes
     filter: *filter-kr-manual
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/KR.png"
+
+  - name: US
+    type: select
+    proxies: [US Auto, US Manual]
+    default-selected: US Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"
+  - name: US Auto
+    <<: *url-test
+    filter: *filter-us-auto
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: US Manual
     <<: *select-nodes
     filter: *filter-us-manual
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"
+
+  - name: CA
+    type: select
+    proxies: [CA Auto, CA Manual]
+    default-selected: CA Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Canada.png"
+  - name: CA Auto
+    <<: *url-test
+    filter: *filter-ca-auto
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: CA Manual
     <<: *select-nodes
     filter: *filter-ca-manual
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Canada.png"
+
+  - name: AU
+    type: select
+    proxies: [AU Auto, AU Manual]
+    default-selected: AU Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Australia.png"
+  - name: AU Auto
+    <<: *url-test
+    filter: *filter-au-auto
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: AU Manual
     <<: *select-nodes
     filter: *filter-au-manual
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Australia.png"
+
+  - name: UK
+    type: select
+    proxies: [UK Auto, UK Manual]
+    default-selected: UK Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_Kingdom.png"
+  - name: UK Auto
+    <<: *url-test
+    filter: *filter-uk-auto
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: UK Manual
     <<: *select-nodes
     filter: *filter-uk-manual
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_Kingdom.png"
+
+  - name: EU
+    type: select
+    proxies: [EU Auto, EU Manual]
+    default-selected: EU Auto
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/EU.png"
+  - name: EU Auto
+    <<: *url-test
+    filter: *filter-eu-auto
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: EU Manual
     <<: *select-nodes
     filter: *filter-eu-manual
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/EU.png"
-
-  # ---------- AI Identity Pools ----------
-  - name: US AI
-    <<: *node-fallback
-    filter: *filter-order-us-ai
-    hidden: true
-  - name: US Trust ISPIP
-    <<: *url-test
-    filter: *filter-us-isp
-    exclude-filter: *exclude-chain
-    hidden: true
-  - name: US Trust HostIP
-    <<: *url-test
-    filter: *filter-us-host
-    exclude-filter: *exclude-chain
-    hidden: true
-  - name: JP AI
-    <<: *node-fallback
-    filter: *filter-order-jp-ai
-    hidden: true
-  - name: JP Trust ISPIP
-    <<: *url-test
-    filter: *filter-jp-isp
-    exclude-filter: *exclude-chain
-    hidden: true
-  - name: JP Trust HostIP
-    <<: *url-test
-    filter: *filter-jp-host
-    exclude-filter: *exclude-chain
-    hidden: true
-  - name: TW AI
-    <<: *node-fallback
-    filter: *filter-order-tw-ai
-    hidden: true
-  - name: TW Trust ISPIP
-    <<: *url-test
-    filter: *filter-tw-isp
-    exclude-filter: *exclude-chain
-    hidden: true
-  - name: TW Trust HostIP
-    <<: *url-test
-    filter: *filter-tw-host
-    exclude-filter: *exclude-chain
-    hidden: true
-  - name: SG AI
-    <<: *node-fallback
-    filter: *filter-order-sg-ai
-    hidden: true
-  - name: SG Trust ISPIP
-    <<: *url-test
-    filter: *filter-sg-isp
-    exclude-filter: *exclude-chain
-    hidden: true
-  - name: SG Trust HostIP
-    <<: *url-test
-    filter: *filter-sg-host
-    exclude-filter: *exclude-chain
-    hidden: true
 
 # ==================== 06. Rule Provider Templates ====================
 x-rule-domain: &rule-domain
