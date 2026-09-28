@@ -126,7 +126,6 @@ proxy-providers:
     url: *provider-url
     path: *provider-path
     interval: *provider-update-interval
-    proxy: DIRECT
     header:
       User-Agent:
         - "ClashMetaForAndroid/2.11.2.Meta"
