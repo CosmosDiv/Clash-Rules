@@ -1,5 +1,5 @@
 # ============================================================================
-# Surfing / Android Magisk Quality / Identity Routing V4.3.0
+# Surfing / Android Magisk Quality / Identity Routing V4.3.1
 # Target: Surfing + Mihomo v1.19.30+
 #
 # Ordinary nodes: Node Standardizer V2.1.5 -> IPQuality V1.4.4 -> Mihomo
@@ -10,7 +10,7 @@
 #   A single global Fallback serves Proxy for ordered cross-region failover.
 #   Ordinary services use ordered Select groups and do not own Fallback groups.
 #   AI / RedPocket prefer Chain, then Trust-only sensitive region selectors.
-#   Front Proxy directly selects region Auto groups; no dedicated Front fallback remains.
+#   Front Proxy uses dedicated broad Front Auto pools (Trust + Normal + Unrated), defaulting to US.
 #   Direct can be manually switched between DIRECT and Proxy.
 #   Automated URL-Test / Fallback groups are hidden; manually controllable Select groups remain visible.
 #   Fallback and URL-Test share one gstatic generate_204 probe target.
@@ -73,7 +73,7 @@ x-select-nodes: &select-nodes
 # ==================== 02. Node Filters ====================
 # IPQuality V1.4.4 contract:
 #   Auto   -> Trust | Normal
-#   Manual -> Trust | Normal | Unrated
+#   Usable -> Trust | Normal | Unrated (Manual / Front)
 #   Trust  -> multi-source clean reputation; independent from ISPIP / HostIP identity
 #   Risk   -> removed by IPQuality in normal production mode
 # Network identity (ISPIP / HostIP / UnkIP) remains node metadata and is not required by policy groups.
@@ -81,40 +81,40 @@ x-filter-chain: &filter-chain '(?i)^US @Chain-[^ ｜]+(?: |｜|$)`(?i)^JP @Chain
 x-exclude-chain: &exclude-chain '(?i)^(?:[A-Z]{2}|Multi|Unknown) @Chain-[^ ｜]+(?: |｜|$)'
 
 x-filter-hk-auto: &filter-hk-auto '(?i)^HK (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
-x-filter-hk-manual: &filter-hk-manual '(?i)^HK (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+x-filter-hk-usable: &filter-hk-usable '(?i)^HK (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
 
 x-filter-tw-auto: &filter-tw-auto '(?i)^TW (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
-x-filter-tw-manual: &filter-tw-manual '(?i)^TW (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+x-filter-tw-usable: &filter-tw-usable '(?i)^TW (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
 x-filter-tw-trust: &filter-tw-trust '(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
 
 x-filter-sg-auto: &filter-sg-auto '(?i)^SG (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
-x-filter-sg-manual: &filter-sg-manual '(?i)^SG (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+x-filter-sg-usable: &filter-sg-usable '(?i)^SG (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
 x-filter-sg-trust: &filter-sg-trust '(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
 
 x-filter-jp-auto: &filter-jp-auto '(?i)^JP (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
-x-filter-jp-manual: &filter-jp-manual '(?i)^JP (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+x-filter-jp-usable: &filter-jp-usable '(?i)^JP (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
 x-filter-jp-trust: &filter-jp-trust '(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
 
 x-filter-kr-auto: &filter-kr-auto '(?i)^KR (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
-x-filter-kr-manual: &filter-kr-manual '(?i)^KR (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+x-filter-kr-usable: &filter-kr-usable '(?i)^KR (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
 
 x-filter-us-auto: &filter-us-auto '(?i)^US (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
-x-filter-us-manual: &filter-us-manual '(?i)^US (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+x-filter-us-usable: &filter-us-usable '(?i)^US (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
 x-filter-us-trust: &filter-us-trust '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$'
 
 x-filter-ca-auto: &filter-ca-auto '(?i)^CA (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
-x-filter-ca-manual: &filter-ca-manual '(?i)^CA (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+x-filter-ca-usable: &filter-ca-usable '(?i)^CA (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
 
 x-filter-au-auto: &filter-au-auto '(?i)^AU (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
-x-filter-au-manual: &filter-au-manual '(?i)^AU (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+x-filter-au-usable: &filter-au-usable '(?i)^AU (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
 
 x-filter-uk-auto: &filter-uk-auto '(?i)^UK (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
-x-filter-uk-manual: &filter-uk-manual '(?i)^UK (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+x-filter-uk-usable: &filter-uk-usable '(?i)^UK (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
 
 x-filter-eu-auto: &filter-eu-auto '(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
-x-filter-eu-manual: &filter-eu-manual '(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+x-filter-eu-usable: &filter-eu-usable '(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
 
-x-filter-all-ordinary: &filter-all-ordinary '(?i)^(?:[A-Z]{2}|Multi|Unknown) @(?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+x-filter-all-usable: &filter-all-usable '(?i)^(?:[A-Z]{2}|Multi|Unknown) @(?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
 x-filter-youtube-bulk: &filter-youtube-bulk '(?i)^(?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$))(?=[^｜]*[ ·]Bulk(?:[·｜]|$)).*$'
 x-filter-youtube-auto: &filter-youtube-auto '(?i)^(?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$))(?=[^｜]*[ ·]Bulk(?:[·｜]|$))(?=[^｜]*[ ·](?:0(?:\.\d+)?|1(?:\.0+)?)x(?:[·｜]|$)).*$'
 
@@ -258,7 +258,7 @@ proxy-groups:
     default-selected: Proxy
   - name: All Nodes
     <<: *select-nodes
-    filter: *filter-all-ordinary
+    filter: *filter-all-usable
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"
   - name: Speedtest
@@ -268,14 +268,68 @@ proxy-groups:
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Speedtest.png"
 
   # ---------- Front / Chain ----------
+  # Front pools are transport-oriented: broaden to all non-Risk ordinary nodes in each region.
+  # The final destination sees the Chain exit B, so Front A prioritizes reachability / latency over IP reputation.
   - name: Front Proxy
     type: select
-    proxies: [US Auto, HK Auto, JP Auto, TW Auto, SG Auto, Proxy, Front Manual, Direct]
-    default-selected: US Auto
+    proxies: [US Front Auto, HK Front Auto, TW Front Auto, SG Front Auto, JP Front Auto, KR Front Auto, CA Front Auto, AU Front Auto, UK Front Auto, EU Front Auto, Front Manual, DIRECT]
+    default-selected: US Front Auto
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"
+
+  - name: US Front Auto
+    <<: *url-test
+    filter: *filter-us-usable
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
+  - name: HK Front Auto
+    <<: *url-test
+    filter: *filter-hk-usable
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
+  - name: TW Front Auto
+    <<: *url-test
+    filter: *filter-tw-usable
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
+  - name: SG Front Auto
+    <<: *url-test
+    filter: *filter-sg-usable
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
+  - name: JP Front Auto
+    <<: *url-test
+    filter: *filter-jp-usable
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
+  - name: KR Front Auto
+    <<: *url-test
+    filter: *filter-kr-usable
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
+  - name: CA Front Auto
+    <<: *url-test
+    filter: *filter-ca-usable
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
+  - name: AU Front Auto
+    <<: *url-test
+    filter: *filter-au-usable
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
+  - name: UK Front Auto
+    <<: *url-test
+    filter: *filter-uk-usable
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
+  - name: EU Front Auto
+    <<: *url-test
+    filter: *filter-eu-usable
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
+
   - name: Front Manual
     <<: *select-nodes
-    filter: *filter-all-ordinary
+    filter: *filter-all-usable
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"
   - name: Chain
@@ -416,7 +470,7 @@ proxy-groups:
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: HK Manual
     <<: *select-nodes
-    filter: *filter-hk-manual
+    filter: *filter-hk-usable
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Hong_Kong.png"
 
@@ -432,7 +486,7 @@ proxy-groups:
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: TW Manual
     <<: *select-nodes
-    filter: *filter-tw-manual
+    filter: *filter-tw-usable
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/TW.png"
 
@@ -448,7 +502,7 @@ proxy-groups:
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: SG Manual
     <<: *select-nodes
-    filter: *filter-sg-manual
+    filter: *filter-sg-usable
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/SG.png"
 
@@ -464,7 +518,7 @@ proxy-groups:
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: JP Manual
     <<: *select-nodes
-    filter: *filter-jp-manual
+    filter: *filter-jp-usable
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/JP.png"
 
@@ -480,7 +534,7 @@ proxy-groups:
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: KR Manual
     <<: *select-nodes
-    filter: *filter-kr-manual
+    filter: *filter-kr-usable
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/KR.png"
 
@@ -496,7 +550,7 @@ proxy-groups:
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: US Manual
     <<: *select-nodes
-    filter: *filter-us-manual
+    filter: *filter-us-usable
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"
 
@@ -512,7 +566,7 @@ proxy-groups:
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: CA Manual
     <<: *select-nodes
-    filter: *filter-ca-manual
+    filter: *filter-ca-usable
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Canada.png"
 
@@ -528,7 +582,7 @@ proxy-groups:
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: AU Manual
     <<: *select-nodes
-    filter: *filter-au-manual
+    filter: *filter-au-usable
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Australia.png"
 
@@ -544,7 +598,7 @@ proxy-groups:
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: UK Manual
     <<: *select-nodes
-    filter: *filter-uk-manual
+    filter: *filter-uk-usable
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_Kingdom.png"
 
@@ -560,7 +614,7 @@ proxy-groups:
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: EU Manual
     <<: *select-nodes
-    filter: *filter-eu-manual
+    filter: *filter-eu-usable
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/EU.png"
 
