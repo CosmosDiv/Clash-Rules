@@ -1,5 +1,5 @@
 /**
- * Sub-Store Latency Rank v2.1.0
+ * Sub-Store Latency Rank v2.1.1
  * HTTP META 分轮延迟排序 + 节点级增量缓存 + Chain 依赖兼容
  *
  * 设计目标：
@@ -15,7 +15,7 @@
  * 10. HTTP META 全局启动/运行失败时，保持原数组、原顺序返回，避免半套排序。
  *
  * 推荐默认参数：
- *   url=https://cp.cloudflare.com/generate_204
+ *   url=https://www.gstatic.com/generate_204
  *   method=get
  *   status=^204$
  *   samples=5
@@ -32,7 +32,7 @@
  *   cache_partial_minutes=2
  *
  * 参数：
- *   url                        测试地址，默认 https://cp.cloudflare.com/generate_204
+ *   url                        测试地址，默认 https://www.gstatic.com/generate_204
  *   status                     合法 HTTP 状态码正则，默认 ^204$
  *   method                     head / get，默认 get
  *   ua                         User-Agent
@@ -62,10 +62,10 @@
  *   http_meta_lifetime         HTTP META 最长存活时间（毫秒）；默认按轮次自动估算
  *
  * 与 mihomo_pro.yaml 的职责对应：
- * - fallback 的 Apple success.html 用于运行时“能否使用”判断；
- * - url-test 的 Cloudflare generate_204 用于运行时“谁更快”比较；
- * - 本脚本采用 Cloudflare 204 做离线通用代理延迟排序，不混入 Apple 健康检查；
- * - YAML tolerance=80 是运行时切换容差，本脚本不使用 tolerance，仍按中位延迟严格排序。
+ * - fallback 与 url-test 统一使用 gstatic generate_204；
+ * - 本脚本同样使用 gstatic generate_204，和三份 V4.3.1 YAML 的测速目标保持一致；
+ * - timeout=5000ms 与 YAML test-timeout 保持一致；expected HTTP status 同为 204；
+ * - YAML tolerance=50 是运行时 url-test 切换容差；本脚本不套用 tolerance，仍按成功样本中位延迟严格排序。
  *
  * 缓存失效规则：
  * - 节点真实配置变化 -> fingerprint 变化 -> 自动 MISS
@@ -75,7 +75,7 @@
  * - v2.1.0 改为分轮采样，因此 MEASURE_PROTOCOL_VERSION 提升为 2，旧采样缓存自动失效
  */
 
-const LATENCY_RANK_VERSION = '2.1.0'
+const LATENCY_RANK_VERSION = '2.1.1'
 const MEASURE_PROTOCOL_VERSION = '2'
 const CACHE_NAMESPACE = 'latrank'
 
@@ -118,7 +118,7 @@ async function operator(proxies = [], targetPlatform, env = {}) {
     }
   }
 
-  const url = safeDecode(arg('url', 'https://cp.cloudflare.com/generate_204'))
+  const url = safeDecode(arg('url', 'https://www.gstatic.com/generate_204'))
   const method = String(arg('method', 'get')).trim().toLowerCase()
   if (!['head', 'get'].includes(method)) {
     throw new Error(`[LatencyRank] method 仅支持 head/get，当前=${method}`)
