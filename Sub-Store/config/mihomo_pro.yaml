@@ -10,7 +10,7 @@
 #   A single global Fallback serves Proxy for ordered cross-region failover.
 #   Ordinary services use ordered Select groups and do not own Fallback groups.
 #   AI / RedPocket prefer Chain, then Trust-only sensitive region selectors.
-#   Front Proxy uses dedicated broad Front Auto pools (Trust + Normal + Unrated), defaulting to US.
+#   Front Proxy offers Custom source URL-Test, ordered Stable Fallback, and broad regional Front Auto pools; default remains US.
 #   Direct can be manually switched between DIRECT and Proxy.
 #   Automated URL-Test / Fallback groups are hidden; manually controllable Select groups remain visible.
 #   Fallback and URL-Test share one gstatic generate_204 probe target.
@@ -112,9 +112,20 @@ x-filter-uk-usable: &filter-uk-usable '(?i)^UK (?=[^｜]*[ ·](?:Trust|Normal|Un
 x-filter-eu-auto: &filter-eu-auto '(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
 x-filter-eu-usable: &filter-eu-usable '(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
 
+# Custom Front sources use the @COS-* source namespace.
+x-filter-custom-front: &filter-custom-front '(?i)^(?:[A-Z]{2}|Multi|Unknown) @COS-[^ ｜]+(?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+# Front Stable reuses the historical ordered-filter fallback pattern: all Trust by region, then all Normal.
+x-filter-front-stable: &filter-front-stable '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^HK (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^KR (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^CA (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^AU (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^UK (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^HK (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^KR (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^CA (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^AU (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^UK (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
+
 x-filter-all-usable: &filter-all-usable '(?i)^(?:[A-Z]{2}|Multi|Unknown) @(?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
 x-filter-youtube-bulk: &filter-youtube-bulk '(?i)^(?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$))(?=[^｜]*[ ·]Bulk(?:[·｜]|$)).*$'
 x-filter-youtube-auto: &filter-youtube-auto '(?i)^(?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$))(?=[^｜]*[ ·]Bulk(?:[·｜]|$))(?=[^｜]*[ ·](?:0(?:\.\d+)?|1(?:\.0+)?)x(?:[·｜]|$)).*$'
+
+# Historical ordered real-node fallback pattern; consumes both static nodes and providers.
+x-node-fallback: &node-fallback
+  <<: *fallback
+  include-all: true
+  exclude-filter: *exclude-chain
 
 # ==================== 03. Proxy Sources ====================
 # Sub-Store may inject static nodes here. With provider mode, keep this list empty.
@@ -275,9 +286,19 @@ proxy-groups:
   # The final destination sees the Chain exit B, so Front A prioritizes reachability / latency over IP reputation.
   - name: Front Proxy
     type: select
-    proxies: [US Front Auto, HK Front Auto, TW Front Auto, SG Front Auto, JP Front Auto, KR Front Auto, CA Front Auto, AU Front Auto, UK Front Auto, EU Front Auto, Front Manual, DIRECT]
+    proxies: [Custom Front Auto, Front Stable, US Front Auto, HK Front Auto, TW Front Auto, SG Front Auto, JP Front Auto, KR Front Auto, CA Front Auto, AU Front Auto, UK Front Auto, EU Front Auto, Front Manual, DIRECT]
     default-selected: US Front Auto
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"
+
+  - name: Custom Front Auto
+    <<: *url-test
+    filter: *filter-custom-front
+    exclude-filter: *exclude-chain
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
+  - name: Front Stable
+    <<: *node-fallback
+    filter: *filter-front-stable
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Available.png"
 
   - name: US Front Auto
     <<: *url-test
