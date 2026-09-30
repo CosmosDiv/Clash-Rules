@@ -112,7 +112,12 @@ x-filter-uk-auto: &filter-uk-auto '(?i)^UK (?=[^｜]*[ ·](?:Trust|Normal)(?:[·
 x-filter-uk-usable: &filter-uk-usable '(?i)^UK (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
 
 x-filter-eu-auto: &filter-eu-auto '(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
-x-filter-eu-usable: &filter-eu-usable '(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*
+x-filter-eu-usable: &filter-eu-usable '(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+
+# Custom Front sources use the @COS-* source namespace.
+x-filter-custom-front: &filter-custom-front '(?i)^(?:[A-Z]{2}|Multi|Unknown) @COS-[^ ｜]+(?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
+# Front Stable reuses the historical ordered-filter fallback pattern: all Trust by region, then all Normal.
+x-filter-front-stable: &filter-front-stable '(?i)^US (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^HK (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^KR (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^CA (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^AU (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^UK (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·]Trust(?:[·｜]|$)).*$`(?i)^US (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^HK (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^TW (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^SG (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^JP (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^KR (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^CA (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^AU (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^UK (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$`(?i)^(?:AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK) (?=[^｜]*[ ·]Normal(?:[·｜]|$)).*$'
 
 x-filter-all-usable: &filter-all-usable '(?i)^(?:[A-Z]{2}|Multi|Unknown) @(?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
 x-filter-youtube-bulk: &filter-youtube-bulk '(?i)^(?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$))(?=[^｜]*[ ·]Bulk(?:[·｜]|$)).*$'
