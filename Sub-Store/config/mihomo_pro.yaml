@@ -36,6 +36,7 @@ x-user-config:
   test-interval: &test-interval 300
   test-timeout: &test-timeout 5000
   test-tolerance: &test-tolerance 50
+  front-test-tolerance: &front-test-tolerance 100
 
   rule-update-interval: &rule-update-interval 86400
 
@@ -62,6 +63,11 @@ x-url-test: &url-test
   timeout: *test-timeout
   expected-status: 204
   empty-fallback: REJECT
+
+# Front URL-Test favors stability over small latency differences.
+x-front-url-test: &front-url-test
+  <<: *url-test
+  tolerance: *front-test-tolerance
 
 x-select-nodes: &select-nodes
   type: select
@@ -291,7 +297,7 @@ proxy-groups:
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"
 
   - name: Custom Front Auto
-    <<: *url-test
+    <<: *front-url-test
     filter: *filter-custom-front
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
@@ -301,52 +307,52 @@ proxy-groups:
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Available.png"
 
   - name: US Front Auto
-    <<: *url-test
+    <<: *front-url-test
     filter: *filter-us-usable
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: HK Front Auto
-    <<: *url-test
+    <<: *front-url-test
     filter: *filter-hk-usable
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: TW Front Auto
-    <<: *url-test
+    <<: *front-url-test
     filter: *filter-tw-usable
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: SG Front Auto
-    <<: *url-test
+    <<: *front-url-test
     filter: *filter-sg-usable
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: JP Front Auto
-    <<: *url-test
+    <<: *front-url-test
     filter: *filter-jp-usable
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: KR Front Auto
-    <<: *url-test
+    <<: *front-url-test
     filter: *filter-kr-usable
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: CA Front Auto
-    <<: *url-test
+    <<: *front-url-test
     filter: *filter-ca-usable
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: AU Front Auto
-    <<: *url-test
+    <<: *front-url-test
     filter: *filter-au-usable
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: UK Front Auto
-    <<: *url-test
+    <<: *front-url-test
     filter: *filter-uk-usable
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
   - name: EU Front Auto
-    <<: *url-test
+    <<: *front-url-test
     filter: *filter-eu-usable
     exclude-filter: *exclude-chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
