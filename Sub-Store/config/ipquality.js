@@ -9,7 +9,7 @@
  * Pipeline contract:
  *   Node Standardizer V2.1.5
  *     -> IPQuality V1.4.4
- *     -> Mihomo / OpenClash / Surfing V4.2.0 policy layer
+ *     -> Mihomo / OpenClash / Surfing V4.3.1 policy layer
  *
  * v1.4.4 Stable:
  *   - Network Identity 完成 ISPIP / HostIP / UnkIP 三分类收口：C/L/I/B 统一作为 ISP-side 证据；
