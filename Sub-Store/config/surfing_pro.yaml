@@ -11,7 +11,7 @@
 #   Ordinary services use ordered Select groups and do not own Fallback groups.
 #   AI / SIM Service prefer Chain, then Trust-only sensitive region selectors.
 #   Front Proxy offers Custom source URL-Test, ordered Stable Fallback, and broad regional Front Auto pools; default remains US.
-#   Direct can be manually switched between DIRECT and Proxy.
+#   Direct Switch can be manually switched between DIRECT and Proxy.
 #   Automated URL-Test / Fallback groups are hidden; manually controllable Select groups remain visible.
 #   Fallback and URL-Test share one gstatic generate_204 probe target.
 #   Surfing keeps tcp-concurrent disabled for platform stability.
@@ -265,14 +265,14 @@ proxy-groups:
     <<: *fallback
     proxies: [HK Auto, TW Auto, SG Auto, JP Auto, KR Auto, US Auto, CA Auto, AU Auto, UK Auto, EU Auto]
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Available.png"
-  - name: Direct
+  - name: Direct Switch
     type: select
     proxies: [DIRECT, Proxy]
     default-selected: DIRECT
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Direct.png"
   - name: Final
     type: select
-    proxies: [Proxy, Direct]
+    proxies: [Proxy, Direct Switch]
     default-selected: Proxy
   - name: All Nodes
     <<: *select-nodes
@@ -281,8 +281,8 @@ proxy-groups:
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"
   - name: Speedtest
     type: select
-    proxies: [Direct, Proxy, HK, TW, SG, JP, KR, US, CA, AU, UK, EU]
-    default-selected: Direct
+    proxies: [Direct Switch, Proxy, HK, TW, SG, JP, KR, US, CA, AU, UK, EU]
+    default-selected: Direct Switch
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Speedtest.png"
 
   # ---------- Front / Chain ----------
@@ -489,7 +489,7 @@ proxy-groups:
 
   - name: Apple
     type: select
-    proxies: [US, JP, TW, SG, HK, Direct, Proxy]
+    proxies: [US, JP, TW, SG, HK, Direct Switch, Proxy]
     default-selected: US
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Apple.png"
 
@@ -986,29 +986,29 @@ rules:
   # ---------- Unconditional local KVM exception ----------
   - DOMAIN-SUFFIX,glkvm.cn,DIRECT
   # ---------- Private and Apple push: direct ----------
-  - RULE-SET,QuixPrivate,Direct
-  - RULE-SET,QuixPrivateIP,Direct,no-resolve
-  - RULE-SET,QuixAPNS,Direct
-  - RULE-SET,QuixAPNSIP,Direct,no-resolve
+  - RULE-SET,QuixPrivate,DIRECT
+  - RULE-SET,QuixPrivateIP,DIRECT,no-resolve
+  - RULE-SET,QuixAPNS,Direct Switch
+  - RULE-SET,QuixAPNSIP,Direct Switch,no-resolve
   # ---------- Ad / tracker / HTTPDNS blocking ----------
   - RULE-SET,QuixAdrules,REJECT
   - RULE-SET,QuixAdrulesIP,REJECT,no-resolve
   # ---------- AI has highest ordinary service priority ----------
   - RULE-SET,QuixAI,AI
   # ---------- BT and PT protection ----------
-  - RULE-SET,QuixDMCA,Direct
-  - RULE-SET,QuixDMCAIP,Direct,no-resolve
+  - RULE-SET,QuixDMCA,DIRECT
+  - RULE-SET,QuixDMCAIP,DIRECT,no-resolve
   # ---------- SIM Service: RedPocket + Talkatone ----------
   - RULE-SET,RedPocket,SIM Service
   - RULE-SET,RedPocketIP,SIM Service,no-resolve
   - RULE-SET,QuixTalkatone,SIM Service
   - RULE-SET,QuixTalkatoneIP,SIM Service,no-resolve
   # ---------- Specific Chinese services: direct ----------
-  - RULE-SET,QuixAppleCN,Direct
-  - RULE-SET,QuixMicrosoftCN,Direct
-  - RULE-SET,QuixGamesCN,Direct
-  - RULE-SET,QuixSocialmediaCN,Direct
-  - RULE-SET,QuixSocialmediaCNIP,Direct,no-resolve
+  - RULE-SET,QuixAppleCN,Direct Switch
+  - RULE-SET,QuixMicrosoftCN,Direct Switch
+  - RULE-SET,QuixGamesCN,Direct Switch
+  - RULE-SET,QuixSocialmediaCN,Direct Switch
+  - RULE-SET,QuixSocialmediaCNIP,Direct Switch,no-resolve
   # ---------- Specialized services ----------
   - RULE-SET,QuixPaypal,PayPal
   - RULE-SET,QuixCrypto,Crypto
@@ -1052,8 +1052,8 @@ rules:
   - RULE-SET,QuixEcommerce,Proxy
   - RULE-SET,QuixEcommerceIP,Proxy,no-resolve
   # ---------- China direct fallback ----------
-  - RULE-SET,QuixCN,Direct
-  - RULE-SET,QuixCNIP,Direct,no-resolve
+  - RULE-SET,QuixCN,Direct Switch
+  - RULE-SET,QuixCNIP,Direct Switch,no-resolve
   # ---------- Overseas proxy fallback ----------
   - RULE-SET,QuixGFW,Proxy
   - RULE-SET,QuixGFWIP,Proxy,no-resolve
