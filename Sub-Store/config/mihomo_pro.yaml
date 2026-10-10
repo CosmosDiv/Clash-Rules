@@ -1,5 +1,5 @@
 # ============================================================================
-# Mihomo Bare-Core Quality / Identity Routing V4.3.1
+# Mihomo Bare-Core Quality / Identity Routing V5.0.0
 # Target: Mihomo v1.19.30+
 #
 # Ordinary nodes: Node Standardizer V2.1.5 -> IPQuality V1.4.4 -> Mihomo
@@ -9,7 +9,7 @@
 #   Ordinary region groups are Select -> Auto / Manual; Auto uses Trust + Normal URL-Test.
 #   A single global Fallback serves Proxy for ordered cross-region failover.
 #   Ordinary services use ordered Select groups and do not own Fallback groups.
-#   AI / RedPocket prefer Chain, then Trust-only sensitive region selectors.
+#   AI / SIM Service prefer Chain, then Trust-only sensitive region selectors.
 #   Front Proxy offers Custom source URL-Test, ordered Stable Fallback, and broad regional Front Auto pools; default remains US.
 #   Direct can be manually switched between DIRECT and Proxy.
 #   Automated URL-Test / Fallback groups are hidden; manually controllable Select groups remain visible.
@@ -247,7 +247,9 @@ dns:
   nameserver:
     - https://dns.alidns.com/dns-query
     - https://doh.pub/dns-query
+  fake-ip-filter-mode: blacklist
   fake-ip-filter:
+    - "rule-set:QuixFakeIpFilter"
     - "+.lan"
     - "*.local"
     - "+.miwifi.com"
@@ -373,7 +375,7 @@ proxy-groups:
     proxies: [Chain, US Sensitive, JP Sensitive, TW Sensitive, SG Sensitive, Proxy]
     default-selected: Chain
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/ChatGPT.png"
-  - name: RedPocket
+  - name: SIM Service
     type: select
     proxies: [Chain, US Sensitive, US, Proxy]
     default-selected: Chain
@@ -429,11 +431,6 @@ proxy-groups:
     proxies: [US, JP, TW, SG, HK, Proxy]
     default-selected: US
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/GitHub.png"
-  - name: Telegram
-    type: select
-    proxies: [HK, SG, JP, TW, US, Proxy]
-    default-selected: HK
-    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Telegram_X.png"
   - name: Social
     type: select
     proxies: [US, SG, TW, HK, JP, Proxy]
@@ -468,8 +465,8 @@ proxy-groups:
 
   - name: Crypto
     type: select
-    proxies: [SG, TW, JP, HK, US, Proxy]
-    default-selected: SG
+    proxies: [SG Trust, SG Auto, TW, JP, HK, US, Proxy]
+    default-selected: SG Trust
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Cryptocurrency.png"
   - name: Games
     type: select
@@ -481,10 +478,23 @@ proxy-groups:
     proxies: [US, JP, TW, SG, HK, Proxy]
     default-selected: US
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Microsoft.png"
+  # ---------- New Quix business selectors ----------
+  - name: Google
+    type: select
+    proxies: [US, JP, TW, SG, HK, Proxy]
+    default-selected: US
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Google_Search.png"
+
+  - name: PayPal
+    type: select
+    proxies: [US Trust, US Auto, CA, SG, JP, Proxy]
+    default-selected: US Trust
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/PayPal.png"
+
   - name: Apple
     type: select
-    proxies: [Direct, US, JP, TW, SG, HK, Proxy]
-    default-selected: Direct
+    proxies: [US, JP, TW, SG, HK, Direct, Proxy]
+    default-selected: US
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Apple.png"
 
   # ---------- Regions ----------
@@ -663,223 +673,266 @@ x-rule-ip: &rule-ip
 
 # ==================== 07. Rule Providers ====================
 rule-providers:
-  Tracking:
+  # ---------- QuixoticHeart domain MRS ----------
+  QuixPrivate:
     <<: *rule-domain
-    path: ./rules/Tracking.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Tracking.mrs"
-  Advertising:
+    path: ./rules/QuixPrivate.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/private.mrs"
+  QuixAPNS:
     <<: *rule-domain
-    path: ./rules/Advertising.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Advertising.mrs"
-  Private:
+    path: ./rules/QuixAPNS.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/apns.mrs"
+  QuixAdrules:
     <<: *rule-domain
-    path: ./rules/Private.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Private.mrs"
-  Direct:
+    path: ./rules/QuixAdrules.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/adrules.mrs"
+  QuixAI:
     <<: *rule-domain
-    path: ./rules/Direct.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Direct.mrs"
-  Download:
+    path: ./rules/QuixAI.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/ai.mrs"
+  QuixDMCA:
     <<: *rule-domain
-    path: ./rules/Download.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Download.mrs"
-  XPTV:
+    path: ./rules/QuixDMCA.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/dmca.mrs"
+  QuixTalkatone:
     <<: *rule-domain
-    path: ./rules/XPTV.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/XPTV.mrs"
-  AppleUpdate:
+    path: ./rules/QuixTalkatone.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/talkatone.mrs"
+  QuixAppleCN:
     <<: *rule-domain
-    path: ./rules/Meta-AppleUpdate.mrs
-    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/apple-update.mrs"
-  AppleCNMeta:
+    path: ./rules/QuixAppleCN.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/apple-cn.mrs"
+  QuixMicrosoftCN:
     <<: *rule-domain
-    path: ./rules/Meta-AppleCN.mrs
-    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/apple-cn.mrs"
-  AppleCN:
+    path: ./rules/QuixMicrosoftCN.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/microsoft-cn.mrs"
+  QuixGamesCN:
     <<: *rule-domain
-    path: ./rules/AppleCN.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/AppleCN.mrs"
-  MetaOpenAI:
+    path: ./rules/QuixGamesCN.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/games-cn.mrs"
+  QuixSocialmediaCN:
     <<: *rule-domain
-    path: ./rules/Meta-OpenAI.mrs
-    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/openai.mrs"
-  MetaAnthropic:
+    path: ./rules/QuixSocialmediaCN.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/socialmedia-cn.mrs"
+  QuixPaypal:
     <<: *rule-domain
-    path: ./rules/Meta-Anthropic.mrs
-    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/anthropic.mrs"
-  MetaGemini:
+    path: ./rules/QuixPaypal.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/paypal.mrs"
+  QuixCrypto:
     <<: *rule-domain
-    path: ./rules/Meta-Gemini.mrs
-    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/google-gemini.mrs"
-  MetaXAI:
+    path: ./rules/QuixCrypto.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/crypto.mrs"
+  QuixYoutube:
     <<: *rule-domain
-    path: ./rules/Meta-xAI.mrs
-    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/xai.mrs"
-  KeviinAI:
+    path: ./rules/QuixYoutube.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/youtube.mrs"
+  QuixNetflix:
     <<: *rule-domain
-    path: ./rules/Keviin-AI-Rules.mrs
-    url: "https://testingcf.jsdelivr.net/gh/Keviin560/Shunt_Rules@main/rule/Mihomo/AI_Rules.mrs"
-  MetaAI:
+    path: ./rules/QuixNetflix.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/netflix.mrs"
+  QuixDisney:
     <<: *rule-domain
-    path: ./rules/Meta-AI-NonCN.mrs
-    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/category-ai-!cn.mrs"
-  AI666:
+    path: ./rules/QuixDisney.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/disney.mrs"
+  QuixHbo:
     <<: *rule-domain
-    path: ./rules/AI-666OS.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/AI.mrs"
-  Google:
+    path: ./rules/QuixHbo.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/hbo.mrs"
+  QuixSpotify:
     <<: *rule-domain
-    path: ./rules/Google.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Google.mrs"
-  Telegram:
+    path: ./rules/QuixSpotify.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/spotify.mrs"
+  QuixTwitch:
     <<: *rule-domain
-    path: ./rules/Telegram.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Telegram.mrs"
-  MetaSocial:
+    path: ./rules/QuixTwitch.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/twitch.mrs"
+  QuixPrimevideo:
     <<: *rule-domain
-    path: ./rules/Meta-SocialMedia-NonCN.mrs
-    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/category-social-media-!cn.mrs"
-  SocialMedia:
+    path: ./rules/QuixPrimevideo.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/primevideo.mrs"
+  QuixHulu:
     <<: *rule-domain
-    path: ./rules/SocialMedia.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/SocialMedia.mrs"
-  YouTube:
+    path: ./rules/QuixHulu.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/hulu.mrs"
+  QuixAbema:
     <<: *rule-domain
-    path: ./rules/YouTube.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/YouTube.mrs"
-  Emby:
+    path: ./rules/QuixAbema.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/abema.mrs"
+  QuixBahamut:
     <<: *rule-domain
-    path: ./rules/Emby.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Emby.mrs"
-  KeviinGlobalMedia:
+    path: ./rules/QuixBahamut.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/bahamut.mrs"
+  QuixDazn:
     <<: *rule-domain
-    path: ./rules/Keviin-GlobalMedia.mrs
-    url: "https://testingcf.jsdelivr.net/gh/Keviin560/Shunt_Rules@main/rule/Mihomo/GlobalMedia.mrs"
-  Streaming:
+    path: ./rules/QuixDazn.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/dazn.mrs"
+  QuixDmm:
     <<: *rule-domain
-    path: ./rules/Streaming.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Streaming.mrs"
-  DevMeta:
+    path: ./rules/QuixDmm.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/dmm.mrs"
+  QuixMytvsuper:
     <<: *rule-domain
-    path: ./rules/Meta-CategoryDev.mrs
-    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/category-dev.mrs"
-  KeviinGameDownloadCN:
+    path: ./rules/QuixMytvsuper.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/mytvsuper.mrs"
+  QuixNiconico:
     <<: *rule-domain
-    path: ./rules/Keviin-GameDownloadCN.mrs
-    url: "https://testingcf.jsdelivr.net/gh/Keviin560/Shunt_Rules@main/rule/Mihomo/GameDownloadCN.mrs"
-  KeviinGameCN:
+    path: ./rules/QuixNiconico.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/niconico.mrs"
+  QuixAppleTV:
     <<: *rule-domain
-    path: ./rules/Keviin-Game-CN.mrs
-    url: "https://testingcf.jsdelivr.net/gh/Keviin560/Shunt_Rules@main/rule/Mihomo/Game_CN.mrs"
-  KeviinGameProxy:
+    path: ./rules/QuixAppleTV.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/apple-tv.mrs"
+  QuixSocialmedia:
     <<: *rule-domain
-    path: ./rules/Keviin-Game-Proxy.mrs
-    url: "https://testingcf.jsdelivr.net/gh/Keviin560/Shunt_Rules@main/rule/Mihomo/Game_Proxy.mrs"
-  Games:
+    path: ./rules/QuixSocialmedia.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/socialmedia.mrs"
+  QuixForum:
     <<: *rule-domain
-    path: ./rules/Games.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Games.mrs"
-  Crypto:
+    path: ./rules/QuixForum.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/forum.mrs"
+  QuixTiktok:
     <<: *rule-domain
-    path: ./rules/Crypto.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Crypto.mrs"
-  Apple:
+    path: ./rules/QuixTiktok.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/tiktok.mrs"
+  QuixGits:
     <<: *rule-domain
-    path: ./rules/Apple.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Apple.mrs"
-  OneDrive:
+    path: ./rules/QuixGits.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/gits.mrs"
+  QuixGames:
     <<: *rule-domain
-    path: ./rules/Meta-OneDrive.mrs
-    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/onedrive.mrs"
-  Microsoft:
+    path: ./rules/QuixGames.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/games.mrs"
+  QuixSpeedtest:
     <<: *rule-domain
-    path: ./rules/Microsoft.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Microsoft.mrs"
-  Speedtest:
+    path: ./rules/QuixSpeedtest.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/speedtest.mrs"
+  QuixGoogleFCM:
     <<: *rule-domain
-    path: ./rules/Speedtest.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Speedtest.mrs"
-  Proxy:
+    path: ./rules/QuixGoogleFCM.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/googlefcm.mrs"
+  QuixGoogle:
     <<: *rule-domain
-    path: ./rules/Proxy.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/domain/Proxy.mrs"
-  KeviinGlobalCN:
+    path: ./rules/QuixGoogle.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/google.mrs"
+  QuixOnedrive:
     <<: *rule-domain
-    path: ./rules/Keviin-Global-CN.mrs
-    url: "https://testingcf.jsdelivr.net/gh/Keviin560/Shunt_Rules@main/rule/Mihomo/Global_CN.mrs"
-  KeviinGeoSiteCN:
+    path: ./rules/QuixOnedrive.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/onedrive.mrs"
+  QuixMicrosoft:
     <<: *rule-domain
-    path: ./rules/Keviin-GeoSite-CN.mrs
-    url: "https://testingcf.jsdelivr.net/gh/Keviin560/Shunt_Rules@main/rule/Mihomo/GeoSite_CN.mrs"
-  MetaCN:
+    path: ./rules/QuixMicrosoft.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/microsoft.mrs"
+  QuixAppleProxy:
     <<: *rule-domain
-    path: ./rules/Meta-CN.mrs
-    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/cn.mrs"
-  MetaNonCN:
+    path: ./rules/QuixAppleProxy.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/apple-proxy.mrs"
+  QuixApple:
     <<: *rule-domain
-    path: ./rules/Meta-Geolocation-NonCN.mrs
-    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/geolocation-!cn.mrs"
-  KeviinCopilotIP:
+    path: ./rules/QuixApple.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/apple.mrs"
+  QuixEcommerce:
+    <<: *rule-domain
+    path: ./rules/QuixEcommerce.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/ecommerce.mrs"
+  QuixCN:
+    <<: *rule-domain
+    path: ./rules/QuixCN.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/cn.mrs"
+  QuixGFW:
+    <<: *rule-domain
+    path: ./rules/QuixGFW.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/gfw.mrs"
+  QuixProxy:
+    <<: *rule-domain
+    path: ./rules/QuixProxy.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/proxy.mrs"
+  QuixFakeIpFilter:
+    <<: *rule-domain
+    path: ./rules/QuixFakeIpFilter.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/fake-ip-filter.mrs"
+  # ---------- QuixoticHeart ipcidr MRS ----------
+  QuixPrivateIP:
     <<: *rule-ip
-    path: ./rules/Keviin-Copilot-IP.mrs
-    url: "https://testingcf.jsdelivr.net/gh/Keviin560/Shunt_Rules@main/rule/Mihomo/Copilot_IP.mrs"
-  MetaCNIP:
+    path: ./rules/QuixPrivateIP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/ipcidr/private.mrs"
+  QuixAPNSIP:
     <<: *rule-ip
-    path: ./rules/Meta-CN-IP.mrs
-    url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geoip/cn.mrs"
-  AdvertisingIP:
+    path: ./rules/QuixAPNSIP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/ipcidr/apns.mrs"
+  QuixAdrulesIP:
     <<: *rule-ip
-    path: ./rules/Advertising-IP.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/ip/Advertising.mrs"
-  PrivateIP:
+    path: ./rules/QuixAdrulesIP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/ipcidr/adrules.mrs"
+  QuixDMCAIP:
     <<: *rule-ip
-    path: ./rules/Private-IP.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/ip/Private.mrs"
-  AppleCNIP:
+    path: ./rules/QuixDMCAIP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/ipcidr/dmca.mrs"
+  QuixTalkatoneIP:
     <<: *rule-ip
-    path: ./rules/AppleCN-IP.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/ip/AppleCN.mrs"
-  AIIP:
+    path: ./rules/QuixTalkatoneIP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/ipcidr/talkatone.mrs"
+  QuixSocialmediaCNIP:
     <<: *rule-ip
-    path: ./rules/AI-IP.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/ip/AI.mrs"
-  GoogleIP:
+    path: ./rules/QuixSocialmediaCNIP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/ipcidr/socialmedia-cn.mrs"
+  QuixYoutubeIP:
     <<: *rule-ip
-    path: ./rules/Google-IP.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/ip/Google.mrs"
-  TelegramIP:
+    path: ./rules/QuixYoutubeIP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/ipcidr/youtube.mrs"
+  QuixNetflixIP:
     <<: *rule-ip
-    path: ./rules/Telegram-IP.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/ip/Telegram.mrs"
-  SocialMediaIP:
+    path: ./rules/QuixNetflixIP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/ipcidr/netflix.mrs"
+  QuixSpotifyIP:
     <<: *rule-ip
-    path: ./rules/SocialMedia-IP.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/ip/SocialMedia.mrs"
-  XPTVIP:
+    path: ./rules/QuixSpotifyIP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/ipcidr/spotify.mrs"
+  QuixTwitchIP:
     <<: *rule-ip
-    path: ./rules/XPTV-IP.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/ip/XPTV.mrs"
-  EmbyIP:
+    path: ./rules/QuixTwitchIP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/ipcidr/twitch.mrs"
+  QuixDmmIP:
     <<: *rule-ip
-    path: ./rules/Emby-IP.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/ip/Emby.mrs"
-  KeviinGlobalMediaIP:
+    path: ./rules/QuixDmmIP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/ipcidr/dmm.mrs"
+  QuixSocialmediaIP:
     <<: *rule-ip
-    path: ./rules/Keviin-GlobalMedia-IP.mrs
-    url: "https://testingcf.jsdelivr.net/gh/Keviin560/Shunt_Rules@main/rule/Mihomo/GlobalMedia_IP.mrs"
-  StreamingIP:
+    path: ./rules/QuixSocialmediaIP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/ipcidr/socialmedia.mrs"
+  QuixGamesIP:
     <<: *rule-ip
-    path: ./rules/Streaming-IP.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/ip/Streaming.mrs"
-  KeviinGeoIPCN:
+    path: ./rules/QuixGamesIP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/ipcidr/games.mrs"
+  QuixGoogleFCMIP:
     <<: *rule-ip
-    path: ./rules/Keviin-GeoIP-CN.mrs
-    url: "https://testingcf.jsdelivr.net/gh/Keviin560/Shunt_Rules@main/rule/Mihomo/GeoIP_CN_IP.mrs"
-  ProxyIP:
+    path: ./rules/QuixGoogleFCMIP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/ipcidr/googlefcm.mrs"
+  QuixGoogleIP:
     <<: *rule-ip
-    path: ./rules/Proxy-IP.mrs
-    url: "https://testingcf.jsdelivr.net/gh/666OS/rules@release/mihomo/ip/Proxy.mrs"
+    path: ./rules/QuixGoogleIP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/ipcidr/google.mrs"
+  QuixAppleIP:
+    <<: *rule-ip
+    path: ./rules/QuixAppleIP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/ipcidr/apple.mrs"
+  QuixEcommerceIP:
+    <<: *rule-ip
+    path: ./rules/QuixEcommerceIP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/ipcidr/ecommerce.mrs"
+  QuixCNIP:
+    <<: *rule-ip
+    path: ./rules/QuixCNIP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/ipcidr/cn.mrs"
+  QuixGFWIP:
+    <<: *rule-ip
+    path: ./rules/QuixGFWIP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/ipcidr/gfw.mrs"
+  QuixProxyIP:
+    <<: *rule-ip
+    path: ./rules/QuixProxyIP.mrs
+    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/ipcidr/proxy.mrs"
 
+  # ---------- RedPocket retained inline rules ----------
   RedPocket:
     type: inline
     behavior: domain
@@ -934,69 +987,83 @@ rule-providers:
 
 # ==================== 08. Rules ====================
 rules:
+  # ---------- Unconditional local KVM exception ----------
   - DOMAIN-SUFFIX,glkvm.cn,DIRECT
-  - RULE-SET,Tracking,REJECT
-  - RULE-SET,Advertising,REJECT
-  - RULE-SET,Private,Direct
-  - RULE-SET,Direct,Direct
-  - RULE-SET,XPTV,Direct
-  - RULE-SET,Download,Direct
-  - RULE-SET,AppleUpdate,Direct
-  - RULE-SET,AppleCNMeta,Direct
-  - RULE-SET,AppleCN,Direct
-  - RULE-SET,RedPocket,RedPocket
-  - RULE-SET,YouTube,YouTube
-  - RULE-SET,MetaOpenAI,AI
-  - RULE-SET,MetaAnthropic,AI
-  - RULE-SET,MetaGemini,AI
-  - RULE-SET,MetaXAI,AI
-  - RULE-SET,KeviinAI,AI
-  - RULE-SET,MetaAI,AI
-  - RULE-SET,AI666,AI
-  - RULE-SET,Google,AI
-  - RULE-SET,Emby,Streaming
-  - RULE-SET,KeviinGlobalMedia,Streaming
-  - RULE-SET,Streaming,Streaming
-  - RULE-SET,Telegram,Telegram
-  - RULE-SET,MetaSocial,Social
-  - RULE-SET,SocialMedia,Social
-  - RULE-SET,DevMeta,Dev
-  - RULE-SET,KeviinGameDownloadCN,Direct
-  - RULE-SET,KeviinGameCN,Direct
-  - RULE-SET,KeviinGameProxy,Games
-  - RULE-SET,Games,Games
-  - RULE-SET,Crypto,Crypto
-  - RULE-SET,Apple,Apple
-  - RULE-SET,OneDrive,Microsoft
-  - RULE-SET,Microsoft,Microsoft
-  - DOMAIN-KEYWORD,speedtest,Speedtest
-  - RULE-SET,Speedtest,Speedtest
-  - RULE-SET,KeviinGlobalCN,Direct
-  - RULE-SET,KeviinGeoSiteCN,Direct
-  - RULE-SET,MetaCN,Direct
-  - GEOSITE,cn,Direct
-  - RULE-SET,Proxy,Proxy
-  - RULE-SET,MetaNonCN,Proxy
-  - GEOSITE,geolocation-!cn,Proxy
-  - RULE-SET,AdvertisingIP,REJECT,no-resolve
-  - RULE-SET,PrivateIP,Direct,no-resolve
-  - RULE-SET,AppleCNIP,Direct,no-resolve
-  - RULE-SET,XPTVIP,Direct,no-resolve
-  - RULE-SET,RedPocketIP,RedPocket,no-resolve
-  - RULE-SET,KeviinCopilotIP,AI,no-resolve
-  - RULE-SET,AIIP,AI,no-resolve
-  - RULE-SET,GoogleIP,AI,no-resolve
-  - RULE-SET,TelegramIP,Telegram,no-resolve
-  - RULE-SET,SocialMediaIP,Social,no-resolve
-  - RULE-SET,EmbyIP,Streaming,no-resolve
-  - RULE-SET,KeviinGlobalMediaIP,Streaming,no-resolve
-  - RULE-SET,StreamingIP,Streaming,no-resolve
-  - RULE-SET,KeviinGeoIPCN,Direct,no-resolve
-  - RULE-SET,MetaCNIP,Direct,no-resolve
-  - GEOIP,CN,Direct,no-resolve
-  - RULE-SET,ProxyIP,Proxy,no-resolve
-  # ---------- Final catch-all ----------
-  # Unknown traffic stays proxy-first; switch Final to Direct only when testing/handling domestic edge cases.
+  # ---------- Private and Apple push: direct ----------
+  - RULE-SET,QuixPrivate,Direct
+  - RULE-SET,QuixPrivateIP,Direct,no-resolve
+  - RULE-SET,QuixAPNS,Direct
+  - RULE-SET,QuixAPNSIP,Direct,no-resolve
+  # ---------- Ad / tracker / HTTPDNS blocking ----------
+  - RULE-SET,QuixAdrules,REJECT
+  - RULE-SET,QuixAdrulesIP,REJECT,no-resolve
+  # ---------- AI has highest ordinary service priority ----------
+  - RULE-SET,QuixAI,AI
+  # ---------- BT and PT protection ----------
+  - RULE-SET,QuixDMCA,Direct
+  - RULE-SET,QuixDMCAIP,Direct,no-resolve
+  # ---------- SIM Service: RedPocket + Talkatone ----------
+  - RULE-SET,RedPocket,SIM Service
+  - RULE-SET,RedPocketIP,SIM Service,no-resolve
+  - RULE-SET,QuixTalkatone,SIM Service
+  - RULE-SET,QuixTalkatoneIP,SIM Service,no-resolve
+  # ---------- Specific Chinese services: direct ----------
+  - RULE-SET,QuixAppleCN,Direct
+  - RULE-SET,QuixMicrosoftCN,Direct
+  - RULE-SET,QuixGamesCN,Direct
+  - RULE-SET,QuixSocialmediaCN,Direct
+  - RULE-SET,QuixSocialmediaCNIP,Direct,no-resolve
+  # ---------- Specialized services ----------
+  - RULE-SET,QuixPaypal,PayPal
+  - RULE-SET,QuixCrypto,Crypto
+  - RULE-SET,QuixYoutube,YouTube
+  - RULE-SET,QuixYoutubeIP,YouTube,no-resolve
+  - RULE-SET,QuixNetflix,Streaming
+  - RULE-SET,QuixNetflixIP,Streaming,no-resolve
+  - RULE-SET,QuixDisney,Streaming
+  - RULE-SET,QuixHbo,Streaming
+  - RULE-SET,QuixSpotify,Streaming
+  - RULE-SET,QuixSpotifyIP,Streaming,no-resolve
+  - RULE-SET,QuixTwitch,Streaming
+  - RULE-SET,QuixTwitchIP,Streaming,no-resolve
+  - RULE-SET,QuixPrimevideo,Streaming
+  - RULE-SET,QuixHulu,Streaming
+  - RULE-SET,QuixAbema,Streaming
+  - RULE-SET,QuixBahamut,Streaming
+  - RULE-SET,QuixDazn,Streaming
+  - RULE-SET,QuixDmm,Streaming
+  - RULE-SET,QuixDmmIP,Streaming,no-resolve
+  - RULE-SET,QuixMytvsuper,Streaming
+  - RULE-SET,QuixNiconico,Streaming
+  - RULE-SET,QuixSocialmedia,Social
+  - RULE-SET,QuixSocialmediaIP,Social,no-resolve
+  - RULE-SET,QuixForum,Social
+  - RULE-SET,QuixTiktok,Social
+  - RULE-SET,QuixGits,Dev
+  - RULE-SET,QuixGames,Games
+  - RULE-SET,QuixGamesIP,Games,no-resolve
+  - RULE-SET,QuixSpeedtest,Speedtest
+  - RULE-SET,QuixGoogleFCM,Google
+  - RULE-SET,QuixGoogleFCMIP,Google,no-resolve
+  - RULE-SET,QuixGoogle,Google
+  - RULE-SET,QuixGoogleIP,Google,no-resolve
+  - RULE-SET,QuixOnedrive,Microsoft
+  - RULE-SET,QuixMicrosoft,Microsoft
+  - RULE-SET,QuixAppleProxy,Apple
+  - RULE-SET,QuixAppleTV,Apple
+  - RULE-SET,QuixApple,Apple
+  - RULE-SET,QuixAppleIP,Apple,no-resolve
+  - RULE-SET,QuixEcommerce,Proxy
+  - RULE-SET,QuixEcommerceIP,Proxy,no-resolve
+  # ---------- China direct fallback ----------
+  - RULE-SET,QuixCN,Direct
+  - RULE-SET,QuixCNIP,Direct,no-resolve
+  # ---------- Overseas proxy fallback ----------
+  - RULE-SET,QuixGFW,Proxy
+  - RULE-SET,QuixGFWIP,Proxy,no-resolve
+  - RULE-SET,QuixProxy,Proxy
+  - RULE-SET,QuixProxyIP,Proxy,no-resolve
+  # ---------- Default ----------
   - MATCH,Final
 
 # ==================== EOF ====================
