@@ -740,10 +740,6 @@ rule-providers:
     <<: *rule-domain
     path: ./rules/QuixProxy.mrs
     url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/proxy.mrs"
-  QuixFakeIpFilter:
-    <<: *rule-domain
-    path: ./rules/QuixFakeIpFilter.mrs
-    url: "https://testingcf.jsdelivr.net/gh/QuixoticHeart/rule-set@ruleset/meta/domain/fake-ip-filter.mrs"
   # ---------- QuixoticHeart ipcidr MRS ----------
   QuixPrivateIP:
     <<: *rule-ip
