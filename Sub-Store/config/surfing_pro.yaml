@@ -293,7 +293,6 @@ proxy-groups:
   - name: Front Proxy
     type: select
     proxies: [COS US Auto, COS Stable, COS Auto, US Front Auto, Front Stable, Proxy, Front Manual]
-    default-selected: COS Auto
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"
 
   - name: COS US Auto
