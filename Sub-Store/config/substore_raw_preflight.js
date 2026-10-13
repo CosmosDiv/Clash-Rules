@@ -11,7 +11,7 @@ async function operator(input) {
   const log = (message, warning = false) => {
     try {
       const fn = (warning && $substore.warn) || $substore.info;
-      if (typeof fn === 'function') fn.call($substore, `\${prefix} \${message}`);
+      if (typeof fn === 'function') fn.call($substore, `${prefix} ${message}`);
     } catch (_) {}
   };
 
@@ -25,7 +25,7 @@ async function operator(input) {
     if (githubProxy && settings.githubProxyRegex) {
       try {
         if (new RegExp(String(settings.githubProxyRegex), 'i').test(origin)) {
-          url = `\${githubProxy}/\${origin}`;
+          url = `${githubProxy}/${origin}`;
         }
       } catch (_) {
         log('invalid GitHub proxy regex; probing original Raw URL');
@@ -58,17 +58,17 @@ async function operator(input) {
         if (response.statusCode === 200 && typeof body === 'string' &&
             body.length > 1024 && body.includes('.gitignore') &&
             body.includes('templates')) {
-          log(`PASS attempt=\${i + 1} elapsed=\${Date.now() - start}ms`);
+          log(`PASS attempt=${i + 1} elapsed=${Date.now() - start}ms`);
           return input;
         }
-        last = `HTTP_\${response.statusCode || 'unknown'}_or_unexpected_body`;
+        last = `HTTP_${response.statusCode || 'unknown'}_or_unexpected_body`;
       } catch (error) {
         // Never print a URL, credential, or complete exception message.
         last = String(error?.code || error?.cause?.code || error?.name || 'network_error').slice(0, 48);
       }
-      log(`attempt=\${i + 1}/3 failed (\${last})`);
+      log(`attempt=${i + 1}/3 failed (${last})`);
     }
-    log(`WARN: all attempts failed (\${last}); continuing`, true);
+    log(`WARN: all attempts failed (${last}); continuing`, true);
   } catch (_) {
     log('WARN: unexpected preflight error; continuing', true);
   }
