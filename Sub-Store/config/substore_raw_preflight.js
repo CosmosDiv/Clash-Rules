@@ -1,5 +1,5 @@
 /**
- * Sub-Store Raw Preflight V1.0
+ * Sub-Store Raw Preflight V1.1
  * Place as the FIRST Script Operator in each subscription's processing pipeline.
  * Warm up GitHub Raw through Sub-Store's existing outbound route.
  * Best effort only: never block updates or modify the input.
@@ -39,7 +39,8 @@ async function operator(input) {
     }
 
     let last = 'unknown';
-    const waits = [0, 1500, 3000];
+    // Gradual backoff: 5 attempts, 24 seconds of total retry waits.
+    const waits = [0, 2500, 4500, 7000, 10000];
     for (let i = 0; i < waits.length; i++) {
       if (waits[i]) await new Promise(resolve => setTimeout(resolve, waits[i]));
       const start = Date.now();
@@ -66,9 +67,9 @@ async function operator(input) {
         // Never print a URL, credential, or complete exception message.
         last = String(error?.code || error?.cause?.code || error?.name || 'network_error').slice(0, 48);
       }
-      log(`attempt=${i + 1}/3 failed (${last})`);
+      log(`attempt=${i + 1}/${waits.length} failed (${last})`);
     }
-    log(`WARN: all attempts failed (${last}); continuing`, true);
+    log(`WARN: all ${waits.length} attempts failed (${last}); continuing`, true);
   } catch (_) {
     log('WARN: unexpected preflight error; continuing', true);
   }
