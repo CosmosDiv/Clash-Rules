@@ -84,7 +84,8 @@ x-select-nodes: &select-nodes
 #   Risk   -> removed by IPQuality in normal production mode
 # Network identity (ISPIP / HostIP / UnkIP) remains node metadata and is not required by policy groups.
 x-filter-chain: &filter-chain '(?i)^US @Chain-[^ ｜]+(?: |｜|$)`(?i)^JP @Chain-[^ ｜]+(?: |｜|$)`(?i)^SG @Chain-[^ ｜]+(?: |｜|$)`(?i)^(?!(?:US|JP|SG) )(?:[A-Z]{2}|Multi|Unknown) @Chain-[^ ｜]+(?: |｜|$)'
-x-exclude-special: &exclude-special '(?i)^(?:[A-Z]{2}|Multi|Unknown) @(?:COS|Chain)-[^ ｜]+(?: |｜|$)'
+x-exclude-special: &exclude-special '(?i)(?:^(?:[A-Z]{2}|Multi|Unknown) @Chain-[^ ｜]+(?: |｜|$)|｜Egress(?:\s+\d+)?(?:\s+TLS)?$)'
+x-filter-egress: &filter-egress '(?i)｜Egress(?:\s+\d+)?(?:\s+TLS)?$'
 
 x-filter-hk-auto: &filter-hk-auto '(?i)^HK (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
 x-filter-hk-usable: &filter-hk-usable '(?i)^HK (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
@@ -284,7 +285,7 @@ proxy-groups:
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Speedtest.png"
 
   # ---------- Front / Chain ----------
-  # @COS-* is reserved for COS-only front pools; ordinary pools exclude both COS and Chain.
+  # @COS-* is reserved for COS-only front pools; ordinary pools include COS; Chain and Egress are excluded.
   # Chain landings keep dialer-proxy: Front Proxy from substore_Chain.js.
   - name: Front Proxy
     type: select
@@ -333,8 +334,13 @@ proxy-groups:
   # ---------- Sensitive Services ----------
   - name: AI
     type: select
-    proxies: [Chain, US Sensitive, JP Sensitive, TW Sensitive, SG Sensitive, Proxy]
+    proxies: [Chain, Egress Auto, US Sensitive, JP Sensitive, TW Sensitive, SG Sensitive, Proxy]
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/ChatGPT.png"
+  - name: Egress Auto
+    <<: *url-test
+    filter: *filter-egress
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
+
   - name: SIM Service
     type: select
     proxies: [Chain, US Sensitive, US, Proxy]
