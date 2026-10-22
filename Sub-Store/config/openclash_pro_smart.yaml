@@ -65,7 +65,8 @@ x-front-url-test: &front-url-test
   <<: *url-test
   tolerance: *front-test-tolerance
 
-# Smart Core only: ordinary automatic pools; front and AI trust pools keep URL-Test.
+# Smart Core only: automatic pools not shared by AI sensitive selectors.
+# US / JP / TW / SG Auto stay URL-Test because AI sensitive fallback reuses them.
 x-smart: &smart
   <<: *url-test
   type: smart
@@ -375,7 +376,7 @@ proxy-groups:
     proxies: [TW Auto, TW Manual]
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/TW.png"
   - name: TW Auto
-    <<: *smart
+    <<: *url-test
     filter: *filter-tw-auto
     exclude-filter: *exclude-special
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
@@ -390,7 +391,7 @@ proxy-groups:
     proxies: [SG Auto, SG Manual]
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/SG.png"
   - name: SG Auto
-    <<: *smart
+    <<: *url-test
     filter: *filter-sg-auto
     exclude-filter: *exclude-special
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
@@ -405,7 +406,7 @@ proxy-groups:
     proxies: [JP Auto, JP Manual]
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/JP.png"
   - name: JP Auto
-    <<: *smart
+    <<: *url-test
     filter: *filter-jp-auto
     exclude-filter: *exclude-special
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
@@ -435,7 +436,7 @@ proxy-groups:
     proxies: [US Auto, US Manual]
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/United_States.png"
   - name: US Auto
-    <<: *smart
+    <<: *url-test
     filter: *filter-us-auto
     exclude-filter: *exclude-special
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png"
