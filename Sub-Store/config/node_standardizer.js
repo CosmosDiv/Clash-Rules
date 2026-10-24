@@ -1,6 +1,11 @@
 // ============================================================================
-// Node Standardizer V2.1.5 for Sub-Store
+// Node Standardizer V2.1.6 for Sub-Store
 // ============================================================================
+//
+// V2.1.6 修订：
+//   - 新增可选“专用落地=机场原名关键词”人工映射，统一输出 Egress 用途标签。
+//   - 不改国家/家宽/质量自动识别；保留原名=0/1 下 Egress 均独立存在。
+//   - 补充参数、跨机场示例及 GeoIP / YAML 联动说明。
 //
 // V2.1.5 修订：
 //   - 地区识别引入“常见 ISO-2 强证据 / 非常见 ISO-2 弱证据”分层；AI / NF 不再作为裸地区代码识别。
@@ -43,7 +48,8 @@
 //   便于多机场组合，并交给 Mihomo 按标准标签构建策略组。
 //
 // 推荐流程：
-//   单机场原始订阅 -> 本脚本 -> 链式/前置代理（如需要） -> 多机场组合 -> Mihomo
+//   单机场原始订阅 -> 本脚本 -> 链式/前置代理（可选） -> 多机场组合
+//   -> IPQuality（Full + 国家纠偏）-> Mihomo / Surfing / OpenClash
 //
 // 最终名称：
 //   Region @Source Tag·Tag·Tag｜Tail
@@ -107,6 +113,8 @@
 //   0 = Tail 改为稳定短 ID
 //   保留原名 = 1
 //   保留原名 = 0
+//   默认 1。普通机场可显式设置 0，显示稳定短 ID；切回 1 必须从原始订阅重新生成。
+//   该开关只影响 ｜ 右侧 Tail，不改变 Egress 等标准身份标签。
 //
 // 关闭自动识别
 //   一般无需填写。可选：地区,网络,线路,能力,倍率,全部
@@ -136,6 +144,7 @@
 //
 //   家宽 = dd
 //   固定IP = dd
+//   专用落地 = Egress       // 手动指定原始关键词，不自动推断
 //
 // 倍率也遵循同一方向。若机场明确规定 X1 表示 1 倍：
 //
@@ -164,6 +173,7 @@
 //   中转 Relay           直连线路 DirectRt
 //
 // 【能力 / 用途】
+//   专用落地 Egress      人工指定的专用出口节点身份；不代表国家或家宽
 //   高速 Fast            稳定 Stable          高带宽 HighBW
 //   大流量 Bulk          流媒体 Stream         游戏 Gaming
 //
@@ -223,6 +233,31 @@
 //   保留原名 = 0
 //   输出示例：US @Dounai Bulk·1x｜#19ECAD
 //
+// H. Railgun 示例：
+//   保留原名 = 0  // 可随时切 1，但需从原始订阅重新生成才能恢复原名
+//   固定IP = Fixed
+//   忽略关键词 = TLS
+//   家宽 = Egress
+//   美国 = Egress
+//   排除 = Download
+//   香港 = APAC
+//   专用落地 = Egress
+//   Egress 1 TLS -> US @Railgun ResIP·Egress｜#稳定短ID
+//   US Fixed 1  -> US @Railgun StaticIP｜#稳定短ID（不添加 Egress）
+//
+// I. 跨机场用法（只在各自订阅填参数）：
+//   A: 专用落地 = Egress
+//   B: 专用落地 = US Home
+//   C: 专用落地 = 住宅落地|家庭出口
+//   关键词匹配遵循已有英文边界，Egress 匹配 Egress 1、不匹配 NonEgress 1。
+//   不配置专用落地则不会添加 Egress；ResIP/US 也不会自动添加。
+//
+// J. 联动与注意：
+//   Standardizer -> (可选 Chain) -> IPQuality -> YAML；不要颠倒脚本次序。
+//   IPQuality 国家级 GeoIP 只更新 Region，保留专用用途 Egress 标签。
+//   YAML 使用 ｜ 左侧 Egress 标签筛选，Egress Auto 仅收 US 且非 Chain。
+//   所有 Egress 从普通池排除；IPQuality 的 Risk/Dead 过滤仍然独立生效。
+//
 // ============================================================================
 // 七、使用原则
 // ============================================================================
@@ -234,6 +269,9 @@
 // 5. 推荐在单机场层运行脚本，再进行链式处理和多机场组合。
 // 6. V2 参数方向与 V1.x 不兼容；旧的“机场关键词 = 标准属性”写法不再支持。
 // 7. 不再使用 Standard / Std；未识别到特殊属性的节点无需额外标签。
+// 8. 系统 Key：机场、默认标签、排除、忽略关键词、保留原名、关闭自动识别、调试。
+//    其他 Key 只能是 TAG_DICTIONARY 中的人工属性或正倍率 1x/2x 等。
+// 9. 也可用 默认标签=专用落地 标记整个机场（仅全部节点均符合时才这样做）。
 //
 // ============================================================================
 // Developer Notes
@@ -245,6 +283,7 @@
 // - Multiplier 始终唯一；同层冲突不输出倍率。
 // - V2.1 不再输出 Standard / Std；未识别到其它属性时，属性区允许为空。
 // - V2 名称协议：Region @Source Tags｜Tail；“｜”必须始终存在。
+// - Egress 属于能力/用途标准标签，仅人工映射或默认标签可启用，不自动识别。
 // - V2 可读取 Raw / V1.x / V2 输入，保持重复执行幂等。
 // - 输入已是 V2 时，信任“｜”左侧 Canonical Metadata，不再用 Tail 反推标签。
 // - 不调用外部 GeoIP / ASN / IP 质量 API，基础分类保持确定性与 fail-soft。
@@ -253,7 +292,7 @@
 
 const NS_ARGS = (typeof $arguments === 'object' && $arguments) ? $arguments : {};
 
-const NS_VERSION = '2.1.5';
+const NS_VERSION = '2.1.6';
 
 const RESERVED_KEYS = new Set([
   '机场',
@@ -352,6 +391,7 @@ const TAG_DICTIONARY = Object.freeze({
   '大流量': 'BulkTraffic',
   '流媒体': 'Streaming',
   '游戏': 'Gaming',
+  '专用落地': 'Egress',
 });
 
 // Global region metadata used by automatic detection.
@@ -1248,7 +1288,7 @@ const NETWORK_TAG_ORDER = [
 const NETWORK_TAGS = new Set(NETWORK_TAG_ORDER);
 
 const CAPABILITY_TAG_ORDER = [
-  'Fast', 'Stable', 'HighBandwidth', 'BulkTraffic', 'Streaming', 'Gaming',
+  'Fast', 'Stable', 'HighBandwidth', 'BulkTraffic', 'Streaming', 'Gaming', 'Egress',
 ];
 const CAPABILITY_TAGS = new Set(CAPABILITY_TAG_ORDER);
 
@@ -1285,6 +1325,7 @@ const DISPLAY_MAP = Object.freeze({
   BulkTraffic: 'Bulk',
   Streaming: 'Stream',
   Gaming: 'Gaming',
+  Egress: 'Egress',
 });
 
 const DISPLAY_TO_CANONICAL = Object.freeze(

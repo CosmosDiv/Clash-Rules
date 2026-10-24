@@ -7,11 +7,12 @@
  *   License: AGPL-3.0
  *
  * Pipeline contract:
- *   Node Standardizer V2.1.5
+ *   Node Standardizer V2.1.6
  *     -> IPQuality V1.5.1
- *     -> Mihomo / OpenClash / Surfing V5.0.0 policy layer
+ *     -> Mihomo / OpenClash / Surfing V5.0.1 policy layer
  *
  * v1.5.1 Stable:
+ *   - 2026-10-24 补充配置场景说明（文档更新，不改检测与评分逻辑）。
  *   - 同步所有最终改名节点的直接依赖引用，包括仅有 Quality 标签变化、EIP 诊断模式与 GeoIP 校正；
  *   - 原始尾名和现有 Region @Source Tags｜Tail 协议不变，避免破坏 Egress 等尾名规则。
  *
@@ -100,6 +101,65 @@
  *   StaticIP / DynIP / DediIP / NativeIP / IPv6 不直接参与 Identity
  *
  * ------------------------------------------------------------
+ *
+ * ================= 全量参数指南 / 实际场景 =================
+ * 推荐执行：每机场原始订阅 -> Node Standardizer V2.1.6 -> 可选 Chain 注入
+ *   -> 聚合订阅 -> IPQuality -> YAML。Standardizer 先识别人工地区/用途，
+ *   IPQuality 在 Full/Provider 阶段依据真实出口 IP 和多源国家投票复核地区。
+ *   IPQuality 保留人工 Egress 标签；US + Egress 非 Chain 由 YAML 的 Egress Auto 使用。
+ *   ResIP 并不等同 Egress；原名显示开关只在 Standardizer 里配置。
+ *
+ * 常用参数：
+ *   诊断=0                 0/1；1 追加详细诊断标签；默认生产 Risk/失效过滤关闭，
+ *                          诊断=0 时 Risk 与确认失效过滤默认开启。
+ *   地理模式=校正          校正 / 观察 / 关闭；观察时只记录 would-correct。
+ *   地理最少同意=3         2..7 个独立来源且严格超过有效票数一半才采纳。
+ *   地理日志详情=0         0/1；1 打印 GEO NODE 出口 IP、国家来源与原因。
+ *   地理标签=0             0/1；1 给节点名添加 Geo-US-3of4 等诊断标签。
+ *   过滤Risk=(自动)        0/1；未填则诊断模式=0、生产模式=1。
+ *   检测Chain=0            0/1；默认不对 @Chain 节点检测；
+ *                          即使设 1，Geo 国家校正也会跳过 Chain。
+ *   过滤失效=(自动)        0/1；未填则诊断模式=0、生产模式=1，仅过滤 DeadConfirmed。
+ *   失效复检=1             0/1；未复检确认不会直接判 DeadConfirmed。
+ *   阶段=Full              Full / EIP / Provider；EIP 不执行 Geo 数据源投票；
+ *                          Provider 仅使用已有 EIP 缓存，不现场探测。
+ *   地址族=双栈            双栈 / IPv4 / IPv6。
+ *   主地址族=IPv4          IPv4 / IPv6；双栈优先选该族，失败回退另一族。
+ *   成功缓存小时=20        Provider 成功结果缓存时长；0 禁用缓存命中。
+ *   失败缓存小时=2         Provider 失败结果缓存时长；0 禁用缓存命中。
+ *   强制刷新=0             0/1；同时强制刷新出口与 Provider。
+ *   Provider强制刷新=0     0/1；仅强制 Provider 刷新。
+ *   出口缓存分钟=30        EIP 成功缓存时长。
+ *   出口失败缓存分钟=2     EIP 失败缓存时长。
+ *   出口强制刷新=0         0/1；仅强制 EIP 刷新。
+ *   出口并发=4             数值 1..12。
+ *   出口timeout=2500       毫秒 1200..15000。
+ *   出口恢复timeout=4500   毫秒，不小于出口timeout，最大 20000。
+ *   数据并发=2             Provider 并发，1..6。
+ *   数据timeout=10000      毫秒 5000..30000。
+ *   Provider直连回退=1     0/1；仅显式目标 IP API，DB-IP/self 严禁直连。
+ *   日志=1                 0/1；全部日志总开关。
+ *   日志详情=0             0/1；详细 EIP/Provider 失败统计。
+ *   proxycheck_key=(空)    可选私有密钥，不写入公开仓库。
+ *   http_meta_host=127.0.0.1
+ *   http_meta_port=9876
+ *   http_meta_protocol=http       根据 HTTP META 服务实际协议配置。
+ *   http_meta_authorization=(空)  可选鉴权，不写入公开仓库。
+ *   http_meta_start_delay=1800    毫秒 0..30000，启动后等待。
+ *   http_meta_proxy_timeout=15000 毫秒 6000..60000。
+ *
+ * 实例：
+ *   正常生产：阶段=Full & 地理模式=校正 & 诊断=0 & 地理标签=0
+ *   纠偏日志：地理日志详情=1 & 阶段=Full
+ *   仅观察：地理模式=观察 & 地理日志详情=1
+ *   故障排查：阶段=EIP & 诊断=1 & 日志详情=1 & 出口强制刷新=1
+ *   Geo 变化确认：出口强制刷新=1 & Provider强制刷新=1 & 地理日志详情=1
+ *   随时回退：地理模式=关闭（不关闭质量 / Dead 过滤）。
+ *   只校正国家/地区代码，不解析城市/省州；GeoIP 数据库结果不保证物理位置。
+ *   如果出口确实不在 US，校正后 Egress 会从 US Egress Auto 退出，
+ *   但仍作为 Egress 被普通节点池排除；无足够投票时保留原地区。
+ * ============================================================
+ *
  * 参数：
  *   诊断 = 0
  *   地理模式 = 校正      // 校正 / 观察 / 关闭；默认校正，阶段=EIP 不进行 GeoIP 判定
