@@ -1,5 +1,5 @@
 /**
- * Sub-Store IPQuality Quality + Network Identity v1.4.4 Stable
+ * Sub-Store IPQuality Quality + Network Identity + GeoIP v1.5.0 Stable
  * ------------------------------------------------------------
  * Upstream detection semantics baseline:
  *   xykt/IPQuality v2026-09-16
@@ -8,8 +8,14 @@
  *
  * Pipeline contract:
  *   Node Standardizer V2.1.5
- *     -> IPQuality V1.4.4
+ *     -> IPQuality V1.5.0
  *     -> Mihomo / OpenClash / Surfing V5.0.0 policy layer
+ *
+ * v1.5.0 Stable:
+ *   - GeoIP 国家级复核：复用已获得的真实 EIP 和 Provider 数据，不新增网络请求；
+ *   - 至少 3 个独立 Provider 同意且超过有效票半数时，校正 V2 名称开头的地区；
+ *   - 失败、无共识、重名、引用歧义时保持原地区，Chain 默认旁路；
+ *   - 自动校正有观察/关闭开关、票数门槛、详细日志与可选诊断标签。
  *
  * v1.4.4 Stable:
  *   - Network Identity 完成 ISPIP / HostIP / UnkIP 三分类收口：C/L/I/B 统一作为 ISP-side 证据；
@@ -92,6 +98,10 @@
  * ------------------------------------------------------------
  * 参数：
  *   诊断 = 0
+ *   地理模式 = 校正      // 校正 / 观察 / 关闭；默认校正，阶段=EIP 不进行 GeoIP 判定
+ *   地理最少同意 = 3    // 最少独立 Provider 票数，2-7；同时要求超过有效票半数
+ *   地理日志详情 = 0   // 1=逐节点输出 IP、来源国家与校正/保留原因
+ *   地理标签 = 0       // 1=在名称中增加 Geo-国家-票数 诊断标签，默认不污染名称
  *   过滤Risk =              // 未填写：正式模式默认1，诊断模式默认0
  *   检测Chain = 0
  *   过滤失效 =            // 未填写：正式模式默认1，诊断模式默认0；仅过滤 DeadConfirmed
@@ -129,7 +139,7 @@
  *   http_meta_proxy_timeout = 15000
  */
 
-const IPQUALITY_VERSION = '1.4.4'
+const IPQUALITY_VERSION = '1.5.0'
 const UPSTREAM_VERSION = 'v2026-09-16'
 const UPSTREAM_COMMIT = '2384a67c756eb35231f5982b34731e522be3653e'
 
@@ -222,6 +232,10 @@ async function operator(proxies = [], targetPlatform, env = {}) {
 
   const diagnostic = isTruthy(args['诊断'])
   const detectChain = isTruthy(args['检测Chain'])
+  const geoMode = parseGeoMode(args['地理模式'])
+  const geoMinVotes = clampInt(args['地理最少同意'], 3, 2, 7)
+  const geoLogDetails = isTruthy(args['地理日志详情'])
+  const geoNameTags = isTruthy(args['地理标签'])
   const hasFilterDeadArg = Object.prototype.hasOwnProperty.call(args, '过滤失效')
   const filterDead = hasFilterDeadArg ? isTruthy(args['过滤失效']) : !diagnostic
   const deadRecheck = Object.prototype.hasOwnProperty.call(args, '失效复检')
@@ -252,6 +266,7 @@ async function operator(proxies = [], targetPlatform, env = {}) {
   const riskIndices = new Set()
   const deadIndices = new Set()
   const sessions = []
+  const geoDecisions = new Map()
 
   let chainBypass = 0
   let unsupported = 0
@@ -327,7 +342,8 @@ async function operator(proxies = [], targetPlatform, env = {}) {
     `stage=${stageMode} family=${familyMode.label} primary=${primaryPreference === 6 ? 'IPv6' : 'IPv4'} ` +
     `input=${proxies.length} detect=${internal.length} chain-bypass=${chainBypass} unsupported=${unsupported} ` +
     `dead-filter=${filterDead ? 'on' : 'off'} dead-recheck=${deadRecheck ? 'on' : 'off'} ` +
-    `cache=${cacheAvailable ? 'available' : 'unavailable'}`
+    `cache=${cacheAvailable ? 'available' : 'unavailable'} ` +
+    `geo=${geoMode} geo-min=${geoMinVotes} geo-tags=${geoNameTags ? 'on' : 'off'}`
   )
 
   if (!internal.length) {
@@ -639,6 +655,17 @@ async function operator(proxies = [], targetPlatform, env = {}) {
       const r = checkMap.get(item.primaryIp) || {}
       const c = buildSimpleVerdict(r)
       const n = buildNetworkIdentity(r, item.originalName)
+      let geo = null
+      if (geoMode !== 'off' && !item.isChain) {
+        try {
+          geo = buildGeoConsensus(r, geoMinVotes)
+        } catch (err) {
+          // GeoIP is supplementary evidence and must never downgrade Quality or
+          // Network Identity if its parser encounters an unexpected response.
+          log.warn(`GEO | provider-parse-hold ip=${item.primaryIp} reason=${errorMessage(err)}`)
+        }
+      }
+      if (geo) geoDecisions.set(item.index, { ...geo, ip: item.primaryIp })
 
       let tags
       if (diagnostic) {
@@ -676,6 +703,10 @@ async function operator(proxies = [], targetPlatform, env = {}) {
         tags = [c.verdict, n.verdict]
       }
 
+      if (geoNameTags && geo?.country) {
+        tags.push(`Geo-${geo.country}-${geo.votes}of${geo.valid}`)
+      }
+
       output[item.index].name = addTempTags(item.originalName, tags.filter(Boolean))
       if (c.verdict === 'Risk' && !item.isChain) riskIndices.add(item.index)
     }
@@ -698,11 +729,21 @@ async function operator(proxies = [], targetPlatform, env = {}) {
   }
 
   const rawCounts = countFinalClassifications(output)
-  const finalOutput = output.filter((_, i) => {
+  let finalOutput = output.filter((_, i) => {
     if (filterRisk && riskIndices.has(i)) return false
     if (filterDead && deadIndices.has(i)) return false
     return true
   })
+  if (geoMode !== 'off') {
+    try {
+      finalOutput = applyGeoRegionCorrections({
+        output, finalOutput, input: proxies, geoDecisions,
+        mode: geoMode, minVotes: geoMinVotes, detail: geoLogDetails, log,
+      })
+    } catch (err) {
+      log.warn(`GEO | safety-hold reason=${errorMessage(err)}`)
+    }
+  }
   const counts = countFinalClassifications(finalOutput)
 
   if (diagnostic && (filterRisk || filterDead)) {
@@ -807,6 +848,206 @@ async function queryProviderSet(ctx) {
 
   r._fullMode = fullMode
   return r
+}
+
+function parseGeoMode(value) {
+  const s = String(value ?? '校正').trim().toLowerCase()
+  if (['关闭', 'off', '0', 'false', 'disable'].includes(s)) return 'off'
+  if (['观察', '观测', 'observe', 'dry-run', 'dryrun', 'check'].includes(s)) return 'observe'
+  return 'correct'
+}
+
+function normalizeGeoCountry(value) {
+  const raw = String(value ?? '').trim().toUpperCase()
+  const code = raw === 'GB' ? 'UK' : raw
+  // Region means a country/territory, not continent or ASN registration location.
+  if (!/^[A-Z]{2}$/.test(code) || ['EU', 'ZZ', 'XX', 'AP', 'UN'].includes(code)) return ''
+  return code
+}
+
+function firstGeoCountry(...values) {
+  for (const value of values) {
+    const code = normalizeGeoCountry(value)
+    if (code) return code
+  }
+  return ''
+}
+
+function geoProviderCountry(result, provider) {
+  if (result?.state !== 'json' || !result.data || typeof result.data !== 'object') return ''
+  const d = result.data
+  // Only the geolocation country field is eligible: ASN/company/registered-country
+  // may describe the owner of an IP rather than where this egress is located.
+  switch (provider) {
+    case 'II':
+      return firstGeoCountry(d?.data?.country_code, d?.data?.country, d?.country_code, d?.country)
+    case 'IR':
+      return firstGeoCountry(d?.location?.country?.code, d?.location?.country?.iso_code)
+    case 'IA':
+      return firstGeoCountry(d?.location?.country_code, d?.country_code, d?.location?.country?.code)
+    case 'I2':
+      return firstGeoCountry(d?.country_code, d?.country?.code, d?.countryCode)
+    case 'ID':
+      return firstGeoCountry(d?.country_code, d?.country?.code)
+    case 'DB':
+      return firstGeoCountry(d?.countryCode, d?.country_code, d?.location?.country?.code)
+    case 'MM':
+      return firstGeoCountry(d?.country?.iso_code, d?.country?.code, d?.data?.country?.iso_code)
+    default:
+      return ''
+  }
+}
+
+function buildGeoConsensus(results, minVotes) {
+  // Each vendor casts at most one ballot. Missing/invalid/unknown locations abstain.
+  const providers = [
+    ['II', results?.ii], ['IR', results?.ir], ['IA', results?.ia],
+    ['I2', results?.i2], ['ID', results?.id], ['DB', results?.db],
+    ['MM', results?.mm],
+  ]
+  const sources = []
+  const tally = new Map()
+  for (const [provider, result] of providers) {
+    const country = geoProviderCountry(result, provider)
+    if (!country) continue
+    sources.push([provider, country])
+    tally.set(country, (tally.get(country) || 0) + 1)
+  }
+
+  const sorted = [...tally.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+  const winner = sorted[0] || ['', 0]
+  const valid = sources.length
+  const consensus = winner[1] >= minVotes && winner[1] > valid / 2
+  return {
+    country: consensus ? winner[0] : '',
+    candidate: winner[0],
+    votes: winner[1],
+    valid,
+    sources,
+    reason: !valid ? 'NoGeoEvidence' : consensus ? 'Consensus' : 'LowConsensus',
+  }
+}
+
+function replaceGeoRegion(name, newRegion) {
+  const parsed = parseV21Name(name)
+  if (!parsed) return ''
+  return `${newRegion} ${parsed.source}${parsed.tags.length ? ` ${parsed.tags.join('·')}` : ''}｜${parsed.tail}`
+}
+
+function rewriteGeoReferences(node, renameMap) {
+  if (!renameMap.size) return
+  for (const field of ['underlying-proxy', 'dialer-proxy', 'detour', 'prev_hop']) {
+    if (typeof node[field] === 'string' && renameMap.has(node[field])) {
+      node[field] = renameMap.get(node[field])
+    }
+  }
+  if (typeof node.chain === 'string' && renameMap.has(node.chain)) {
+    node.chain = renameMap.get(node.chain)
+  } else if (Array.isArray(node.chain)) {
+    node.chain = node.chain.map(x => typeof x === 'string' && renameMap.has(x) ? renameMap.get(x) : x)
+  }
+}
+
+function applyGeoRegionCorrections(ctx) {
+  const { output, finalOutput, input, geoDecisions, mode, detail, log } = ctx
+  const inputNames = new Map()
+  for (const node of input) {
+    const name = String(node?.name || '')
+    inputNames.set(name, (inputNames.get(name) || 0) + 1)
+  }
+  const outputIndices = new Map(output.map((node, index) => [node, index]))
+  const entries = finalOutput.map(node => {
+    const index = outputIndices.get(node)
+    const geo = geoDecisions.get(index)
+    const oldName = String(node?.name || '')
+    const originalName = String(input[index]?.name || '')
+    const parsed = parseV21Name(oldName)
+    const claimed = parsed?.region || ''
+    const proposed = geo?.country && parsed && !isChainNodeName(oldName) &&
+      inputNames.get(originalName) === 1 && claimed !== geo.country
+      ? replaceGeoRegion(oldName, geo.country) : ''
+    return { index, node, geo, claimed, oldName, originalName, proposed, nextName: proposed || oldName, collision: false }
+  })
+
+  if (mode === 'correct') {
+    // Global collision guard: do not change any name if the proposed set would
+    // duplicate a surviving node. Repeat because reverting one proposal can
+    // reveal another collision. Never append unstable order-based suffixes.
+    for (let pass = 0; pass < entries.length; pass++) {
+      const groups = new Map()
+      for (const e of entries) {
+        if (!groups.has(e.nextName)) groups.set(e.nextName, [])
+        groups.get(e.nextName).push(e)
+      }
+      let reverted = false
+      for (const group of groups.values()) {
+        if (group.length < 2) continue
+        for (const e of group) {
+          if (e.proposed && e.nextName !== e.oldName) {
+            e.nextName = e.oldName
+            e.collision = true
+            reverted = true
+          }
+        }
+      }
+      if (!reverted) break
+    }
+  }
+
+  const renameMap = new Map()
+  let checked = 0, consensus = 0, matched = 0, corrected = 0, pending = 0, collision = 0
+  for (const e of entries) {
+    if (!e.geo) continue
+    checked++
+    if (e.geo.country) {
+      consensus++
+      if (e.claimed === e.geo.country) matched++
+    }
+    if (e.collision) collision++
+    if (e.proposed) {
+      if (mode === 'correct' && e.nextName !== e.oldName) {
+        renameMap.set(e.originalName, e.nextName)
+        // A newly tagged name may coincide with another node's original name.
+        // Never shadow an original reference with that secondary alias.
+        if (e.oldName !== e.originalName && !inputNames.has(e.oldName)) {
+          renameMap.set(e.oldName, e.nextName)
+        }
+        corrected++
+      } else if (mode === 'observe') pending++
+    }
+    if (detail || (mode === 'correct' && e.nextName !== e.oldName) || e.collision) {
+      const evidence = e.geo.sources.map(([provider, country]) => `${provider}:${country}`).join(',') || '-'
+      const outcome = e.collision ? 'collision-hold'
+        : mode === 'observe' && e.proposed ? 'would-correct'
+        : mode === 'correct' && e.nextName !== e.oldName ? 'corrected'
+        : e.geo.country === e.claimed ? 'matched'
+        : e.geo.country ? 'hold' : e.geo.reason
+      log.info(
+        `GEO NODE | node=${eolSafe(e.originalName)} eip=${e.geo.ip} ` +
+        `claimed=${e.claimed || '-'} consensus=${e.geo.country || '-'} ` +
+        `votes=${e.geo.votes}/${e.geo.valid} providers=${evidence} result=${outcome}`
+      )
+    }
+  }
+
+  // Apply only after the entire batch has passed the uniqueness check.
+  if (mode === 'correct' && renameMap.size) {
+    for (const e of entries) {
+      if (e.nextName !== e.oldName) e.node.name = e.nextName
+    }
+    for (const e of entries) rewriteGeoReferences(e.node, renameMap)
+  }
+
+  log.info(
+    `GEO RESULT | mode=${mode} checked=${checked} consensus=${consensus} ` +
+    `matched=${matched} corrected=${corrected} would-correct=${pending} ` +
+    `collision-hold=${collision} unresolved=${checked - consensus}`
+  )
+  return finalOutput
+}
+
+function eolSafe(value) {
+  return String(value || '').replace(/[\r\n\t]+/g, ' ').slice(0, 180)
 }
 
 function parseStageMode(value) {
@@ -3496,6 +3737,7 @@ function addTempTags(name, newTags) {
 }
 
 function isIpQualityManagedTag(t) {
+  if (/^Geo-[A-Z]{2}-\d+of\d+$/.test(String(t || ''))) return true
   return /^(?:EIP-|EIP4-|EIP6-|EIP4Fail-|EIP6Fail-|EIPDual$|EIP4Only$|EIP6Only$|EIPMissing$|Primary4$|Primary6$|DeadCandidate$|DeadConfirmed$|DeadRecovered$|IPQStageErr$|Trust$|Normal$|Risk$|Unrated$|ConsumerIP$|BusinessIP$|HostingIP$|NetUnrated$|ISPIP$|ConsIP$|BusiIP$|HostIP$|UnkIP$|Net-C\d+-L\d+-I\d+-B\d+-H\d+-X\d+$|NetSrc(?:0|-.*)$|NetWhy(?:0|-.*)$|Q\d+\/7$|Clean\d+\/7$|Caution\d+$|RiskSrc\d+$|Score\d+\/7$|Core\d+\/(?:4|5)$|Valid\d+(?:\/10)?$|Full$|Lite$|MM-(?:Full|Lite|OK.*|H\d+.*|E.*|Skip.*)$|Hard(?:0|-.+)$|Strong(?:0|-.+)$|RiskReason(?:0|-.+)$|CautionReason(?:0|-.+)$|VPN\d+\/\d+$|Proxy\d+\/\d+$|PC-|II-|SC-|IR-|IA-|AB-|I2-|DB-|ID-|IQ-|TrustedIP$|RiskIP$|AbuseIP$|VPNIP$|ProxyIP$|TorIP$|DCIP$|ISPNet$|IPQS-R\d+$|VPN$|Proxy$|Tor$|Abuse$|CPBase|CPCurl|PCScoreErr$|IPProbe(?:MetaErr|ExitErr|Unsup)$|IPScoreErr$|IPQ(?:MetaErr|ApiErr|Unsup)$)/.test(String(t || ''))
 }
 
