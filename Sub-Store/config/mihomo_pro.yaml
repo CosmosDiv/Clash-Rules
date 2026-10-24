@@ -1,9 +1,9 @@
 # ============================================================================
-# Mihomo Bare-Core Quality / Identity Routing V5.0.0
+# Mihomo Bare-Core Quality / Identity Routing V5.0.1
 # Target: Mihomo v1.19.30+
 #
-# Ordinary nodes: Node Standardizer V2.1.5 -> IPQuality V1.4.4 -> Mihomo
-# Chain nodes:    Node Standardizer V2.1.5 -> IPQuality V1.4.4 (auto bypass) -> Mihomo
+# Ordinary nodes: Node Standardizer V2.1.6 -> IPQuality V1.5.1 -> Mihomo
+# Chain nodes:    Node Standardizer V2.1.6 -> IPQuality V1.5.1 (auto bypass) -> Mihomo
 #
 # Policy architecture:
 #   Ordinary region groups are Select -> Auto / Manual; Auto uses Trust + Normal URL-Test.
@@ -75,15 +75,17 @@ x-select-nodes: &select-nodes
   empty-fallback: REJECT
 
 # ==================== 02. Node Filters ====================
-# IPQuality V1.4.4 contract:
+# IPQuality V1.5.1 contract:
 #   Auto   -> Trust | Normal
 #   Usable -> Trust | Normal | Unrated (Manual / Front)
 #   Trust  -> multi-source clean reputation; independent from ISPIP / HostIP identity
 #   Risk   -> removed by IPQuality in normal production mode
 # Network identity (ISPIP / HostIP / UnkIP) remains node metadata and is not required by policy groups.
 x-filter-chain: &filter-chain '(?i)^US @Chain-[^ ｜]+(?: |｜|$)`(?i)^JP @Chain-[^ ｜]+(?: |｜|$)`(?i)^SG @Chain-[^ ｜]+(?: |｜|$)`(?i)^(?!(?:US|JP|SG) )(?:[A-Z]{2}|Multi|Unknown) @Chain-[^ ｜]+(?: |｜|$)'
-x-exclude-special: &exclude-special '(?i)(?:^(?:[A-Z]{2}|Multi|Unknown) @Chain-[^ ｜]+(?: |｜|$)|｜Egress(?:\s+\d+)?(?:\s+TLS)?$)'
-x-filter-egress: &filter-egress '(?i)｜Egress(?:\s+\d+)?(?:\s+TLS)?$'
+# Egress is an explicit Standardizer tag before ｜; ordinary pools exclude all regions of Egress.
+x-exclude-special: &exclude-special '(?i)(?:^(?:[A-Z]{2}|Multi|Unknown) @Chain-[^ ｜]+(?: |｜|$)|^(?:[A-Z]{2}|Multi|Unknown) @[^ ｜]+(?=[^｜]*[ ·]Egress(?:[·｜]|$)))'
+# Egress Auto: US + explicit Egress tag, excluding @Chain-; no Quality rating threshold or old Tail fallback.
+x-filter-egress: &filter-egress '(?i)^US @(?!Chain-)[^ ｜]+(?=[^｜]*[ ·]Egress(?:[·｜]|$)).*$'
 
 x-filter-hk-auto: &filter-hk-auto '(?i)^HK (?=[^｜]*[ ·](?:Trust|Normal)(?:[·｜]|$)).*$'
 x-filter-hk-usable: &filter-hk-usable '(?i)^HK (?=[^｜]*[ ·](?:Trust|Normal|Unrated)(?:[·｜]|$)).*$'
