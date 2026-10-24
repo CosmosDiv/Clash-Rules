@@ -95,6 +95,34 @@ test('observe/off switches and optional Geo tags', async () => {
   assert.doesNotMatch(clean[0].name, /Geo-/)
 })
 
+test('quality-tag-only rename keeps dependent node references valid even with Geo off', async () => {
+  const { ctx } = setup({ 地理模式: '关闭' })
+  const target = 'US @COS ResIP｜被引用节点'
+  const output = await ctx.operator([
+    node(target, 'reference-target.example'),
+    node('US @COS ResIP｜依赖节点', 'reference-consumer.example', {
+      'underlying-proxy': target,
+      detour: target,
+      chain: [target],
+    }),
+  ])
+  assert.match(output[0].name, /^US @COS Unrated·UnkIP·ResIP｜被引用节点$/)
+  assert.equal(output[1]['underlying-proxy'], output[0].name)
+  assert.equal(output[1].detour, output[0].name)
+  assert.equal(output[1].chain[0], output[0].name)
+})
+
+test('EIP-only diagnostic rename also synchronizes references', async () => {
+  const { ctx } = setup({ 阶段: 'EIP', 诊断: 1 })
+  const oldName = 'US @COS ResIP｜出口检测目标'
+  const result = await ctx.operator([
+    node(oldName, 'eip-target.example'),
+    node('US @COS ResIP｜出口检测依赖', 'eip-dependent.example', { 'prev_hop': oldName }),
+  ])
+  assert.match(result[0].name, /EIP4-203\.0\.113\.10/)
+  assert.equal(result[1].prev_hop, result[0].name)
+})
+
 test('global name collision fails closed', async () => {
   const nodes = [node('JP @COS ResIP｜相同', 'a.example'), node('US @COS ResIP｜相同', 'b.example')]
   const { ctx, logs } = setup()
