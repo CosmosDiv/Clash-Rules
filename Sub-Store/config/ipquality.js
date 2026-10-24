@@ -1,5 +1,5 @@
 /**
- * Sub-Store IPQuality Quality + Network Identity + GeoIP v1.5.0 Stable
+ * Sub-Store IPQuality Quality + Network Identity + GeoIP v1.5.1 Stable
  * ------------------------------------------------------------
  * Upstream detection semantics baseline:
  *   xykt/IPQuality v2026-09-16
@@ -8,8 +8,12 @@
  *
  * Pipeline contract:
  *   Node Standardizer V2.1.5
- *     -> IPQuality V1.5.0
+ *     -> IPQuality V1.5.1
  *     -> Mihomo / OpenClash / Surfing V5.0.0 policy layer
+ *
+ * v1.5.1 Stable:
+ *   - 同步所有最终改名节点的直接依赖引用，包括仅有 Quality 标签变化、EIP 诊断模式与 GeoIP 校正；
+ *   - 原始尾名和现有 Region @Source Tags｜Tail 协议不变，避免破坏 Egress 等尾名规则。
  *
  * v1.5.0 Stable:
  *   - GeoIP 国家级复核：复用已获得的真实 EIP 和 Provider 数据，不新增网络请求；
@@ -139,7 +143,7 @@
  *   http_meta_proxy_timeout = 15000
  */
 
-const IPQUALITY_VERSION = '1.5.0'
+const IPQUALITY_VERSION = '1.5.1'
 const UPSTREAM_VERSION = 'v2026-09-16'
 const UPSTREAM_COMMIT = '2384a67c756eb35231f5982b34731e522be3653e'
 
@@ -347,6 +351,11 @@ async function operator(proxies = [], targetPlatform, env = {}) {
   )
 
   if (!internal.length) {
+    try {
+      synchronizeFinalNodeReferences(proxies, output, output, log)
+    } catch (err) {
+      log.warn(`NAME REFERENCES | safety-hold reason=${errorMessage(err)}`)
+    }
     log.info(`DONE | output=${output.length} duration=${formatDuration(Date.now() - startedAt)}`)
     return output
   }
@@ -539,6 +548,11 @@ async function operator(proxies = [], targetPlatform, env = {}) {
         }
       }
       const eipOutput = filterDead ? output.filter((_, i) => !deadIndices.has(i)) : output
+      try {
+        synchronizeFinalNodeReferences(proxies, output, eipOutput, log)
+      } catch (err) {
+        log.warn(`NAME REFERENCES | safety-hold reason=${errorMessage(err)}`)
+      }
       log.info(
         `DEAD FILTER | enabled=${filterDead ? 'on' : 'off'} confirmed=${deadIndices.size} ` +
         `removed=${filterDead ? deadIndices.size : 0}`
@@ -744,6 +758,13 @@ async function operator(proxies = [], targetPlatform, env = {}) {
       log.warn(`GEO | safety-hold reason=${errorMessage(err)}`)
     }
   }
+  try {
+    // IPQuality changes node names even without GeoIP. Keep references to those
+    // names valid after every tagging and optional region-correction pass.
+    synchronizeFinalNodeReferences(proxies, output, finalOutput, log)
+  } catch (err) {
+    log.warn(`NAME REFERENCES | safety-hold reason=${errorMessage(err)}`)
+  }
   const counts = countFinalClassifications(finalOutput)
 
   if (diagnostic && (filterRisk || filterDead)) {
@@ -934,7 +955,7 @@ function replaceGeoRegion(name, newRegion) {
   return `${newRegion} ${parsed.source}${parsed.tags.length ? ` ${parsed.tags.join('·')}` : ''}｜${parsed.tail}`
 }
 
-function rewriteGeoReferences(node, renameMap) {
+function rewriteNodeReferences(node, renameMap) {
   if (!renameMap.size) return
   for (const field of ['underlying-proxy', 'dialer-proxy', 'detour', 'prev_hop']) {
     if (typeof node[field] === 'string' && renameMap.has(node[field])) {
@@ -946,6 +967,36 @@ function rewriteGeoReferences(node, renameMap) {
   } else if (Array.isArray(node.chain)) {
     node.chain = node.chain.map(x => typeof x === 'string' && renameMap.has(x) ? renameMap.get(x) : x)
   }
+}
+
+function synchronizeFinalNodeReferences(input, output, finalOutput, log) {
+  const originalCounts = new Map()
+  for (const node of input) {
+    const name = String(node?.name || '')
+    originalCounts.set(name, (originalCounts.get(name) || 0) + 1)
+  }
+  const finalCounts = new Map()
+  for (const node of finalOutput) {
+    const name = String(node?.name || '')
+    finalCounts.set(name, (finalCounts.get(name) || 0) + 1)
+  }
+  const indices = new Map(output.map((node, index) => [node, index]))
+  const renameMap = new Map()
+  let ambiguous = 0
+  for (const node of finalOutput) {
+    const index = indices.get(node)
+    const original = String(input[index]?.name || '')
+    const renamed = String(node?.name || '')
+    if (!original || !renamed || original === renamed) continue
+    if (originalCounts.get(original) !== 1 || finalCounts.get(renamed) !== 1) {
+      ambiguous++
+      continue
+    }
+    renameMap.set(original, renamed)
+  }
+  for (const node of finalOutput) rewriteNodeReferences(node, renameMap)
+  if (ambiguous) log.warn(`NAME REFERENCES | ambiguous=${ambiguous} safety=hold`)
+  if (renameMap.size) log.info(`NAME REFERENCES | synchronized=${renameMap.size}`)
 }
 
 function applyGeoRegionCorrections(ctx) {
@@ -994,7 +1045,6 @@ function applyGeoRegionCorrections(ctx) {
     }
   }
 
-  const renameMap = new Map()
   let checked = 0, consensus = 0, matched = 0, corrected = 0, pending = 0, collision = 0
   for (const e of entries) {
     if (!e.geo) continue
@@ -1006,12 +1056,6 @@ function applyGeoRegionCorrections(ctx) {
     if (e.collision) collision++
     if (e.proposed) {
       if (mode === 'correct' && e.nextName !== e.oldName) {
-        renameMap.set(e.originalName, e.nextName)
-        // A newly tagged name may coincide with another node's original name.
-        // Never shadow an original reference with that secondary alias.
-        if (e.oldName !== e.originalName && !inputNames.has(e.oldName)) {
-          renameMap.set(e.oldName, e.nextName)
-        }
         corrected++
       } else if (mode === 'observe') pending++
     }
@@ -1031,11 +1075,12 @@ function applyGeoRegionCorrections(ctx) {
   }
 
   // Apply only after the entire batch has passed the uniqueness check.
-  if (mode === 'correct' && renameMap.size) {
+  if (mode === 'correct' && corrected) {
     for (const e of entries) {
       if (e.nextName !== e.oldName) e.node.name = e.nextName
     }
-    for (const e of entries) rewriteGeoReferences(e.node, renameMap)
+    // References are rewritten once, after both normal quality tagging and
+    // GeoIP corrections, by synchronizeFinalNodeReferences().
   }
 
   log.info(
