@@ -1,5 +1,5 @@
 /**
- * Sub-Store IPQuality Quality + Network Identity + GeoIP v1.5.1 Stable
+ * Sub-Store IPQuality Quality + Network Identity + GeoIP v1.5.2 Stable
  * ------------------------------------------------------------
  * Upstream detection semantics baseline:
  *   xykt/IPQuality v2026-09-16
@@ -8,8 +8,14 @@
  *
  * Pipeline contract:
  *   Node Standardizer V2.1.6
- *     -> IPQuality V1.5.1
+ *     -> IPQuality V1.5.2
  *     -> Mihomo / OpenClash / Surfing V5.0.1 policy layer
+ *
+ * v1.5.2 Stable:
+ *   - GeoIP 公开来源最低同意票数默认从 3 改为 2，仍要求有效公开票严格多数。
+ *   - 机场原始名称只用于比对与纠偏，绝不计入公开 GeoIP 投票。
+ *   - 保留显式 地理最少同意=3 等 2..7 配置；删除参数恢复默认 2。
+ *   - EIP、Provider、Quality、Dead、Risk、Chain、Cache 运行逻辑均不改变。
  *
  * v1.5.1 Stable:
  *   - 2026-10-24 补充配置场景说明（文档更新，不改检测与评分逻辑）。
@@ -113,7 +119,7 @@
  *   诊断=0                 0/1；1 追加详细诊断标签；默认生产 Risk/失效过滤关闭，
  *                          诊断=0 时 Risk 与确认失效过滤默认开启。
  *   地理模式=校正          校正 / 观察 / 关闭；观察时只记录 would-correct。
- *   地理最少同意=3         默认 3，可显式配置 2..7；至少两家独立公开服务一致，
+ *   地理最少同意=2         默认 2，可显式配置 2..7；至少两家独立公开服务一致，
  *                          同时需严格超过所有有效公开票数的一半；原始名称不计票。
  *   地理日志详情=0         0/1；1 打印 GEO NODE 出口 IP、国家来源与原因。
  *   地理标签=0             0/1；1 给节点名添加 Geo-US-3of4 等诊断标签。
@@ -151,11 +157,11 @@
  *
  * 实例：
  *   正常生产：阶段=Full & 地理模式=校正 & 诊断=0 & 地理标签=0
- *   两票严格多数方案：在脚本 URL 参数中添加 地理最少同意=2。
+ *   两票严格多数方案：V1.5.2 起默认生效，不再需要 URL 添加 地理最少同意=2。
  *     HK vs CN 两家各 1 票：不纠偏；HK 2 vs CN 1：可采纳 HK；
  *     APAC 先 Unknown、US 2 vs TW 1：可纠偏 US；Unknown + TW 2：可补 TW。
  *     机场名称仅用来判断是否与公开共识匹配，不是额外一票。
- *     如需恢复旧的更保守门槛，删除该 URL 参数，即回到默认 3。
+ *     如需恢复旧的更保守门槛，显式设置 地理最少同意=3；删除参数恢复默认 2。
  *   纠偏日志：地理日志详情=1 & 阶段=Full
  *   仅观察：地理模式=观察 & 地理日志详情=1
  *   故障排查：阶段=EIP & 诊断=1 & 日志详情=1 & 出口强制刷新=1
@@ -169,7 +175,7 @@
  * 参数：
  *   诊断 = 0
  *   地理模式 = 校正      // 校正 / 观察 / 关闭；默认校正，阶段=EIP 不进行 GeoIP 判定
- *   地理最少同意 = 3    // 最少独立 Provider 票数，2-7；同时要求超过有效票半数
+ *   地理最少同意 = 2    // 默认 2，可选 2-7；同时要求严格超过有效公开票半数
  *   地理日志详情 = 0   // 1=逐节点输出 IP、来源国家与校正/保留原因
  *   地理标签 = 0       // 1=在名称中增加 Geo-国家-票数 诊断标签，默认不污染名称
  *   过滤Risk =              // 未填写：正式模式默认1，诊断模式默认0
@@ -209,7 +215,7 @@
  *   http_meta_proxy_timeout = 15000
  */
 
-const IPQUALITY_VERSION = '1.5.1'
+const IPQUALITY_VERSION = '1.5.2'
 const UPSTREAM_VERSION = 'v2026-09-16'
 const UPSTREAM_COMMIT = '2384a67c756eb35231f5982b34731e522be3653e'
 
@@ -303,7 +309,7 @@ async function operator(proxies = [], targetPlatform, env = {}) {
   const diagnostic = isTruthy(args['诊断'])
   const detectChain = isTruthy(args['检测Chain'])
   const geoMode = parseGeoMode(args['地理模式'])
-  const geoMinVotes = clampInt(args['地理最少同意'], 3, 2, 7)
+  const geoMinVotes = clampInt(args['地理最少同意'], 2, 2, 7)
   const geoLogDetails = isTruthy(args['地理日志详情'])
   const geoNameTags = isTruthy(args['地理标签'])
   const hasFilterDeadArg = Object.prototype.hasOwnProperty.call(args, '过滤失效')
