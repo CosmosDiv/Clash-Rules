@@ -57,6 +57,41 @@ test('independent vote threshold and strict majority', () => {
   assert.equal(ctx.buildGeoConsensus(fixture(['EU', 'EU', 'EU']), 3).country, '')
 })
 
+
+test('optional min=2: public GeoIP strict majority, name never supplies an extra vote', async () => {
+  const twoOfThree = fixture(['HK', 'CN', '', '', '', 'HK'])
+  const winner = setup({ 地理最少同意: 2 }, twoOfThree)
+  const hk = await winner.ctx.operator([node('HK @Test｜香港', 'hk-2of3.example')])
+  assert.match(hk[0].name, /^HK @Test /)
+  assert.ok(winner.logs.some(line => line.includes('geo-min=2')))
+  assert.ok(winner.logs.some(line => line.includes('unresolved=0')))
+
+  const apac = await setup({ 地理最少同意: 2 }, fixture(['US', 'US', '', '', '', 'TW']))
+    .ctx.operator([node('Unknown @Railgun｜APAC 3', 'apac-new.example')])
+  assert.match(apac[0].name, /^US @Railgun /)
+
+  const twoOfTwo = await setup({ 地理最少同意: 2 }, fixture(['TW', 'TW']))
+    .ctx.operator([node('Unknown @Railgun｜APAC 1', 'apac-tw.example')])
+  assert.match(twoOfTwo[0].name, /^TW @Railgun /)
+
+  const tied = await setup({ 地理最少同意: 2 }, fixture(['HK', 'CN']))
+    .ctx.operator([node('Unknown @Railgun｜APAC 2', 'apac-hkcn.example')])
+  assert.match(tied[0].name, /^Unknown @Railgun /)
+
+  const twoAgainstTwo = setup({ 地理最少同意: 2 }, fixture(['HK', 'CN', 'HK', 'CN']))
+  const tieWithName = await twoAgainstTwo.ctx.operator([node('HK @Test｜香港', 'hk-tie.example')])
+  assert.match(tieWithName[0].name, /^HK @Test /)
+  assert.ok(twoAgainstTwo.logs.some(line => line.includes('unresolved=1')))
+
+  const oldThreshold = await setup({}, fixture(['US', 'US', '', '', '', 'TW']))
+    .ctx.operator([node('Unknown @Railgun｜APAC 3', 'apac-default.example')])
+  assert.match(oldThreshold[0].name, /^Unknown @Railgun /)
+
+  const chain = await setup({ 地理最少同意: 2 }, fixture(['JP', 'JP']))
+    .ctx.operator([node('US @Chain-USHome ResIP｜#AABBCC', 'chain-proxy.example')])
+  assert.equal(chain[0].name, 'US @Chain-USHome ResIP｜#AABBCC')
+})
+
 test('only IP-location country and valid JSON count as evidence', () => {
   const { ctx } = setup()
   assert.equal(ctx.buildGeoConsensus({ ii: { state: 'json', data: { registered_country: 'US' } } }, 3).valid, 0)
