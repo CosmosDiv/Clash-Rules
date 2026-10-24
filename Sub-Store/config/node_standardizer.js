@@ -240,10 +240,13 @@
 //   家宽 = Egress
 //   美国 = Egress
 //   排除 = Download
-//   香港 = APAC
+//   // 不要设置 香港 = APAC；APAC 不是国家，保持 Unknown，交由 IPQuality 判断
 //   专用落地 = Egress
 //   Egress 1 TLS -> US @Railgun ResIP·Egress｜#稳定短ID
 //   US Fixed 1  -> US @Railgun StaticIP｜#稳定短ID（不添加 Egress）
+//   APAC 3      -> Unknown @Railgun｜#稳定短ID（不猜香港）
+//   IPQuality 使用 地理最少同意=2 且严格多数时可将 APAC 纠偏到实际出口国家。
+//   注意：人工机场标签与原地区只是比对依据，不作为公开 GeoIP 独立投票。
 //
 // I. 跨机场用法（只在各自订阅填参数）：
 //   A: 专用落地 = Egress
