@@ -20,7 +20,7 @@ for (const p of ['APAC','US','TW','JP','SG','Download','US Fixed','TW Fixed','Eg
     original.push({ name: p + ' ' + i + suffix, server: 'test' + original.length + '.example', port: 443, type: 'trojan' })
   }
 }
-const args = { '机场': 'Railgun', '固定IP': 'Fixed', '忽略关键词': 'TLS', '家宽': 'Egress', '美国': 'Egress', '排除': 'Download', '香港': 'APAC', '专用落地': 'Egress' }
+const args = { '机场': 'Railgun', '固定IP': 'Fixed', '忽略关键词': 'TLS', '家宽': 'Egress', '美国': 'Egress', '排除': 'Download', '专用落地': 'Egress' }
 const isEgress = name => /[ ·]Egress(?:[·｜]|$)/.test(name)
 function regexOf(s, key) {
   const line = s.split('\n').find(x => x.startsWith(key + ':'))
@@ -32,8 +32,10 @@ for (const keep of [0,1]) {
     const nodes = run(original.map(x => ({ ...x })), { ...args, 保留原名: keep })
     assert.equal(nodes.length, 48)
     assert.equal(nodes.filter(x => isEgress(x.name)).length, 6)
-    assert.equal(nodes.filter(x => x.name.startsWith('HK @Railgun')).length, 6)
+    assert.equal(nodes.filter(x => x.name.startsWith('Unknown @Railgun｜')).length, 6)
     assert.equal(nodes.filter(x => x.name.includes('StaticIP')).length, 12)
+    assert.equal(nodes.filter(x => x.name.startsWith('HK @Railgun')).length, 0)
+    assert.equal(nodes.filter(x => x.name.startsWith('US @Railgun ResIP·Egress｜')).length, 6)
     assert.equal(new Set(nodes.map(x => x.name)).size, nodes.length)
     assert.equal(nodes.filter(x => isEgress(x.name)).every(x => keep ? /｜Egress [1-3](?: TLS)?$/.test(x.name) : /｜#[0-9A-F]{6,8}$/.test(x.name)), true)
     if (!keep) {
