@@ -10,7 +10,7 @@
 #   A single global Fallback serves Proxy for ordered cross-region failover.
 #   Ordinary services use ordered Select groups and do not own Fallback groups.
 #   AI / SIM Service prefer Chain, then Trust-only sensitive region selectors.
-#   Front Proxy: COS US Auto (default) / COS Auto / US Front Auto / Proxy / Front Manual.
+#   Front Proxy: COS US Auto (default) / Mine / COS Auto / US Front Auto / Proxy / Front Manual.
 #   Direct Switch can be manually switched between DIRECT and Proxy.
 #   Automated URL-Test / Fallback groups are hidden; manually controllable Select groups remain visible.
 #   Fallback and URL-Test share one gstatic generate_204 probe target.
@@ -84,8 +84,9 @@ x-select-nodes: &select-nodes
 #   Risk   -> removed by IPQuality in normal production mode
 # Network identity (ISPIP / HostIP / UnkIP) remains node metadata and is not required by policy groups.
 x-filter-chain: &filter-chain '(?i)^(?:[A-Z]{2}|Multi|Unknown) @Chain-[^ ｜]+(?: |｜|$)'
+x-filter-mine: &filter-mine '(?i)^(?:[A-Z]{2}|Multi|Unknown) @Mine(?:-[^ ｜]+)?(?: |｜|$)'
 # Egress is an explicit Standardizer tag before ｜; ordinary pools exclude all regions of Egress.
-x-exclude-special: &exclude-special '(?i)(?:^(?:[A-Z]{2}|Multi|Unknown) @Chain-[^ ｜]+(?: |｜|$)|^(?:[A-Z]{2}|Multi|Unknown) @[^ ｜]+(?=[^｜]*[ ·]Egress(?:[·｜]|$)))'
+x-exclude-special: &exclude-special '(?i)(?:^(?:[A-Z]{2}|Multi|Unknown) @(?:Chain-[^ ｜]+|Mine(?:-[^ ｜]+)?)(?: |｜|$)|^(?:[A-Z]{2}|Multi|Unknown) @[^ ｜]+(?=[^｜]*[ ·]Egress(?:[·｜]|$)))'
 # Egress Auto: US + explicit Egress tag, excluding @Chain-; no Quality rating threshold or old Tail fallback.
 x-filter-egress: &filter-egress '(?i)^US @(?!Chain-)[^ ｜]+(?=[^｜]*[ ·]Egress(?:[·｜]|$)).*$'
 
@@ -184,7 +185,7 @@ experimental:
 external-ui-url: "https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip"
 external-ui: "./webroot/Zash/"
 external-controller: 0.0.0.0:9090
-secret: yyds666
+secret: ""
 
 profile:
   store-selected: true
@@ -254,7 +255,7 @@ proxy-groups:
   # ---------- Core ----------
   - name: Proxy
     type: select
-    proxies: [Fallback, HK, TW, SG, JP, KR, US, CA, AU, UK, EU, All Nodes]
+    proxies: [Fallback, HK, TW, SG, JP, KR, US, CA, AU, UK, EU, All Nodes, DIRECT]
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"
   - name: Fallback
     <<: *fallback
@@ -278,11 +279,17 @@ proxy-groups:
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Speedtest.png"
 
   # ---------- Front / Chain ----------
-  # @COS-* is reserved for COS-only front pools; ordinary pools include COS; Chain and Egress are excluded.
+  # @COS-* is reserved for COS-only front pools; ordinary pools include COS; Chain, Mine and Egress are excluded.
   # Chain landings keep dialer-proxy: Front Proxy from substore_Chain.js.
   - name: Front Proxy
     type: select
-    proxies: [COS US Auto, COS Auto, US Front Auto, Proxy, Front Manual]
+    proxies: [COS US Auto, Mine, COS Auto, US Front Auto, Proxy, Front Manual]
+    icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"
+
+  # @Mine / @Mine-* are private front-only nodes from Node Standardizer's 机场 parameter.
+  - name: Mine
+    <<: *select-nodes
+    filter: *filter-mine
     icon: "https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"
 
   - name: COS US Auto
